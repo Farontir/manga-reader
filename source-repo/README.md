@@ -9,6 +9,7 @@
 4. Coller l'URL du dossier voulu dans l'onglet Sources de l'app.
 
 Le fichier `manifest.json` contient le SHA-256 du bundle. L'app vérifie cette empreinte avant installation. Les extensions n'ont pas accès à la base SQLite ; leurs requêtes passent par le bridge `app.fetch` limité aux domaines déclarés.
+La source Pepper&Carrot publie les notices de ses dépendances HTML dans `peppercarrot/THIRD_PARTY_LICENSES.txt`.
 
 Avec GitHub Pages, une source est installable depuis `https://UTILISATEUR.github.io/DEPOT/mangadex/`, `.../komga-demo/` ou `.../peppercarrot/`. L'adresse exacte dépend du compte et du nom du dépôt GitHub ; aucun dépôt distant n'est configuré dans cette copie locale.
 
