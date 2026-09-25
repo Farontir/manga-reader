@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 
 import { listInstalledSources, setSourceHealth, type InstalledSource } from '../../db';
+import { matchSourceToLibrary } from '../../services/librarySources';
 import { inspectSourceHealth } from '../../sources/api';
-import { uninstallSource } from '../../sources/install';
+import { installSource, uninstallSource } from '../../sources/install';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { Screen } from '../../ui/components/Screen';
@@ -24,6 +25,7 @@ export default function SourcesScreen() {
   const router = useRouter();
   const [sources, setSources] = useState<InstalledSource[]>([]);
   const [checking, setChecking] = useState(false);
+  const [updating, setUpdating] = useState<string | null>(null);
   const reload = useCallback(() => {
     void listInstalledSources().then(setSources);
   }, []);
@@ -36,8 +38,32 @@ export default function SourcesScreen() {
         await setSourceHealth(source.id, await inspectSourceHealth(source));
       }
       reload();
+    } catch (reason) {
+      Alert.alert(
+        'Vérification impossible',
+        reason instanceof Error ? reason.message : String(reason),
+      );
     } finally {
       setChecking(false);
+    }
+  }
+
+  async function update(source: InstalledSource) {
+    setUpdating(source.id);
+    try {
+      const installed = await installSource(source.repoUrl);
+      const status = await inspectSourceHealth(installed);
+      await setSourceHealth(installed.id, status);
+      const matched = status === 'down' ? 0 : await matchSourceToLibrary(installed);
+      reload();
+      Alert.alert('Source mise à jour', `${installed.name} · ${matched} manga(s) relié(s).`);
+    } catch (reason) {
+      Alert.alert(
+        'Mise à jour impossible',
+        reason instanceof Error ? reason.message : String(reason),
+      );
+    } finally {
+      setUpdating(null);
     }
   }
 
@@ -135,6 +161,17 @@ export default function SourcesScreen() {
                       ? '● Indisponible'
                       : '● Non vérifiée'}
               </Text>
+              <Pressable
+                onPress={() => {
+                  void update(item);
+                }}
+                disabled={updating !== null}
+                style={{ paddingTop: 12, paddingBottom: 3 }}
+              >
+                <Text style={{ color: theme.accent, fontWeight: '700' }}>
+                  {updating === item.id ? 'Mise à jour…' : 'Mettre à jour'}
+                </Text>
+              </Pressable>
             </View>
             <Pressable
               onPress={() => confirmRemove(item)}

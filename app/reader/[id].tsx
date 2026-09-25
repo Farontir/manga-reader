@@ -44,6 +44,11 @@ export default function ReaderScreen() {
 
   useEffect(() => {
     if (!id || !Number.isFinite(chapterNumber)) return;
+    failedSources.current.clear();
+    switchingSource.current = false;
+    setError(null);
+    setLoading(true);
+    setPages([]);
     let active = true;
     void Promise.all([
       resolveChapterPages(id, chapterNumber, sourceId, chapterId),

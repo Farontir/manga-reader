@@ -22,7 +22,7 @@ Scanne le QR code avec l'iPhone. `expo-file-system`, `expo-document-picker`, SQL
 - Association automatique d'un manga aux sources avec ID AniList ou titre exact normalisé. Basculement sur une autre source liée si les pages échouent.
 - Téléchargement de chapitres pour lecture hors ligne depuis la fiche manga. La file persistante reprend les pages manquantes après redémarrage ; sur iOS les transferts utilisent une session native en arrière-plan et une tâche planifiée peut reprendre la file.
 - Export/import JSON de la bibliothèque, des liaisons, des chapitres connus et de la progression. Le partage iOS permet de l'enregistrer dans Fichiers/iCloud Drive.
-- Vérification de santé des sources depuis l'app ; exemple de surveillance GitHub Actions avec endpoint `status.json`.
+- Vérification de santé et mise à jour des sources depuis l'app ; surveillance GitHub Actions avec endpoint `status.json`.
 
 Les images locales et les téléchargements ne sont **pas** inclus dans la sauvegarde JSON ; ils doivent être réimportés ou retéléchargés sur un nouvel appareil. iOS décide du moment où la tâche planifiée peut s'exécuter ; la reprise en arrière-plan reste à valider sur un iPhone réel.
 
@@ -47,6 +47,7 @@ npx expo export --platform ios
 node scripts/smoke-mangadex.mjs
 node scripts/smoke-komga.mjs
 node scripts/smoke-peppercarrot.mjs
+npm run sources:verify
 ```
 
 ## Build iOS

@@ -3,4 +3,4 @@ node_modules/
 .expo/
 coverage/
 package-lock.json
-source-repo/peppercarrot/bundle.js
+source-repo/**/bundle.js
