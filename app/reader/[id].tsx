@@ -12,7 +12,7 @@ import {
   type ViewToken,
 } from 'react-native';
 
-import { listProgress, saveProgress } from '../../db';
+import { listBindings, listProgress, markBindingHealth, saveProgress } from '../../db';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
 import { ZoomablePage } from '../../ui/components/ZoomablePage';
 import { useReaderState } from '../../ui/store';
@@ -36,6 +36,8 @@ export default function ReaderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const currentIndex = useRef(0);
+  const switchingSource = useRef(false);
+  const failedSources = useRef(new Set<string>());
   const chapterNumber = Number(chapter);
   const viewportWidth = Dimensions.get('window').width;
   const viewportHeight = Dimensions.get('window').height - 116;
@@ -81,6 +83,32 @@ export default function ReaderScreen() {
     void saveProgress(id, chapterNumber, index, pages.length, index === pages.length - 1);
   }, [id, chapterNumber, index, pages.length]);
 
+  async function handlePageError(source: string | undefined) {
+    if (!source) {
+      setError('Image locale indisponible. Réimporte ou retélécharge ce chapitre.');
+      return;
+    }
+    if (switchingSource.current || failedSources.current.has(source)) return;
+    switchingSource.current = true;
+    failedSources.current.add(source);
+    try {
+      const binding = (await listBindings(id)).find((item) => item.sourceId === source);
+      if (binding) await markBindingHealth(binding.id, 'Image indisponible.');
+      const replacement = await resolveChapterPages(id, chapterNumber, sourceId, chapterId, [
+        ...failedSources.current,
+      ]);
+      const next = Math.min(currentIndex.current, replacement.length - 1);
+      currentIndex.current = next;
+      setInitialIndex(next);
+      setIndex(next);
+      setPages(replacement);
+    } catch {
+      setError('Images indisponibles sur toutes les sources liées à ce chapitre.');
+    } finally {
+      switchingSource.current = false;
+    }
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <View
@@ -107,7 +135,10 @@ export default function ReaderScreen() {
         <Pressable
           accessibilityLabel="Changer de mode de lecture"
           style={styles.iconButton}
-          onPress={() => setMode(mode === 'paged' ? 'webtoon' : 'paged')}
+          onPress={() => {
+            setInitialIndex(currentIndex.current);
+            setMode(mode === 'paged' ? 'webtoon' : 'paged');
+          }}
         >
           <Ionicons
             name={mode === 'paged' ? 'reorder-four-outline' : 'book-outline'}
@@ -127,16 +158,15 @@ export default function ReaderScreen() {
           keyExtractor={(_, itemIndex) => String(itemIndex)}
           horizontal={mode === 'paged'}
           pagingEnabled={mode === 'paged'}
-          initialScrollIndex={mode === 'paged' ? initialIndex : 0}
-          getItemLayout={
-            mode === 'paged'
-              ? (_, itemIndex) => ({
-                  length: viewportWidth,
-                  offset: viewportWidth * itemIndex,
-                  index: itemIndex,
-                })
-              : undefined
-          }
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, itemIndex) => {
+            const estimatedLength = mode === 'paged' ? viewportWidth : viewportWidth * 1.45;
+            return {
+              length: estimatedLength,
+              offset: estimatedLength * itemIndex,
+              index: itemIndex,
+            };
+          }}
           windowSize={3}
           maxToRenderPerBatch={2}
           initialNumToRender={2}
@@ -144,7 +174,14 @@ export default function ReaderScreen() {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           renderItem={({ item }) => (
-            <ZoomablePage page={item} paged={mode === 'paged'} viewportHeight={viewportHeight} />
+            <ZoomablePage
+              page={item}
+              paged={mode === 'paged'}
+              viewportHeight={viewportHeight}
+              onError={() => {
+                void handlePageError(item.sourceId);
+              }}
+            />
           )}
         />
       )}

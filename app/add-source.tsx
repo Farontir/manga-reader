@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput } fro
 
 import { installSource } from '../sources/install';
 import { matchSourceToLibrary } from '../services/librarySources';
-import { checkSourceHealth } from '../sources/api';
+import { inspectSourceHealth } from '../sources/api';
 import { setSourceHealth } from '../db';
 import { ActionButton } from '../ui/components/ActionButton';
 import { Screen } from '../ui/components/Screen';
@@ -21,9 +21,9 @@ export default function AddSourceScreen() {
     setBusy(true);
     try {
       const source = await installSource(url);
-      const healthy = await checkSourceHealth(source);
-      await setSourceHealth(source.id, healthy ? 'ok' : 'down');
-      const matched = healthy ? await matchSourceToLibrary(source) : 0;
+      const health = await inspectSourceHealth(source);
+      await setSourceHealth(source.id, health);
+      const matched = health !== 'down' ? await matchSourceToLibrary(source) : 0;
       Alert.alert('Source installée', `${source.name} est prête. ${matched} manga(s) relié(s).`, [
         { text: 'OK', onPress: () => router.back() },
       ]);

@@ -31,9 +31,9 @@ export async function exportBackup(): Promise<BackupSnapshot> {
 export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
   const mappedIds = new Map<string, string>();
   for (const entry of snapshot.entries) {
-    const existing = entry.anilistId
-      ? await findEntryByAniListId(entry.anilistId)
-      : await getLibraryEntry(entry.id);
+    const existing =
+      (entry.anilistId ? await findEntryByAniListId(entry.anilistId) : null) ??
+      (await getLibraryEntry(entry.id));
     mappedIds.set(entry.id, existing?.id ?? entry.id);
   }
   const db = await getDatabase();

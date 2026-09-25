@@ -6,9 +6,9 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 
 import type { ReaderPage } from '../../services/readerPages';
 
-type Props = { page: ReaderPage; paged: boolean; viewportHeight: number };
+type Props = { page: ReaderPage; paged: boolean; viewportHeight: number; onError?: () => void };
 
-export function ZoomablePage({ page, paged, viewportHeight }: Props) {
+export function ZoomablePage({ page, paged, viewportHeight, onError }: Props) {
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const scale = useSharedValue(1);
@@ -43,6 +43,7 @@ export function ZoomablePage({ page, paged, viewportHeight }: Props) {
             onLoad={(event) => {
               if (event.source.width > 0) setRatio(event.source.height / event.source.width);
             }}
+            onError={onError}
           />
         </Animated.View>
       </View>

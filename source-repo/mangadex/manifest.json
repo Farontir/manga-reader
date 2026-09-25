@@ -7,5 +7,5 @@
   "contentRating": "safe",
   "allowedHosts": ["api.mangadex.org"],
   "bundle": "./bundle.js",
-  "sha256": "ebb1c56264034e5d3922896de57d11344fb4594dcb1440ae273cd75c2758ec3a"
+  "sha256": "4d76e967c12e31a40ebbc7ea2babc67b1bb647ddd70efaf20bd43259d9f084a5"
 }

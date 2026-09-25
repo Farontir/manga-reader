@@ -8,6 +8,7 @@ export type Theme = {
   accentText: string;
   danger: string;
   success: string;
+  warning: string;
 };
 
 export const themes: Record<'light' | 'dark', Theme> = {
@@ -21,6 +22,7 @@ export const themes: Record<'light' | 'dark', Theme> = {
     accentText: '#FFFFFF',
     danger: '#CF3C3C',
     success: '#23855D',
+    warning: '#A96E00',
   },
   dark: {
     background: '#111519',
@@ -32,5 +34,6 @@ export const themes: Record<'light' | 'dark', Theme> = {
     accentText: '#111519',
     danger: '#FF7070',
     success: '#70CFA0',
+    warning: '#F4B64E',
   },
 };

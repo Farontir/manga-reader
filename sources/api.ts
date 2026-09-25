@@ -108,3 +108,28 @@ export async function checkSourceHealth(source: InstalledSource): Promise<boolea
     return false;
   }
 }
+
+export async function inspectSourceHealth(
+  source: InstalledSource,
+): Promise<'ok' | 'degraded' | 'down'> {
+  if (!(await checkSourceHealth(source))) return 'down';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    const url = new URL('status.json', source.repoUrl);
+    const response = await fetch(url.toString(), { signal: controller.signal });
+    if (!response.ok) return 'ok'; // A custom repository need not publish status.json.
+    const status = record((await response.json()) as unknown);
+    if (!status || status.sourceId !== source.id) return 'degraded';
+    if (status.status !== 'ok') return 'degraded';
+    const checkedAt = typeof status.checkedAt === 'string' ? Date.parse(status.checkedAt) : NaN;
+    if (!Number.isFinite(checkedAt) || Date.now() - checkedAt > 24 * 60 * 60 * 1000) {
+      return 'degraded';
+    }
+    return 'ok';
+  } catch {
+    return 'ok';
+  } finally {
+    clearTimeout(timeout);
+  }
+}

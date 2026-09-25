@@ -1,4 +1,7 @@
+import { File } from 'expo-file-system';
+
 import {
+  deleteDownloadedChapter,
   getDownloadedChapter,
   getInstalledSource,
   getLocalChapter,
@@ -9,26 +12,35 @@ import {
 } from '../db';
 import { getSourcePages } from '../sources/api';
 
-export type ReaderPage = { uri: string; headers?: Record<string, string> };
+export type ReaderPage = { uri: string; headers?: Record<string, string>; sourceId?: string };
 
 export async function resolveChapterPages(
   entryId: string,
   chapterNumber: number,
   preferredSourceId?: string,
   preferredChapterId?: string,
+  excludedSourceIds: string[] = [],
 ): Promise<ReaderPage[]> {
   const local = await getLocalChapter(entryId, chapterNumber);
   if (local?.pageUris.length) return local.pageUris.map((uri) => ({ uri }));
   const download = await getDownloadedChapter(entryId, chapterNumber);
-  if (download?.pageUris.length) return download.pageUris.map((uri) => ({ uri }));
+  if (download?.pageUris.length) {
+    if (download.pageUris.every((uri) => new File(uri).exists)) {
+      return download.pageUris.map((uri) => ({ uri }));
+    }
+    await deleteDownloadedChapter(entryId, chapterNumber);
+  }
   const [bindings, chapters] = await Promise.all([
     listBindings(entryId),
     listKnownChapters(entryId),
   ]);
-  const candidates = chapters.filter((chapter) => chapter.number === chapterNumber);
+  const candidates = chapters.filter(
+    (chapter) => chapter.number === chapterNumber && !excludedSourceIds.includes(chapter.sourceId),
+  );
   if (
     preferredSourceId &&
     preferredChapterId &&
+    !excludedSourceIds.includes(preferredSourceId) &&
     !candidates.some(
       (chapter) =>
         chapter.sourceId === preferredSourceId && chapter.chapterId === preferredChapterId,
@@ -66,7 +78,7 @@ export async function resolveChapterPages(
           Math.max(...bindings.map((item) => item.priority), 0) + 1,
         );
       }
-      return pages.map((page) => ({ uri: page.url, headers: page.headers }));
+      return pages.map((page) => ({ uri: page.url, headers: page.headers, sourceId: source.id }));
     } catch (reason) {
       if (binding)
         await markBindingHealth(

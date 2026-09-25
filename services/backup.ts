@@ -24,7 +24,9 @@ export async function restoreBackup(): Promise<number | null> {
     copyToCacheDirectory: true,
   });
   if (result.canceled || !result.assets[0]) return null;
-  const text = await new File(result.assets[0].uri).text();
+  const file = new File(result.assets[0].uri);
+  if (file.size > 10 * 1024 * 1024) throw new Error('Sauvegarde trop volumineuse.');
+  const text = await file.text();
   const snapshot = parseBackup(JSON.parse(text) as unknown);
   const count = await importBackup(snapshot);
   await setSetting('restoredSourceRepos', JSON.stringify(snapshot.sourceRepos));

@@ -232,6 +232,15 @@ export async function getDownloadedChapter(
     : null;
 }
 
+export async function deleteDownloadedChapter(entryId: string, number: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'DELETE FROM downloaded_chapters WHERE library_entry_id = ? AND chapter_number = ?',
+    entryId,
+    number,
+  );
+}
+
 export async function listDownloadedChapters(entryId: string): Promise<DownloadedChapter[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<DownloadRow>(

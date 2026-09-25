@@ -44,6 +44,9 @@ npm run lint
 npm test -- --pool=threads --maxWorkers=1 --no-file-parallelism
 npm run format:check
 npx expo export --platform ios
+node scripts/smoke-mangadex.mjs
+node scripts/smoke-komga.mjs
+node scripts/smoke-peppercarrot.mjs
 ```
 
 ## Build iOS
@@ -67,3 +70,4 @@ Le compte Apple Developer et les données de signature sont nécessaires pour le
 - `source-repo/` : exemple hébergeable séparément de l'app.
 
 La vision et les phases initiales sont décrites dans [PROJECT.md](PROJECT.md). La confidentialité est décrite dans [PRIVACY.md](PRIVACY.md).
+Les textes et les vérifications de soumission sont préparés dans [distribution/APP_STORE.md](distribution/APP_STORE.md).

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { listInstalledSources, setSourceHealth, type InstalledSource } from '../../db';
-import { checkSourceHealth } from '../../sources/api';
+import { inspectSourceHealth } from '../../sources/api';
 import { uninstallSource } from '../../sources/install';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
@@ -33,8 +33,7 @@ export default function SourcesScreen() {
     setChecking(true);
     try {
       for (const source of sources) {
-        const healthy = await checkSourceHealth(source);
-        await setSourceHealth(source.id, healthy ? 'ok' : 'down');
+        await setSourceHealth(source.id, await inspectSourceHealth(source));
       }
       reload();
     } finally {
@@ -120,17 +119,21 @@ export default function SourcesScreen() {
                   color:
                     item.healthStatus === 'ok'
                       ? theme.success
-                      : item.healthStatus === 'down'
-                        ? theme.danger
-                        : theme.secondary,
+                      : item.healthStatus === 'degraded'
+                        ? theme.warning
+                        : item.healthStatus === 'down'
+                          ? theme.danger
+                          : theme.secondary,
                   marginTop: 7,
                 }}
               >
                 {item.healthStatus === 'ok'
                   ? '● Opérationnelle'
-                  : item.healthStatus === 'down'
-                    ? '● Indisponible'
-                    : '● Non vérifiée'}
+                  : item.healthStatus === 'degraded'
+                    ? '● À surveiller'
+                    : item.healthStatus === 'down'
+                      ? '● Indisponible'
+                      : '● Non vérifiée'}
               </Text>
             </View>
             <Pressable

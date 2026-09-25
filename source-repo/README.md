@@ -4,10 +4,12 @@
 
 1. Modifier le `bundle.js` concerné si nécessaire.
 2. Exécuter `node scripts/build-source-repo.mjs` depuis la racine du projet.
-3. Publier le contenu de `source-repo/` sur un hébergement HTTPS statique, par exemple GitHub Pages.
+3. Publier le contenu de `source-repo/` sur un hébergement HTTPS statique. Le workflow fourni déploie ce dossier sur GitHub Pages quand le dépôt est connecté à GitHub et que **Settings → Pages → Source: GitHub Actions** est activé.
 4. Coller l'URL du dossier voulu dans l'onglet Sources de l'app.
 
 Le fichier `manifest.json` contient le SHA-256 du bundle. L'app vérifie cette empreinte avant installation. Les extensions n'ont pas accès à la base SQLite ; leurs requêtes passent par le bridge `app.fetch` limité aux domaines déclarés.
+
+Avec GitHub Pages, une source est installable depuis `https://UTILISATEUR.github.io/DEPOT/mangadex/`, `.../komga-demo/` ou `.../peppercarrot/`. L'adresse exacte dépend du compte et du nom du dépôt GitHub ; aucun dépôt distant n'est configuré dans cette copie locale.
 
 `status.json` est l'endpoint de monitoring. Le workflow GitHub Actions `.github/workflows/source-health.yml` le renouvelle toutes les six heures quand ce dépôt est publié sur GitHub. L'app permet aussi une vérification directe depuis l'onglet Sources.
 

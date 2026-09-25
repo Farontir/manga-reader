@@ -1,15 +1,25 @@
 name: Check source health
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'source-repo/**'
+      - '.github/workflows/source-health.yml'
   schedule:
     - cron: '17 */6 * * *'
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +35,9 @@ jobs:
             git commit -m "chore: update source health"
             git push
           fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: source-repo
+      - id: deployment
+        uses: actions/deploy-pages@v4

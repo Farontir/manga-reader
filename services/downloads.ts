@@ -161,8 +161,8 @@ export async function downloadChapter(
     await putDownloadJob({
       libraryEntryId: entryId,
       chapterNumber,
-      sourceId,
-      pages,
+      sourceId: pages[0]?.sourceId ?? sourceId,
+      pages: pages.map((page) => ({ uri: page.uri, headers: page.headers })),
       nextPage: 0,
       createdAt: new Date().toISOString(),
     });

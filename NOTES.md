@@ -8,4 +8,6 @@
 
 Restent à valider : lecteur et import sur iPhone réel, fonctionnement de la sandbox WebView et des téléchargements en arrière-plan sur appareil, hébergement public des sources et soumission App Store. Les comptes et l'appareil de l'éditeur sont nécessaires pour les étapes de distribution.
 
+Audit des dépendances : PostCSS a été fixé à une version corrigée dans `package.json`. `npm audit` signale encore `image-size@1.2.1` (dépendance de Metro, utilisée pendant la compilation des images) comme vulnérabilité haute. Metro SDK 54 attend son API fonctionnelle ; le passage forcé à la version majeure corrigée demanderait une validation de compatibilité supplémentaire. Aucun contenu de source distante n'est traité par Metro à l'exécution.
+
 L'app est livrée sans source de contenu préinstallée. Les exemples de sources se trouvent hors du bundle applicatif.

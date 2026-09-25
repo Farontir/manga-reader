@@ -57,12 +57,21 @@
     },
 
     async chapters(id) {
-      const params = new URLSearchParams();
-      params.set('limit', '500');
-      params.append('translatedLanguage[]', 'en');
-      params.set('order[chapter]', 'desc');
-      const json = await request('/manga/' + encodeURIComponent(id) + '/feed?' + params.toString());
-      return (json.data || []).flatMap((chapter) => {
+      const all = [];
+      for (let offset = 0; offset < 2000; offset += 500) {
+        const params = new URLSearchParams();
+        params.set('limit', '500');
+        params.set('offset', String(offset));
+        params.append('translatedLanguage[]', 'en');
+        params.set('order[chapter]', 'desc');
+        const json = await request(
+          '/manga/' + encodeURIComponent(id) + '/feed?' + params.toString(),
+        );
+        const batch = json.data || [];
+        all.push(...batch);
+        if (batch.length < 500 || offset + batch.length >= json.total) break;
+      }
+      return all.flatMap((chapter) => {
         const attributes = chapter.attributes || {};
         const number = Number(attributes.chapter);
         if (!Number.isFinite(number) || attributes.externalUrl || !attributes.pages) return [];
