@@ -28,7 +28,7 @@ Les images locales et les téléchargements ne sont **pas** inclus dans la sauve
 
 ## Source d'exemple
 
-L'app est livrée sans source préinstallée. `source-repo/mangadex/` et `source-repo/komga-demo/` contiennent deux sources à héberger séparément. Komga Demo utilise les identifiants publics de son serveur de démonstration. Voir [leur guide](source-repo/README.md). Pour actualiser les empreintes après modification :
+L'app est livrée sans source préinstallée. `source-repo/` contient trois sources à héberger séparément : MangaDex, Komga Demo (API) et Pepper&Carrot (HTML avec cheerio). Komga Demo utilise les identifiants publics de son serveur de démonstration. Voir [leur guide](source-repo/README.md). Pour actualiser les empreintes après modification :
 
 ```bash
 node scripts/build-source-repo.mjs

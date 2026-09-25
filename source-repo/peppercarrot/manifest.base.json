@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "org.peppercarrot.en",
+  "name": "Pepper&Carrot",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["www.peppercarrot.com"],
+  "bundle": "./bundle.js"
+}

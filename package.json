@@ -44,6 +44,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "cheerio": "^1.0.0-rc.12",
+    "esbuild": "^0.25.12",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^55.0.0",
     "eslint-config-prettier": "^10.1.8",

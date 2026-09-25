@@ -3,7 +3,7 @@ import expoConfig from 'eslint-config-expo/flat.js';
 import prettier from 'eslint-config-prettier';
 
 export default defineConfig([
-  { ignores: ['.npm-cache/**', '.expo/**', 'coverage/**'] },
+  { ignores: ['.npm-cache/**', '.expo/**', 'coverage/**', 'source-repo/peppercarrot/bundle.js'] },
   expoConfig,
   prettier,
 ]);

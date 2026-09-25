@@ -22,6 +22,14 @@ const checks = [
     },
     valid: (body) => Array.isArray(body.content),
   },
+  {
+    directory: 'peppercarrot',
+    sourceId: 'org.peppercarrot.en',
+    url: 'https://www.peppercarrot.com/en/webcomics/peppercarrot.html',
+    options: {},
+    valid: (body) => /figure class="thumbnail/.test(body),
+    format: 'text',
+  },
 ];
 
 for (const check of checks) {
@@ -37,7 +45,8 @@ for (const check of checks) {
       signal: AbortSignal.timeout(15000),
     });
     result.httpStatus = response.status;
-    if (response.ok && check.valid(await response.json())) result.status = 'ok';
+    const body = check.format === 'text' ? await response.text() : await response.json();
+    if (response.ok && check.valid(body)) result.status = 'ok';
   } catch {
     /* A network error is reported as down. */
   }
