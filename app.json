@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Manga Reader",
+    "slug": "manga-reader",
+    "scheme": "mangareader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
+      }
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-router", "expo-document-picker"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
