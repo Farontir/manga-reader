@@ -5,7 +5,9 @@ import { isImagePath, sortPagePaths } from './pageFiles';
 describe('page files', () => {
   it('keeps a human chapter order', () => {
     expect(sortPagePaths(['page10.jpg', 'page2.jpg', 'page1.jpg'])).toEqual([
-      'page1.jpg', 'page2.jpg', 'page10.jpg',
+      'page1.jpg',
+      'page2.jpg',
+      'page10.jpg',
     ]);
   });
 

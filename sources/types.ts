@@ -15,6 +15,8 @@ export type SourceChapter = {
   publishedAt?: string;
 };
 
+export type SourcePage = { url: string; headers?: Record<string, string> };
+
 export type SourceManifest = {
   schemaVersion: 1;
   id: string;

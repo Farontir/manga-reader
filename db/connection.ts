@@ -28,9 +28,10 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
 }
 
 export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!opening) opening = open().catch((error: unknown) => {
-    opening = null;
-    throw error;
-  });
+  if (!opening)
+    opening = open().catch((error: unknown) => {
+      opening = null;
+      throw error;
+    });
   return opening;
 }

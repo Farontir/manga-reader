@@ -4,7 +4,9 @@ import { titlesMatch } from './matching';
 
 describe('cross source matching', () => {
   it('accepts equivalent localized titles', () => {
-    expect(titlesMatch('L’Attaque des Titans', ['Shingeki no Kyojin'], 'Shingeki-no Kyojin')).toBe(true);
+    expect(titlesMatch('L’Attaque des Titans', ['Shingeki no Kyojin'], 'Shingeki-no Kyojin')).toBe(
+      true,
+    );
   });
 
   it('does not bind unrelated editions', () => {

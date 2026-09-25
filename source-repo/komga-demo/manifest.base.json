@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "org.komga.demo",
+  "name": "Komga Demo",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["demo.komga.org"],
+  "bundle": "./bundle.js"
+}

@@ -1,7 +1,12 @@
 import * as Crypto from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
-import { getInstalledSource, putInstalledSource, removeInstalledSource, type InstalledSource } from '../db';
+import {
+  getInstalledSource,
+  putInstalledSource,
+  removeInstalledSource,
+  type InstalledSource,
+} from '../db';
 import { parseManifest, resolveBundleUrl, resolveManifestUrl } from './manifest';
 
 async function fetchText(url: string, maxBytes: number): Promise<string> {
@@ -13,7 +18,9 @@ async function fetchText(url: string, maxBytes: number): Promise<string> {
     const text = await response.text();
     if (text.length > maxBytes) throw new Error('Fichier de source trop volumineux.');
     return text;
-  } finally { clearTimeout(timeout); }
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function installSource(inputUrl: string): Promise<InstalledSource> {
@@ -31,11 +38,17 @@ export async function installSource(inputUrl: string): Promise<InstalledSource> 
   file.write(bundle);
   const existing = await getInstalledSource(manifest.id);
   const source: InstalledSource = {
-    id: manifest.id, name: manifest.name, version: manifest.version,
-    language: manifest.language, contentRating: manifest.contentRating,
-    repoUrl: manifestUrl, bundleUri: file.uri, manifestJson: JSON.stringify(manifest),
+    id: manifest.id,
+    name: manifest.name,
+    version: manifest.version,
+    language: manifest.language,
+    contentRating: manifest.contentRating,
+    repoUrl: manifestUrl,
+    bundleUri: file.uri,
+    manifestJson: JSON.stringify(manifest),
     installedAt: existing?.installedAt ?? new Date().toISOString(),
-    lastHealthCheck: null, healthStatus: null,
+    lastHealthCheck: null,
+    healthStatus: null,
   };
   await putInstalledSource(source);
   return source;

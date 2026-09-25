@@ -6,5 +6,6 @@ type ReaderState = {
 };
 
 export const useReaderState = create<ReaderState>((set) => ({
-  mode: 'paged', setMode: (mode) => set({ mode }),
+  mode: 'paged',
+  setMode: (mode) => set({ mode }),
 }));

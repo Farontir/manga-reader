@@ -2,7 +2,15 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory } from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { getLibraryEntry } from '../db';
 import { importLocalChapter } from '../services/localImport';
@@ -19,7 +27,8 @@ export default function ImportScreen() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (entryId) void getLibraryEntry(entryId).then((entry) => setTitle(entry?.canonicalTitle ?? ''));
+    if (entryId)
+      void getLibraryEntry(entryId).then((entry) => setTitle(entry?.canonicalTitle ?? ''));
   }, [entryId]);
 
   async function runImport(kind: 'cbz' | 'folder') {
@@ -29,7 +38,7 @@ export default function ImportScreen() {
       let folder: Directory | undefined;
       if (kind === 'cbz') {
         const result = await DocumentPicker.getDocumentAsync({
-          type: ['application/zip', 'application/x-cbz', 'application/octet-stream'],
+          type: '*/*',
           copyToCacheDirectory: true,
         });
         if (result.canceled) return;
@@ -39,7 +48,11 @@ export default function ImportScreen() {
         folder = new Directory(picked.uri);
       }
       const id = await importLocalChapter({
-        entryId, title, chapterNumber: Number(number), asset, folder,
+        entryId,
+        title,
+        chapterNumber: Number(number),
+        asset,
+        folder,
       });
       router.replace({ pathname: '/entry/[id]', params: { id } });
     } catch (reason) {
@@ -52,23 +65,54 @@ export default function ImportScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, { color: theme.foreground }]}>Tes fichiers, ta bibliothèque.</Text>
+        <Text style={[styles.title, { color: theme.foreground }]}>
+          Tes fichiers, ta bibliothèque.
+        </Text>
         <Text style={[styles.detail, { color: theme.secondary }]}>
-          Importe un chapitre CBZ ou un dossier d’images. Les pages sont copiées dans l’app pour rester disponibles hors ligne.
+          Importe un chapitre CBZ ou un dossier d’images. Les pages sont copiées dans l’app pour
+          rester disponibles hors ligne.
         </Text>
         <Text style={[styles.label, { color: theme.foreground }]}>Titre du manga</Text>
-        <TextInput value={title} onChangeText={setTitle} editable={!entryId}
-          placeholder="Ex. Mon manga" placeholderTextColor={theme.secondary}
-          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.foreground }]} />
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          editable={!entryId}
+          placeholder="Ex. Mon manga"
+          placeholderTextColor={theme.secondary}
+          style={[
+            styles.input,
+            { backgroundColor: theme.surface, borderColor: theme.border, color: theme.foreground },
+          ]}
+        />
         <Text style={[styles.label, { color: theme.foreground }]}>Numéro du chapitre</Text>
-        <TextInput value={number} onChangeText={setNumber} keyboardType="decimal-pad"
-          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.foreground }]} />
+        <TextInput
+          value={number}
+          onChangeText={setNumber}
+          keyboardType="decimal-pad"
+          style={[
+            styles.input,
+            { backgroundColor: theme.surface, borderColor: theme.border, color: theme.foreground },
+          ]}
+        />
         <View style={{ height: 24 }} />
-        <ActionButton label="Choisir un CBZ" icon="document-outline" disabled={busy}
-          onPress={() => { void runImport('cbz'); }} />
+        <ActionButton
+          label="Choisir un CBZ"
+          icon="document-outline"
+          disabled={busy}
+          onPress={() => {
+            void runImport('cbz');
+          }}
+        />
         <View style={{ height: 10 }} />
-        <ActionButton label="Choisir un dossier d’images" icon="folder-outline" secondary disabled={busy}
-          onPress={() => { void runImport('folder'); }} />
+        <ActionButton
+          label="Choisir un dossier d’images"
+          icon="folder-outline"
+          secondary
+          disabled={busy}
+          onPress={() => {
+            void runImport('folder');
+          }}
+        />
         {busy ? <ActivityIndicator color={theme.accent} style={{ marginTop: 22 }} /> : null}
         <Text style={[styles.note, { color: theme.secondary }]}>
           Les CBZ de plus de 120 Mo doivent être décompressés puis importés comme dossier.
@@ -79,7 +123,8 @@ export default function ImportScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 22 }, title: { fontSize: 27, fontWeight: '800', lineHeight: 33 },
+  content: { padding: 22 },
+  title: { fontSize: 27, fontWeight: '800', lineHeight: 33 },
   detail: { fontSize: 15, lineHeight: 23, marginTop: 10, marginBottom: 25 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 16 },
   input: { borderRadius: 12, borderWidth: 1, fontSize: 16, minHeight: 50, paddingHorizontal: 14 },

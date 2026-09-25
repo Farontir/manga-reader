@@ -5,8 +5,14 @@
     "scheme": "mangareader",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121820"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -15,8 +21,13 @@
       }
     },
     "android": {
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#121820"
+      }
     },
+    "web": { "favicon": "./assets/favicon.png" },
     "plugins": ["expo-router", "expo-document-picker"],
     "experiments": {
       "typedRoutes": true

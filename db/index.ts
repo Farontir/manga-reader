@@ -4,3 +4,6 @@ export * from './queries/library';
 export * from './queries/chapters';
 export * from './queries/sources';
 export * from './queries/settings';
+export * from './queries/backup';
+export { parseBackup } from './backupFormat';
+export type { BackupSnapshot } from './backupFormat';

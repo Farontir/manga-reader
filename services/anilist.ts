@@ -35,18 +35,25 @@ export async function searchAniList(term: string): Promise<AniListManga[]> {
   if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
   lastRequest = Date.now();
   const response = await fetch('https://graphql.anilist.co', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ query, variables: { search: term.trim() } }),
   });
   if (!response.ok) throw new Error(`AniList indisponible (HTTP ${response.status}).`);
-  const json = await response.json() as Response;
+  const json = (await response.json()) as Response;
   if (json.errors?.length) throw new Error(json.errors[0]?.message ?? 'Erreur AniList.');
   const results = (json.data?.Page?.media ?? []).map((media) => {
-    const titles = [media.title.romaji, media.title.english, media.title.native]
-      .filter((title): title is string => Boolean(title));
-    return { id: media.id, title: titles[0] ?? `Manga ${media.id}`,
-      altTitles: titles.slice(1), coverUrl: media.coverImage?.large ?? null,
-      description: media.description, status: media.status };
+    const titles = [media.title.romaji, media.title.english, media.title.native].filter(
+      (title): title is string => Boolean(title),
+    );
+    return {
+      id: media.id,
+      title: titles[0] ?? `Manga ${media.id}`,
+      altTitles: titles.slice(1),
+      coverUrl: media.coverImage?.large ?? null,
+      description: media.description,
+      status: media.status,
+    };
   });
   cache.set(key, { at: Date.now(), results });
   return results;

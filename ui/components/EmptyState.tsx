@@ -20,8 +20,15 @@ export function EmptyState({ icon, title, detail }: Props) {
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  icon: { alignItems: 'center', borderRadius: 22, borderWidth: 1, height: 72,
-    justifyContent: 'center', marginBottom: 18, width: 72 },
+  icon: {
+    alignItems: 'center',
+    borderRadius: 22,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: 'center',
+    marginBottom: 18,
+    width: 72,
+  },
   title: { fontSize: 19, fontWeight: '800', textAlign: 'center' },
   detail: { fontSize: 14, lineHeight: 21, marginTop: 7, textAlign: 'center' },
 });
