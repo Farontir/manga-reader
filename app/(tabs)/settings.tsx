@@ -1,7 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { getSetting } from '../../db';
 import { restoreBackup, shareBackup } from '../../services/backup';
@@ -11,20 +19,29 @@ import { useTheme } from '../../ui/useTheme';
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [repoCount, setRepoCount] = useState(0);
+  const [repos, setRepos] = useState<string[]>([]);
+  const loadRepos = useCallback(async () => {
+    const value = await getSetting('restoredSourceRepos');
+    if (!value) {
+      setRepos([]);
+      return;
+    }
+    try {
+      const parsed: unknown = JSON.parse(value);
+      setRepos(
+        Array.isArray(parsed) ? parsed.filter((url): url is string => typeof url === 'string') : [],
+      );
+    } catch {
+      setRepos([]);
+    }
+  }, []);
   useFocusEffect(
     useCallback(() => {
-      void getSetting('restoredSourceRepos').then((value) => {
-        if (!value) return;
-        try {
-          const parsed: unknown = JSON.parse(value);
-          setRepoCount(Array.isArray(parsed) ? parsed.length : 0);
-        } catch {
-          setRepoCount(0);
-        }
-      });
-    }, []),
+      void loadRepos();
+      return undefined;
+    }, [loadRepos]),
   );
 
   async function run(action: 'export' | 'import') {
@@ -34,11 +51,7 @@ export default function SettingsScreen() {
       else {
         const count = await restoreBackup();
         if (count !== null) Alert.alert('Sauvegarde importée', `${count} manga(s) traités.`);
-        const stored = await getSetting('restoredSourceRepos');
-        if (stored) {
-          const parsed: unknown = JSON.parse(stored);
-          setRepoCount(Array.isArray(parsed) ? parsed.length : 0);
-        }
+        await loadRepos();
       }
     } catch (reason) {
       Alert.alert(
@@ -85,11 +98,25 @@ export default function SettingsScreen() {
           />
           {busy ? <ActivityIndicator color={theme.accent} style={{ marginTop: 16 }} /> : null}
         </View>
-        {repoCount ? (
-          <Text style={[styles.body, { color: theme.secondary, marginTop: 16 }]}>
-            {repoCount} adresse(s) de source dans la dernière sauvegarde importée. Réinstalle-les
-            depuis l’onglet Sources.
-          </Text>
+        {repos.length ? (
+          <View
+            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            <Text style={[styles.cardTitle, { color: theme.foreground, marginTop: 0 }]}>
+              Sources de la sauvegarde
+            </Text>
+            {repos.map((url) => (
+              <Pressable
+                key={url}
+                onPress={() => router.push({ pathname: '/add-source', params: { url } })}
+                style={{ paddingVertical: 11 }}
+              >
+                <Text style={{ color: theme.accent, fontSize: 14 }} numberOfLines={2}>
+                  Réinstaller · {url}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         ) : null}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="moon-outline" size={25} color={theme.accent} />

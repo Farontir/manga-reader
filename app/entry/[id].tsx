@@ -5,6 +5,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 
 import {
   getLibraryEntry,
+  listDownloadJobs,
   listBindings,
   listDownloadedChapters,
   listInstalledSources,
@@ -71,6 +72,7 @@ export default function EntryScreen() {
   const [bindings, setBindings] = useState<SourceBinding[]>([]);
   const [sources, setSources] = useState<InstalledSource[]>([]);
   const [downloaded, setDownloaded] = useState<Set<number>>(new Set());
+  const [queued, setQueued] = useState<Map<number, string>>(new Map());
   const [downloading, setDownloading] = useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -85,14 +87,20 @@ export default function EntryScreen() {
       listProgress(id),
       listInstalledSources(),
       listDownloadedChapters(id),
-    ]).then(([nextEntry, local, remote, nextBindings, nextProgress, nextSources, downloads]) => {
-      setEntry(nextEntry);
-      setBindings(nextBindings);
-      setChapters(mergeChapters(local, remote, nextBindings));
-      setProgress(nextProgress);
-      setSources(nextSources);
-      setDownloaded(new Set(downloads.map((item) => item.chapterNumber)));
-    });
+      listDownloadJobs(id),
+    ]).then(
+      ([nextEntry, local, remote, nextBindings, nextProgress, nextSources, downloads, jobs]) => {
+        setEntry(nextEntry);
+        setBindings(nextBindings);
+        setChapters(mergeChapters(local, remote, nextBindings));
+        setProgress(nextProgress);
+        setSources(nextSources);
+        setDownloaded(new Set(downloads.map((item) => item.chapterNumber)));
+        setQueued(
+          new Map(jobs.map((job) => [job.chapterNumber, `${job.nextPage} / ${job.pages.length}`])),
+        );
+      },
+    );
   }, [id]);
   useFocusEffect(reload);
 
@@ -300,7 +308,9 @@ export default function EntryScreen() {
                         ? 'Disponible hors ligne'
                         : downloading === item.number
                           ? `Téléchargement ${downloadProgress}`
-                          : 'Télécharger'}
+                          : queued.has(item.number)
+                            ? `Reprendre · ${queued.get(item.number)}`
+                            : 'Télécharger'}
                     </Text>
                   </Pressable>
                 ) : null}

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 
@@ -13,7 +13,8 @@ import { useTheme } from '../ui/useTheme';
 export default function AddSourceScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const [url, setUrl] = useState('');
+  const { url: initialUrl } = useLocalSearchParams<{ url?: string }>();
+  const [url, setUrl] = useState(initialUrl ?? '');
   const [busy, setBusy] = useState(false);
 
   async function install() {

@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { getDatabase } from '../db';
 import { SourceHost } from '../native-bridge/SourceHost';
+import { resumeQueuedDownloads } from '../services/downloads';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -17,7 +18,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     getDatabase()
-      .then(() => setReady(true))
+      .then(() => {
+        setReady(true);
+        void resumeQueuedDownloads().catch(() => undefined);
+      })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : String(reason));
       });

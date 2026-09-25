@@ -71,3 +71,12 @@ export type DownloadedChapter = {
   downloadedAt: string;
   sizeBytes: number | null;
 };
+
+export type DownloadJob = {
+  libraryEntryId: string;
+  chapterNumber: number;
+  sourceId: string;
+  pages: { uri: string; headers?: Record<string, string> }[];
+  nextPage: number;
+  createdAt: string;
+};

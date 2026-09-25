@@ -24,6 +24,19 @@ function validNullableString(value: unknown): boolean {
   return value === null || typeof value === 'string';
 }
 
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function httpsUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function parseBackup(value: unknown): BackupSnapshot {
   const root = record(value);
   if (
@@ -42,13 +55,15 @@ export function parseBackup(value: unknown): BackupSnapshot {
     const item = record(raw);
     if (
       !item ||
-      typeof item.id !== 'string' ||
-      typeof item.canonicalTitle !== 'string' ||
-      !item.canonicalTitle.trim() ||
+      !nonEmptyString(item.id) ||
+      !nonEmptyString(item.canonicalTitle) ||
       !Array.isArray(item.altTitles) ||
       !item.altTitles.every((title) => typeof title === 'string') ||
       !validNullableString(item.coverUrl) ||
-      !(item.anilistId === null || Number.isInteger(item.anilistId)) ||
+      !(
+        item.anilistId === null ||
+        (Number.isInteger(item.anilistId) && (item.anilistId as number) > 0)
+      ) ||
       !validNullableString(item.description) ||
       !validNullableString(item.status) ||
       !validDate(item.addedAt) ||
@@ -61,13 +76,16 @@ export function parseBackup(value: unknown): BackupSnapshot {
     const item = record(raw);
     if (
       !item ||
-      typeof item.libraryEntryId !== 'string' ||
+      !nonEmptyString(item.libraryEntryId) ||
       typeof item.chapterNumber !== 'number' ||
       !Number.isFinite(item.chapterNumber) ||
       typeof item.pageIndex !== 'number' ||
       !Number.isInteger(item.pageIndex) ||
       item.pageIndex < 0 ||
-      !(item.totalPages === null || Number.isInteger(item.totalPages)) ||
+      !(
+        item.totalPages === null ||
+        (Number.isInteger(item.totalPages) && (item.totalPages as number) > 0)
+      ) ||
       !validDate(item.readAt) ||
       typeof item.completed !== 'boolean'
     ) {
@@ -78,11 +96,14 @@ export function parseBackup(value: unknown): BackupSnapshot {
     const item = record(raw);
     if (
       !item ||
-      typeof item.libraryEntryId !== 'string' ||
-      typeof item.sourceId !== 'string' ||
-      typeof item.mangaId !== 'string' ||
+      !nonEmptyString(item.id) ||
+      !nonEmptyString(item.libraryEntryId) ||
+      !nonEmptyString(item.sourceId) ||
+      !nonEmptyString(item.mangaId) ||
       typeof item.priority !== 'number' ||
-      !Number.isInteger(item.priority)
+      !Number.isInteger(item.priority) ||
+      !(item.lastSeenOk === null || validDate(item.lastSeenOk)) ||
+      !validNullableString(item.lastError)
     )
       throw new Error('Liaison invalide dans la sauvegarde.');
   }
@@ -90,18 +111,30 @@ export function parseBackup(value: unknown): BackupSnapshot {
     const item = record(raw);
     if (
       !item ||
-      typeof item.libraryEntryId !== 'string' ||
-      typeof item.sourceId !== 'string' ||
-      typeof item.chapterId !== 'string' ||
+      !nonEmptyString(item.libraryEntryId) ||
+      !nonEmptyString(item.sourceId) ||
+      !nonEmptyString(item.chapterId) ||
       typeof item.number !== 'number' ||
       !Number.isFinite(item.number) ||
+      !validNullableString(item.title) ||
+      !validNullableString(item.language) ||
+      !(item.publishedAt === null || validDate(item.publishedAt)) ||
       !validDate(item.fetchedAt)
     ) {
       throw new Error('Chapitre invalide dans la sauvegarde.');
     }
   }
-  if (!root.sourceRepos.every((url) => typeof url === 'string' && url.startsWith('https://'))) {
+  if (!root.sourceRepos.every(httpsUrl)) {
     throw new Error('Dépôt de source invalide dans la sauvegarde.');
+  }
+  const ids = new Set(root.entries.map((entry) => (entry as { id: string }).id));
+  if (
+    ids.size !== root.entries.length ||
+    [...root.bindings, ...root.progress, ...root.chapters].some(
+      (item) => !ids.has((item as { libraryEntryId: string }).libraryEntryId),
+    )
+  ) {
+    throw new Error('Références de sauvegarde incohérentes.');
   }
   return root as BackupSnapshot;
 }

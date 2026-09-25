@@ -7,6 +7,7 @@ import {
   createLibraryEntry,
   deleteLibraryEntry,
   getLibraryEntry,
+  getLocalChapter,
   putLocalChapter,
   updateLibraryEntry,
 } from '../db';
@@ -33,6 +34,8 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
   target.create({ intermediates: true });
   const pageUris: string[] = [];
   let createdEntryId: string | null = null;
+  let chapterSaved = false;
+  const previous = input.entryId ? await getLocalChapter(input.entryId, input.chapterNumber) : null;
   try {
     if (input.asset) {
       if (input.asset.size && input.asset.size > 120 * 1024 * 1024) {
@@ -104,12 +107,28 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
       pageUris,
       importedAt: new Date().toISOString(),
     });
+    chapterSaved = true;
     const entry = await getLibraryEntry(entryId);
-    if (entry && !entry.coverUrl) await updateLibraryEntry(entryId, { coverUrl: pageUris[0] });
+    if (entry && (!entry.coverUrl || entry.coverUrl === previous?.pageUris[0])) {
+      await updateLibraryEntry(entryId, { coverUrl: pageUris[0] });
+    }
+    const previousPage = previous?.pageUris[0];
+    if (previousPage) {
+      const previousFolder = previousPage.slice(0, previousPage.lastIndexOf('/'));
+      const localRoot = new Directory(Paths.document, 'local');
+      if (previousFolder.startsWith(`${localRoot.uri.replace(/\/+$/, '')}/`)) {
+        const oldDirectory = new Directory(previousFolder);
+        try {
+          if (oldDirectory.exists) oldDirectory.delete();
+        } catch {
+          // The new chapter is already stored; old-file cleanup is best effort.
+        }
+      }
+    }
     return entryId;
   } catch (error) {
     if (createdEntryId) await deleteLibraryEntry(createdEntryId);
-    if (target.exists) target.delete();
+    if (target.exists && (!chapterSaved || createdEntryId)) target.delete();
     throw error;
   }
 }

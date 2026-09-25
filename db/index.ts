@@ -5,5 +5,6 @@ export * from './queries/chapters';
 export * from './queries/sources';
 export * from './queries/settings';
 export * from './queries/backup';
+export * from './queries/downloadJobs';
 export { parseBackup } from './backupFormat';
 export type { BackupSnapshot } from './backupFormat';

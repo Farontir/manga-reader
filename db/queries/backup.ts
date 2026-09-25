@@ -17,7 +17,10 @@ export async function exportBackup(): Promise<BackupSnapshot> {
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
-    entries,
+    entries: entries.map((entry) => ({
+      ...entry,
+      coverUrl: entry.coverUrl?.startsWith('file:') ? null : entry.coverUrl,
+    })),
     bindings: bindings.flat(),
     progress: progress.flat(),
     chapters: chapters.flat(),
@@ -42,12 +45,13 @@ export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
         `INSERT INTO library_entries(id, canonical_title, alt_titles_json, cover_url, anilist_id,
           description, status, added_at, last_read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET last_read_at = CASE
-           WHEN excluded.last_read_at > library_entries.last_read_at THEN excluded.last_read_at
+           WHEN library_entries.last_read_at IS NULL OR
+             excluded.last_read_at > library_entries.last_read_at THEN excluded.last_read_at
            ELSE library_entries.last_read_at END`,
         id,
         entry.canonicalTitle,
         JSON.stringify(entry.altTitles),
-        entry.coverUrl,
+        entry.coverUrl?.startsWith('file:') ? null : entry.coverUrl,
         entry.anilistId,
         entry.description,
         entry.status,

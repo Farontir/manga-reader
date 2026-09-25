@@ -6,6 +6,6 @@
 4. [x] Ajouter le basculement de source, le suivi de santé, l'export/import et les téléchargements.
 5. [x] Vérifier TypeScript, lint, tests de logique pure et génération du bundle iOS. Commit après chaque bloc cohérent.
 
-Restent à valider : lecteur et import sur iPhone réel, fonctionnement de la sandbox WebView sur appareil, hébergement public des sources, téléchargement véritablement en arrière-plan et soumission App Store. Les comptes et l'appareil de l'éditeur sont nécessaires pour les étapes de distribution.
+Restent à valider : lecteur et import sur iPhone réel, fonctionnement de la sandbox WebView et des téléchargements en arrière-plan sur appareil, hébergement public des sources et soumission App Store. Les comptes et l'appareil de l'éditeur sont nécessaires pour les étapes de distribution.
 
 L'app est livrée sans source de contenu préinstallée. Les exemples de sources se trouvent hors du bundle applicatif.

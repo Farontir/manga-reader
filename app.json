@@ -27,8 +27,10 @@
         "backgroundColor": "#121820"
       }
     },
-    "web": { "favicon": "./assets/favicon.png" },
-    "plugins": ["expo-router", "expo-document-picker"],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-document-picker", "expo-background-task"],
     "experiments": {
       "typedRoutes": true
     }

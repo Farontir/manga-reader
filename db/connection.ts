@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import { initialMigration } from './migrations/001_initial';
+import { downloadJobsMigration } from './migrations/002_download_jobs';
 
 let opening: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -13,13 +14,18 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
   const version = await db.getFirstAsync<{ version: number }>(
     'SELECT MAX(version) AS version FROM schema_migrations',
   );
-  if (!version?.version) {
+  const migrations = [
+    { version: 1, name: '001_initial', run: initialMigration },
+    { version: 2, name: '002_download_jobs', run: downloadJobsMigration },
+  ];
+  for (const migration of migrations) {
+    if (migration.version <= (version?.version ?? 0)) continue;
     await db.withExclusiveTransactionAsync(async (tx) => {
-      await initialMigration(tx);
+      await migration.run(tx);
       await tx.runAsync(
         'INSERT INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)',
-        1,
-        '001_initial',
+        migration.version,
+        migration.name,
         new Date().toISOString(),
       );
     });

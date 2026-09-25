@@ -20,11 +20,11 @@ Scanne le QR code avec l'iPhone. `expo-file-system`, `expo-document-picker`, SQL
 - Recherche AniList et recherche dans les sources installées.
 - Sources JavaScript externes via WebView isolée. L'installation vérifie le SHA-256 du bundle et limite `app.fetch` aux domaines du manifeste.
 - Association automatique d'un manga aux sources avec ID AniList ou titre exact normalisé. Basculement sur une autre source liée si les pages échouent.
-- Téléchargement de chapitres pour lecture hors ligne depuis la fiche manga.
+- Téléchargement de chapitres pour lecture hors ligne depuis la fiche manga. La file persistante reprend les pages manquantes après redémarrage ; sur iOS les transferts utilisent une session native en arrière-plan et une tâche planifiée peut reprendre la file.
 - Export/import JSON de la bibliothèque, des liaisons, des chapitres connus et de la progression. Le partage iOS permet de l'enregistrer dans Fichiers/iCloud Drive.
 - Vérification de santé des sources depuis l'app ; exemple de surveillance GitHub Actions avec endpoint `status.json`.
 
-Les images locales et les téléchargements ne sont **pas** inclus dans la sauvegarde JSON ; ils doivent être réimportés ou retéléchargés sur un nouvel appareil. Les téléchargements démarrés par l'utilisateur fonctionnent pendant que l'app reste ouverte.
+Les images locales et les téléchargements ne sont **pas** inclus dans la sauvegarde JSON ; ils doivent être réimportés ou retéléchargés sur un nouvel appareil. iOS décide du moment où la tâche planifiée peut s'exécuter ; la reprise en arrière-plan reste à valider sur un iPhone réel.
 
 ## Source d'exemple
 
