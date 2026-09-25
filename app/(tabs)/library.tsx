@@ -1,6 +1,8 @@
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { listLibraryEntries, type LibraryEntry } from '../../db';
 import { ActionButton } from '../../ui/components/ActionButton';
@@ -26,16 +28,18 @@ export default function LibraryScreen() {
       <View style={styles.actions}>
         <ActionButton label="Importer un CBZ" icon="add" onPress={() => router.push('/import')} />
       </View>
-      <FlatList data={entries} keyExtractor={(item) => item.id}
+      <FlashList data={entries} keyExtractor={(item) => item.id}
         contentContainerStyle={entries.length ? styles.list : styles.emptyList}
         ListEmptyComponent={<EmptyState icon="book-outline" title="Ta bibliothèque t’attend"
           detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît." />}
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push({ pathname: '/entry/[id]', params: { id: item.id } })}
             style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.cover, { backgroundColor: theme.border }]}>
-              <Text style={{ color: theme.secondary, fontSize: 25 }}>✦</Text>
-            </View>
+            {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.cover}
+              contentFit="cover" cachePolicy="disk" /> :
+              <View style={[styles.cover, { backgroundColor: theme.border }]}>
+                <Text style={{ color: theme.secondary, fontSize: 25 }}>✦</Text>
+              </View>}
             <View style={{ flex: 1 }}>
               <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.foreground }]}>{item.canonicalTitle}</Text>
               <Text style={{ color: theme.secondary, marginTop: 5 }}>

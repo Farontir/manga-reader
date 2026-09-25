@@ -4,9 +4,10 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { getDatabase } from '../db';
+import { SourceHost } from '../native-bridge/SourceHost';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -37,8 +38,9 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={theme.background === '#111519' ? 'light' : 'dark'} />
+      <SourceHost />
       <Stack screenOptions={{ headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.foreground, contentStyle: { backgroundColor: theme.background } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -47,6 +49,6 @@ export default function RootLayout() {
         <Stack.Screen name="import" options={{ title: 'Importer' }} />
         <Stack.Screen name="add-source" options={{ title: 'Installer une source' }} />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }
