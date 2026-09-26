@@ -54,9 +54,9 @@ npm run sources:verify
 
 1. Choisis un identifiant de bundle unique et ajoute `ios.bundleIdentifier` dans `app.json`.
 2. Connecte ton compte Expo avec `npx eas-cli login`, puis exécute `npx eas-cli init` pour créer `extra.eas.projectId`.
-3. Lance `npx eas-cli build --profile development --platform ios` pour tester les modules natifs sur iPhone.
-4. Pour TestFlight : `npx eas-cli build --profile preview --platform ios`.
-5. Pour l'App Store : `npx eas-cli build --profile production --platform ios`, puis `npx eas-cli submit --profile production --platform ios`.
+3. Enregistre l'iPhone avec `npx eas-cli device:create`, puis lance `npx eas-cli build --profile development --platform ios` pour tester les modules natifs.
+4. Pour une installation interne sans TestFlight : `npx eas-cli build --profile preview --platform ios` (les appareils doivent être enregistrés).
+5. Pour TestFlight puis l'App Store : `npx eas-cli build --profile production --platform ios`, puis `npx eas-cli submit --profile production --platform ios`. Sélectionne ensuite le build dans App Store Connect pour TestFlight ou la revue App Store.
 
 Le compte Apple Developer et les données de signature sont nécessaires pour les builds distribués. L'app n'a pas encore été validée sur un iPhone réel dans ce dépôt.
 
