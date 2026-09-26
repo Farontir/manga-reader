@@ -29,26 +29,17 @@ export default function LibraryScreen() {
         </View>
         <Text style={{ color: theme.secondary }}>{entries.length} mangas</Text>
       </View>
-      <View style={styles.actions}>
-        <ActionButton label="Importer un CBZ" icon="add" onPress={() => router.push('/import')} />
-      </View>
       <FlashList
+        style={styles.listContainer}
         data={entries}
         keyExtractor={(item) => item.id}
         contentContainerStyle={entries.length ? styles.list : styles.emptyList}
         ListEmptyComponent={
-          <View style={styles.emptyContent}>
-            <EmptyState
-              icon="book-outline"
-              title="Ta bibliothèque t’attend"
-              detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît."
-            />
-            <ActionButton
-              label="Importer un CBZ"
-              icon="add"
-              onPress={() => router.push('/import')}
-            />
-          </View>
+          <EmptyState
+            icon="book-outline"
+            title="Ta bibliothèque t’attend"
+            detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît."
+          />
         }
         renderItem={({ item }) => (
           <Pressable
@@ -79,6 +70,14 @@ export default function LibraryScreen() {
           </Pressable>
         )}
       />
+      <View
+        style={[
+          styles.importBar,
+          { backgroundColor: theme.background, borderTopColor: theme.border },
+        ]}
+      >
+        <ActionButton label="Importer un CBZ" icon="add" onPress={() => router.push('/import')} />
+      </View>
     </Screen>
   );
 }
@@ -93,10 +92,15 @@ const styles = StyleSheet.create({
   },
   eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 5 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1 },
-  actions: { marginTop: 24, paddingHorizontal: 20 },
+  listContainer: { flex: 1 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
-  emptyContent: { paddingHorizontal: 20, paddingBottom: 20 },
+  importBar: {
+    borderTopWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
   row: {
     alignItems: 'center',
     borderRadius: 16,
