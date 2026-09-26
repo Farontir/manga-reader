@@ -5,7 +5,6 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { listLibraryEntries, type LibraryEntry } from '../../db';
-import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
@@ -76,7 +75,19 @@ export default function LibraryScreen() {
           { backgroundColor: theme.background, borderTopColor: theme.border },
         ]}
       >
-        <ActionButton label="Importer un CBZ" icon="add" onPress={() => router.push('/import')} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Importer un CBZ"
+          onPress={() => router.push('/import')}
+          style={({ pressed }) => [
+            styles.importButton,
+            { backgroundColor: theme.foreground, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Text style={[styles.importButtonText, { color: theme.background }]}>
+            Importer un CBZ
+          </Text>
+        </Pressable>
       </View>
     </Screen>
   );
@@ -101,6 +112,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
   },
+  importButton: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderRadius: 14,
+    justifyContent: 'center',
+    minHeight: 52,
+  },
+  importButtonText: { fontSize: 17, fontWeight: '800', textAlign: 'center' },
   row: {
     alignItems: 'center',
     borderRadius: 16,
