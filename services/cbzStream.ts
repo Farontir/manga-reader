@@ -1,5 +1,6 @@
-import { Unzip, UnzipInflate } from 'fflate';
+import { strFromU8, Unzip, UnzipInflate } from 'fflate';
 
+import { parseComicInfo, type CbzMetadata } from './cbzMetadata';
 import { comparePagePaths, isImagePath } from './pageFiles';
 
 export type PageSink<T> = {
@@ -11,11 +12,32 @@ export type PageSink<T> = {
 export async function extractCbzPages<T>(
   chunks: AsyncIterable<Uint8Array>,
   openSink: (index: number, name: string) => PageSink<T>,
+  onMetadata?: (metadata: CbzMetadata) => void,
 ): Promise<{ name: string; value: T }[]> {
   const pages: { name: string; value: T }[] = [];
   const open = new Set<PageSink<T>>();
   let totalBytes = 0;
   const unzip = new Unzip((file) => {
+    if (/(?:^|\/)ComicInfo\.xml$/i.test(file.name)) {
+      const parts: Uint8Array[] = [];
+      let size = 0;
+      file.ondata = (error, data, final) => {
+        if (error) throw error;
+        size += data.length;
+        if (size <= 256 * 1024 && data.length) parts.push(data);
+        if (final && size <= 256 * 1024) {
+          const bytes = new Uint8Array(size);
+          let offset = 0;
+          for (const part of parts) {
+            bytes.set(part, offset);
+            offset += part.length;
+          }
+          onMetadata?.(parseComicInfo(strFromU8(bytes)));
+        }
+      };
+      file.start();
+      return;
+    }
     if (!isImagePath(file.name)) return;
     if (pages.length >= 500) throw new Error('Ce CBZ contient plus de 500 images.');
     if (file.originalSize && file.originalSize > 30 * 1024 * 1024) {

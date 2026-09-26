@@ -6,19 +6,26 @@ import {
   deleteLibraryEntry,
   getLibraryEntry,
   getLocalChapter,
+  listLibraryEntries,
+  listLocalChapters,
   putLocalChapter,
   updateLibraryEntry,
 } from '../db';
 import { extractCbzPages } from './cbzStream';
+import { resolveCbzMetadata, type CbzMetadata } from './cbzMetadata';
 import { isImagePath } from './pageFiles';
 
 type ImportInput = {
   entryId?: string;
-  title: string;
-  chapterNumber: number;
+  title?: string;
+  chapterNumber?: number;
   archive?: File;
+  archiveName?: string;
   folder?: Directory;
+  skipExisting?: boolean;
 };
+
+export type LocalImportResult = { entryId: string; imported: boolean };
 
 async function* archiveChunks(file: File): AsyncIterable<Uint8Array> {
   const handle = file.open();
@@ -38,11 +45,15 @@ async function* archiveChunks(file: File): AsyncIterable<Uint8Array> {
   }
 }
 
-export async function importLocalChapter(input: ImportInput): Promise<string> {
-  if (!Number.isFinite(input.chapterNumber) || input.chapterNumber < 0) {
+export async function importLocalChapter(input: ImportInput): Promise<LocalImportResult> {
+  if (
+    input.chapterNumber !== undefined &&
+    (!Number.isFinite(input.chapterNumber) || input.chapterNumber < 0)
+  ) {
     throw new Error('Numéro de chapitre invalide.');
   }
-  if (!input.entryId && !input.title.trim()) throw new Error('Donne un titre au manga.');
+  if (!input.archive && !input.entryId && !input.title?.trim())
+    throw new Error('Donne un titre au manga.');
   if (!input.archive && !input.folder) throw new Error('Choisis un CBZ ou un dossier.');
   if (input.entryId && !(await getLibraryEntry(input.entryId)))
     throw new Error('Manga introuvable.');
@@ -52,24 +63,30 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
   const pageUris: string[] = [];
   let createdEntryId: string | null = null;
   let chapterSaved = false;
-  const previous = input.entryId ? await getLocalChapter(input.entryId, input.chapterNumber) : null;
   try {
+    let comicInfo: CbzMetadata | undefined;
     if (input.archive) {
       const archive = input.archive;
       if (archive.size > 120 * 1024 * 1024) {
         throw new Error('CBZ trop volumineux pour cet import. Utilise un dossier d’images.');
       }
-      const extracted = await extractCbzPages(archiveChunks(archive), (index, name) => {
-        const extension = name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const file = new File(target, `temp-${String(index + 1).padStart(5, '0')}.${extension}`);
-        file.create();
-        const handle = file.open();
-        return {
-          value: file,
-          write: (chunk: Uint8Array) => handle.writeBytes(chunk),
-          close: () => handle.close(),
-        };
-      });
+      const extracted = await extractCbzPages(
+        archiveChunks(archive),
+        (index, name) => {
+          const extension = name.split('.').pop()?.toLowerCase() ?? 'jpg';
+          const file = new File(target, `temp-${String(index + 1).padStart(5, '0')}.${extension}`);
+          file.create();
+          const handle = file.open();
+          return {
+            value: file,
+            write: (chunk: Uint8Array) => handle.writeBytes(chunk),
+            close: () => handle.close(),
+          };
+        },
+        (metadata) => {
+          comicInfo = metadata;
+        },
+      );
       if (!extracted.length) throw new Error('Aucune image trouvée dans le CBZ.');
       for (let index = 0; index < extracted.length; index += 1) {
         const page = extracted[index];
@@ -97,20 +114,55 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
       }
     }
     if (!pageUris.length) throw new Error('Aucune page exploitable.');
-    if (!input.entryId) {
+    const inferred = input.archive
+      ? resolveCbzMetadata(input.archiveName ?? input.archive.name, comicInfo)
+      : undefined;
+    const title = input.title?.trim() || inferred?.series || '';
+    let chapterNumber = input.chapterNumber ?? inferred?.chapterNumber ?? 1;
+    const chapterTitle =
+      input.chapterNumber !== undefined
+        ? `Chapitre ${chapterNumber}`
+        : (inferred?.chapterTitle ?? `Chapitre ${chapterNumber}`);
+    let entryId = input.entryId;
+    if (!entryId && input.skipExisting) {
+      const normalized = title.normalize('NFKC').trim().toLocaleLowerCase();
+      entryId = (await listLibraryEntries()).find(
+        (entry) => entry.canonicalTitle.normalize('NFKC').trim().toLocaleLowerCase() === normalized,
+      )?.id;
+    }
+    if (entryId && input.skipExisting) {
+      const chapters = await listLocalChapters(entryId);
+      if (chapters.some((chapter) => chapter.title === chapterTitle)) {
+        target.delete();
+        return { entryId, imported: false };
+      }
+      if (chapters.some((chapter) => chapter.chapterNumber === chapterNumber)) {
+        const volume = comicInfo?.volume;
+        const alternate = volume === undefined ? NaN : volume * 10000 + chapterNumber;
+        if (
+          !Number.isSafeInteger(alternate) ||
+          chapters.some((chapter) => chapter.chapterNumber === alternate)
+        ) {
+          throw new Error(`Le chapitre ${chapterNumber} existe déjà pour « ${title} ».`);
+        }
+        chapterNumber = alternate;
+      }
+    }
+    const previous = entryId ? await getLocalChapter(entryId, chapterNumber) : null;
+    if (!entryId) {
       createdEntryId = (
         await createLibraryEntry({
-          canonicalTitle: input.title,
+          canonicalTitle: title,
           coverUrl: pageUris[0],
         })
       ).id;
+      entryId = createdEntryId;
     }
-    const entryId = input.entryId ?? createdEntryId;
     if (!entryId) throw new Error('Import impossible.');
     await putLocalChapter({
       libraryEntryId: entryId,
-      chapterNumber: input.chapterNumber,
-      title: `Chapitre ${input.chapterNumber}`,
+      chapterNumber,
+      title: chapterTitle,
       archiveUri: null,
       pageUris,
       importedAt: new Date().toISOString(),
@@ -133,7 +185,7 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
         }
       }
     }
-    return entryId;
+    return { entryId, imported: true };
   } catch (error) {
     if (createdEntryId) await deleteLibraryEntry(createdEntryId);
     if (target.exists && (!chapterSaved || createdEntryId)) target.delete();

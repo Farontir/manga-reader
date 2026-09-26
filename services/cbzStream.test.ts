@@ -31,6 +31,25 @@ describe('CBZ streaming', () => {
     ]);
   });
 
+  it('reads ComicInfo.xml alongside streamed pages', async () => {
+    const archive = zipSync({
+      'book/ComicInfo.xml': new TextEncoder().encode(
+        '<ComicInfo><Series>Bloom</Series><Number>7</Number></ComicInfo>',
+      ),
+      'page1.jpg': new Uint8Array([1]),
+    });
+    let series: string | undefined;
+    const pages = await extractCbzPages(
+      pieces(archive, 9),
+      () => ({ value: null, write: () => undefined, close: () => undefined }),
+      (metadata) => {
+        series = metadata.series;
+      },
+    );
+    expect(pages).toHaveLength(1);
+    expect(series).toBe('Bloom');
+  });
+
   it('rejects empty image entries', async () => {
     const archive = zipSync({ 'empty.png': new Uint8Array() });
     await expect(
