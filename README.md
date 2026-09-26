@@ -15,8 +15,8 @@ Scanne le QR code avec l'iPhone. `expo-file-system`, `expo-document-picker`, SQL
 
 ## Fonctions
 
-- Import CBZ (jusqu'à 120 Mo compressés) ou dossier d'images ; copie locale pour lecture hors ligne.
-- Lecteur paginé ou webtoon, pinch zoom, double tap, reprise à la dernière page et suivi par **numéro de chapitre**.
+- Import CBZ (jusqu'à 120 Mo compressés, extraction progressive) ou dossier d'images ; copie locale pour lecture hors ligne.
+- Lecteur paginé ou webtoon, pinch zoom, double tap, reprise à la dernière page et suivi par **numéro de chapitre**. Les pages distantes sont préchargées autour de la page lue et conservées dans un cache temporaire LRU limité à 256 Mo.
 - Recherche AniList et recherche dans les sources installées.
 - Sources JavaScript externes via WebView isolée. L'installation vérifie le SHA-256 du bundle et limite `app.fetch` aux domaines du manifeste.
 - Association automatique d'un manga aux sources avec ID AniList ou titre exact normalisé. Basculement sur une autre source liée si les pages échouent.

@@ -1,7 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { unzipSync } from 'fflate';
 
 import {
   createLibraryEntry,
@@ -11,7 +10,8 @@ import {
   putLocalChapter,
   updateLibraryEntry,
 } from '../db';
-import { isImagePath, sortPagePaths } from './pageFiles';
+import { extractCbzPages } from './cbzStream';
+import { isImagePath } from './pageFiles';
 
 type ImportInput = {
   entryId?: string;
@@ -20,6 +20,24 @@ type ImportInput = {
   asset?: DocumentPickerAsset;
   folder?: Directory;
 };
+
+async function* archiveChunks(file: File): AsyncIterable<Uint8Array> {
+  const handle = file.open();
+  try {
+    let remaining = file.size;
+    let count = 0;
+    while (remaining > 0) {
+      const chunk = handle.readBytes(Math.min(256 * 1024, remaining));
+      if (!chunk.length) throw new Error('CBZ incomplet.');
+      remaining -= chunk.length;
+      yield chunk;
+      count += 1;
+      if (count % 4 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  } finally {
+    handle.close();
+  }
+}
 
 export async function importLocalChapter(input: ImportInput): Promise<string> {
   if (!Number.isFinite(input.chapterNumber) || input.chapterNumber < 0) {
@@ -38,38 +56,29 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
   const previous = input.entryId ? await getLocalChapter(input.entryId, input.chapterNumber) : null;
   try {
     if (input.asset) {
-      if (input.asset.size && input.asset.size > 120 * 1024 * 1024) {
+      const archive = new File(input.asset.uri);
+      if (archive.size > 120 * 1024 * 1024) {
         throw new Error('CBZ trop volumineux pour cet import. Utilise un dossier d’images.');
       }
-      const archive = await new File(input.asset.uri).bytes();
-      let imageCount = 0;
-      let totalBytes = 0;
-      const extracted = unzipSync(archive, {
-        filter: (file) => {
-          if (!isImagePath(file.name)) return false;
-          imageCount += 1;
-          totalBytes += file.originalSize;
-          if (
-            imageCount > 500 ||
-            file.originalSize > 30 * 1024 * 1024 ||
-            totalBytes > 250 * 1024 * 1024
-          ) {
-            throw new Error('CBZ trop volumineux à décompresser. Utilise un dossier d’images.');
-          }
-          return true;
-        },
-      });
-      const names = sortPagePaths(Object.keys(extracted));
-      if (!names.length) throw new Error('Aucune image trouvée dans le CBZ.');
-      for (let index = 0; index < names.length; index += 1) {
-        const name = names[index];
-        if (!name) continue;
-        const data = extracted[name];
-        if (!data) continue;
+      const extracted = await extractCbzPages(archiveChunks(archive), (index, name) => {
         const extension = name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const file = new File(target, `${String(index + 1).padStart(5, '0')}.${extension}`);
-        file.write(data);
-        pageUris.push(file.uri);
+        const file = new File(target, `temp-${String(index + 1).padStart(5, '0')}.${extension}`);
+        file.create();
+        const handle = file.open();
+        return {
+          value: file,
+          write: (chunk: Uint8Array) => handle.writeBytes(chunk),
+          close: () => handle.close(),
+        };
+      });
+      if (!extracted.length) throw new Error('Aucune image trouvée dans le CBZ.');
+      for (let index = 0; index < extracted.length; index += 1) {
+        const page = extracted[index];
+        if (!page) continue;
+        const extension = page.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const destination = new File(target, `${String(index + 1).padStart(5, '0')}.${extension}`);
+        page.value.move(destination);
+        pageUris.push(destination.uri);
       }
     } else if (input.folder) {
       const pages = input.folder

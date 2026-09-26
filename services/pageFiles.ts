@@ -9,10 +9,9 @@ export function isImagePath(path: string): boolean {
 }
 
 export function sortPagePaths(paths: string[]): string[] {
-  return [...paths].sort((a, b) =>
-    a.localeCompare(b, undefined, {
-      numeric: true,
-      sensitivity: 'base',
-    }),
-  );
+  return [...paths].sort(comparePagePaths);
+}
+
+export function comparePagePaths(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 }

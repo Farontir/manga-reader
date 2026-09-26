@@ -5,6 +5,7 @@
 1. Ajouter un cache disque borné pour les pages distantes : clé URL + en-têtes, index persistant, éviction des images les moins récemment utilisées. Les chapitres téléchargés restent hors de ce cache temporaire.
 2. Précharger la page visible et N+1 sans bloquer l'affichage ; conserver la virtualisation de la liste et revenir à l'URL distante si une copie en cache devient illisible.
 3. Ajouter des retours haptiques aux actions de lecture et d'import, puis vérifier TypeScript, format, lint, tests et export iOS. Chaque bloc cohérent fera l'objet d'un commit.
+4. Extraire les CBZ par morceaux, écrire chaque image directement sur disque et limiter le volume décompressé pour éviter de garder toutes les pages en mémoire.
 
 Les tailles du cache et le comportement mémoire devront encore être vérifiés sur iPhone réel.
 
