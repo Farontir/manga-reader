@@ -19,6 +19,9 @@ Ce parcours gratuit permet de tester l'interface, l'import, la lecture, SQLite e
 ## Fonctions
 
 - Import CBZ (jusqu'à 120 Mo compressés, extraction progressive) ou dossier d'images ; copie locale pour lecture hors ligne.
+
+Si iOS affiche un `.cbz` grisé dans le sélecteur Fichiers, l'écran d'import propose **Choisir le dossier contenant le CBZ**. Sélectionne le dossier parent, puis touche le fichier `.cbz` ou `.zip` affiché dans l'app. Un CBZ est une archive ZIP d'images ; renommer une copie en `.zip` peut aussi dépanner si le dossier n'est pas accessible.
+
 - Lecteur paginé ou webtoon, pinch zoom, double tap, reprise à la dernière page et suivi par **numéro de chapitre**. Les pages distantes sont préchargées autour de la page lue et conservées dans un cache temporaire LRU limité à 256 Mo.
 - Recherche AniList et recherche dans les sources installées.
 - Sources JavaScript externes via WebView isolée. L'installation vérifie le SHA-256 du bundle et limite `app.fetch` aux domaines du manifeste.

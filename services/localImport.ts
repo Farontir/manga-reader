@@ -1,5 +1,4 @@
 import * as Crypto from 'expo-crypto';
-import type { DocumentPickerAsset } from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import {
@@ -17,7 +16,7 @@ type ImportInput = {
   entryId?: string;
   title: string;
   chapterNumber: number;
-  asset?: DocumentPickerAsset;
+  archive?: File;
   folder?: Directory;
 };
 
@@ -44,7 +43,7 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
     throw new Error('Numéro de chapitre invalide.');
   }
   if (!input.entryId && !input.title.trim()) throw new Error('Donne un titre au manga.');
-  if (!input.asset && !input.folder) throw new Error('Choisis un CBZ ou un dossier.');
+  if (!input.archive && !input.folder) throw new Error('Choisis un CBZ ou un dossier.');
   if (input.entryId && !(await getLibraryEntry(input.entryId)))
     throw new Error('Manga introuvable.');
 
@@ -55,8 +54,8 @@ export async function importLocalChapter(input: ImportInput): Promise<string> {
   let chapterSaved = false;
   const previous = input.entryId ? await getLocalChapter(input.entryId, input.chapterNumber) : null;
   try {
-    if (input.asset) {
-      const archive = new File(input.asset.uri);
+    if (input.archive) {
+      const archive = input.archive;
       if (archive.size > 120 * 1024 * 1024) {
         throw new Error('CBZ trop volumineux pour cet import. Utilise un dossier d’images.');
       }

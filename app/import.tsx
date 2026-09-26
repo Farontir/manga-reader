@@ -1,10 +1,12 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { Directory } from 'expo-file-system';
+import * as Crypto from 'expo-crypto';
+import { Directory, File, Paths } from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,6 +28,7 @@ export default function ImportScreen() {
   const [title, setTitle] = useState('');
   const [number, setNumber] = useState('1');
   const [busy, setBusy] = useState(false);
+  const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (entryId)
@@ -35,31 +38,76 @@ export default function ImportScreen() {
   async function runImport(kind: 'cbz' | 'folder') {
     setBusy(true);
     try {
-      let asset: DocumentPicker.DocumentPickerAsset | undefined;
+      let archive: File | undefined;
       let folder: Directory | undefined;
       if (kind === 'cbz') {
         const result = await DocumentPicker.getDocumentAsync({
-          type: '*/*',
+          type: ['application/zip', 'application/octet-stream', '*/*'],
           copyToCacheDirectory: true,
         });
         if (result.canceled) return;
-        asset = result.assets[0];
+        const asset = result.assets[0];
+        if (!asset) throw new Error('Aucun fichier sélectionné.');
+        archive = new File(asset.uri);
       } else {
-        const picked = await Directory.pickDirectoryAsync();
-        folder = new Directory(picked.uri);
+        folder = await Directory.pickDirectoryAsync();
       }
-      const id = await importLocalChapter({
-        entryId,
-        title,
-        chapterNumber: Number(number),
-        asset,
-        folder,
-      });
-      successFeedback();
-      router.replace({ pathname: '/entry/[id]', params: { id } });
+      await finishImport(archive, folder);
     } catch (reason) {
       Alert.alert('Import impossible', reason instanceof Error ? reason.message : String(reason));
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishImport(archive?: File, folder?: Directory) {
+    const id = await importLocalChapter({
+      entryId,
+      title,
+      chapterNumber: Number(number),
+      archive,
+      folder,
+    });
+    successFeedback();
+    router.replace({ pathname: '/entry/[id]', params: { id } });
+  }
+
+  async function pickArchiveFolder() {
+    setBusy(true);
+    try {
+      const folder = await Directory.pickDirectoryAsync();
+      const found = folder
+        .list()
+        .filter((item): item is File => item instanceof File && /\.(cbz|zip)$/i.test(item.name))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      if (!found.length) throw new Error('Aucun fichier .cbz ou .zip dans ce dossier.');
+      setArchiveFiles(found);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : String(reason);
+      if (!message.toLowerCase().includes('cancelled'))
+        Alert.alert('Dossier inaccessible', message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function importArchiveFromFolder(archive: File) {
+    setBusy(true);
+    const cached = new File(Paths.cache, `manga-import-${Crypto.randomUUID()}.cbz`);
+    try {
+      if (archive.size > 120 * 1024 * 1024) {
+        throw new Error('CBZ trop volumineux pour cet import. Utilise un dossier d’images.');
+      }
+      await archive.copy(cached);
+      await finishImport(cached);
+    } catch (reason) {
+      Alert.alert('Import impossible', reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      try {
+        if (cached.exists) cached.delete();
+      } catch {
+        // Cache cleanup must not change the import result.
+      }
       setBusy(false);
     }
   }
@@ -106,6 +154,43 @@ export default function ImportScreen() {
           }}
         />
         <View style={{ height: 10 }} />
+        <Text style={[styles.note, { color: theme.secondary, marginTop: 0, marginBottom: 10 }]}>
+          Si ton CBZ est grisé dans Fichiers, choisis le dossier qui le contient puis sélectionne-le
+          ci-dessous.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Choisir le dossier contenant le CBZ"
+          disabled={busy}
+          onPress={() => {
+            void pickArchiveFolder();
+          }}
+          style={[
+            styles.folderButton,
+            { backgroundColor: theme.foreground, opacity: busy ? 0.45 : 1 },
+          ]}
+        >
+          <Text style={[styles.folderButtonText, { color: theme.background }]}>
+            Choisir le dossier contenant le CBZ
+          </Text>
+        </Pressable>
+        {archiveFiles.map((archive) => (
+          <Pressable
+            key={archive.uri}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              void importArchiveFromFolder(archive);
+            }}
+            style={[
+              styles.archiveRow,
+              { borderColor: theme.border, backgroundColor: theme.surface },
+            ]}
+          >
+            <Text style={{ color: theme.foreground, fontWeight: '700' }}>{archive.name}</Text>
+          </Pressable>
+        ))}
+        <View style={{ height: 10 }} />
         <ActionButton
           label="Choisir un dossier d’images"
           icon="folder-outline"
@@ -131,4 +216,13 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 16 },
   input: { borderRadius: 12, borderWidth: 1, fontSize: 16, minHeight: 50, paddingHorizontal: 14 },
   note: { fontSize: 12, lineHeight: 18, marginTop: 20 },
+  folderButton: {
+    alignItems: 'center',
+    borderRadius: 14,
+    justifyContent: 'center',
+    minHeight: 52,
+    paddingHorizontal: 14,
+  },
+  folderButtonText: { fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  archiveRow: { borderRadius: 12, borderWidth: 1, marginTop: 8, padding: 14 },
 });

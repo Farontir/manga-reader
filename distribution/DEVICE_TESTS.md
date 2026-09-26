@@ -13,6 +13,7 @@ Sur Expo Go, laisser de côté la tâche planifiée en arrière-plan, les compor
 ## Fichiers locaux et lecteur
 
 - [ ] Importer un CBZ de plus de 200 pages, puis un dossier d'images ; vérifier l'ordre des pages et la couverture.
+- [ ] Si un CBZ est grisé dans Fichiers, sélectionner son dossier parent et importer le CBZ depuis la liste de l'app.
 - [ ] Parcourir le chapitre en mode paginé puis vertical ; tester balayage, pincement, double toucher et changement de mode.
 - [ ] Fermer l'app à la page N, la rouvrir et reprendre à la même page. Vérifier la progression après un changement de mode.
 - [ ] Lire un long chapitre jusqu'à la fin sans fermeture de l'app ni forte dégradation de fluidité. Vérifier l'espace utilisé par le cache après plusieurs chapitres.

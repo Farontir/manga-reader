@@ -1,5 +1,11 @@
 # Plan de réalisation
 
+## Import CBZ dans Expo Go (septembre 2026)
+
+1. Rendre l'action d'import de la bibliothèque lisible avec un bouton autonome à fort contraste.
+2. Conserver le sélecteur de fichiers, mais permettre aussi de choisir le dossier parent du CBZ et de sélectionner l'archive dans une liste affichée par l'app. Ce parcours contourne les fichiers d'extension inconnue que Fichiers grise sur certains emplacements iOS.
+3. Accepter `.cbz` et `.zip` contenant des images, vérifier les entrées avant import et valider TypeScript, lint, format, tests et bundle iOS. Recharger Expo Go et suivre Metro.
+
 ## Compatibilité Expo Go sur iPhone (septembre 2026)
 
 L'Expo Go distribué sur l'App Store demande le SDK 57. Pour permettre les essais sans compte Apple Developer :
