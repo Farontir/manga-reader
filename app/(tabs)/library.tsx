@@ -37,11 +37,18 @@ export default function LibraryScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={entries.length ? styles.list : styles.emptyList}
         ListEmptyComponent={
-          <EmptyState
-            icon="book-outline"
-            title="Ta bibliothèque t’attend"
-            detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît."
-          />
+          <View style={styles.emptyContent}>
+            <EmptyState
+              icon="book-outline"
+              title="Ta bibliothèque t’attend"
+              detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît."
+            />
+            <ActionButton
+              label="Importer un CBZ"
+              icon="add"
+              onPress={() => router.push('/import')}
+            />
+          </View>
         }
         renderItem={({ item }) => (
           <Pressable
@@ -89,6 +96,7 @@ const styles = StyleSheet.create({
   actions: { marginTop: 24, paddingHorizontal: 20 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
+  emptyContent: { paddingHorizontal: 20, paddingBottom: 20 },
   row: {
     alignItems: 'center',
     borderRadius: 16,
