@@ -11,6 +11,7 @@ import {
   View,
   type ViewToken,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listBindings, listProgress, markBindingHealth, saveProgress } from '../../db';
 import { prefetchImage } from '../../services/imageCache';
@@ -56,12 +57,12 @@ function ReaderContent({
   const [initialIndex, setInitialIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const currentIndex = useRef(0);
   const switchingSource = useRef(false);
   const failedSources = useRef(new Set<string>());
   const chapterNumber = Number(chapter);
   const viewportWidth = Dimensions.get('window').width;
-  const viewportHeight = Dimensions.get('window').height - 116;
 
   useEffect(() => {
     if (!id || !Number.isFinite(chapterNumber)) return;
@@ -139,7 +140,10 @@ function ReaderContent({
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.root, { backgroundColor: theme.background }]}
+    >
       <View
         style={[
           styles.toolbar,
@@ -183,6 +187,8 @@ function ReaderContent({
         <Text style={[styles.centerText, { color: theme.secondary }]}>{error}</Text>
       ) : (
         <FlatList
+          style={styles.pages}
+          onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
           key={mode}
           data={pages}
           keyExtractor={(_, itemIndex) => String(itemIndex)}
@@ -216,12 +222,13 @@ function ReaderContent({
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  pages: { flex: 1 },
   toolbar: {
     alignItems: 'center',
     borderBottomWidth: 1,
