@@ -1,5 +1,15 @@
 # Plan de réalisation
 
+## Compatibilité Expo Go sur iPhone (septembre 2026)
+
+L'Expo Go distribué sur l'App Store demande le SDK 57. Pour permettre les essais sans compte Apple Developer :
+
+1. Migrer successivement les dépendances SDK 54 → 55 → 56 → 57, avec un commit par palier et vérification des changements de l'app.
+2. Adapter le code et la configuration aux API actuelles, puis vérifier TypeScript, lint, tests, Expo Doctor et l'export iOS.
+3. Démarrer explicitement en mode Expo Go et documenter la connexion au même compte Expo sur le PC et l'iPhone. Les tâches iOS en arrière-plan et la distribution resteront à valider dans un build natif ultérieur.
+
+La modification préexistante de `.gitignore` sera conservée.
+
 ## Finition du lecteur (septembre 2026)
 
 1. Ajouter un cache disque borné pour les pages distantes : clé URL + en-têtes, index persistant, éviction des images les moins récemment utilisées. Les chapitres téléchargés restent hors de ce cache temporaire.
