@@ -72,3 +72,4 @@ Le compte Apple Developer et les données de signature sont nécessaires pour le
 
 La vision et les phases initiales sont décrites dans [PROJECT.md](PROJECT.md). La confidentialité est décrite dans [PRIVACY.md](PRIVACY.md).
 Les textes et les vérifications de soumission sont préparés dans [distribution/APP_STORE.md](distribution/APP_STORE.md).
+Le parcours à valider sur un iPhone réel est détaillé dans [distribution/DEVICE_TESTS.md](distribution/DEVICE_TESTS.md).

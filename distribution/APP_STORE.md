@@ -33,5 +33,5 @@ L’app démarre sans catalogue ni source de contenu préinstallée. La lecture 
 1. Identifiant de bundle, projet EAS, compte Apple Developer, informations de signature et contact de l’éditeur.
 2. URL publique de la politique de confidentialité, après renseignement du nom et du contact de l’éditeur dans `PRIVACY.md`.
 3. Captures réelles iPhone montrant bibliothèque, import, lecture paginée, lecture verticale, sources et sauvegarde. Les dimensions doivent correspondre aux exigences courantes d’App Store Connect.
-4. Essais sur iPhone réel : import CBZ/dossier, WebView des trois sources, basculement de source, sauvegarde/restauration, et reprise de téléchargement après passage en arrière-plan.
+4. Exécuter et documenter les essais sur iPhone réel de [DEVICE_TESTS.md](DEVICE_TESTS.md), notamment l'import CBZ/dossier, les trois sources, la restauration et la reprise des téléchargements.
 5. Validation des textes, des droits et des sources rendues publiques avant l’envoi à Apple.
