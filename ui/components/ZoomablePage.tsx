@@ -15,7 +15,6 @@ export function ZoomablePage({ page, paged, viewportHeight, onError }: Props) {
   const [displayUri, setDisplayUri] = useState(page.uri);
   useEffect(() => {
     let active = true;
-    setDisplayUri(page.uri);
     void cachedImageUri(page)
       .then((uri) => {
         if (active && uri) setDisplayUri(uri);

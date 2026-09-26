@@ -11,7 +11,7 @@ Positionnement : "Source meurt ? Ta bibliothèque survit."
 
 ## 2. Stack technique
 
-- **Framework** : React Native + Expo (Phase 1 : SDK 54)
+- **Framework** : React Native + Expo (démarrage initial : SDK 54 ; projet migré vers SDK 57 pour l'Expo Go iPhone actuel)
 - **Langage** : TypeScript strict
 - **Build** : EAS Build (depuis Linux/Windows, aucun Mac requis)
 - **Test device** : Expo Go pour le quotidien, EAS Development Build dès qu'on touche aux modules natifs

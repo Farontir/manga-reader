@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -23,12 +23,31 @@ import { useTheme } from '../../ui/useTheme';
 const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
 
 export default function ReaderScreen() {
-  const { id, chapter, sourceId, chapterId } = useLocalSearchParams<{
+  const params = useLocalSearchParams<{
     id: string;
     chapter: string;
     sourceId?: string;
     chapterId?: string;
   }>();
+  return (
+    <ReaderContent
+      key={JSON.stringify([params.id, params.chapter, params.sourceId, params.chapterId])}
+      {...params}
+    />
+  );
+}
+
+function ReaderContent({
+  id,
+  chapter,
+  sourceId,
+  chapterId,
+}: {
+  id: string;
+  chapter: string;
+  sourceId?: string;
+  chapterId?: string;
+}) {
   const router = useRouter();
   const theme = useTheme();
   const { mode, setMode } = useReaderState();
@@ -46,11 +65,6 @@ export default function ReaderScreen() {
 
   useEffect(() => {
     if (!id || !Number.isFinite(chapterNumber)) return;
-    failedSources.current.clear();
-    switchingSource.current = false;
-    setError(null);
-    setLoading(true);
-    setPages([]);
     let active = true;
     void Promise.all([
       resolveChapterPages(id, chapterNumber, sourceId, chapterId),
@@ -76,14 +90,15 @@ export default function ReaderScreen() {
     };
   }, [id, chapterNumber, sourceId, chapterId]);
 
-  const onViewableItemsChanged = useRef(
+  const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ReaderPage>[] }) => {
       const next = viewableItems.find((item) => item.index !== null)?.index;
       if (next === null || next === undefined || next === currentIndex.current) return;
       currentIndex.current = next;
       setIndex(next);
     },
-  ).current;
+    [],
+  );
 
   useEffect(() => {
     if (!pages.length || !id) return;
@@ -190,6 +205,7 @@ export default function ReaderScreen() {
           viewabilityConfig={viewabilityConfig}
           renderItem={({ item }) => (
             <ZoomablePage
+              key={JSON.stringify([item.uri, item.headers])}
               page={item}
               paged={mode === 'paged'}
               viewportHeight={viewportHeight}

@@ -4,14 +4,17 @@ Lecteur de manga iOS en React Native / Expo. La bibliothèque et la progression 
 
 ## Démarrer
 
-Prérequis : Node 20+, npm 10+, un iPhone avec Expo Go ou un build de développement.
+Prérequis : Node 20+, npm 10+, un iPhone avec **Expo Go compatible SDK 57** et un compte Expo gratuit. Aucun compte Apple Developer n'est nécessaire pour ce parcours.
 
 ```bash
 npm install
+npx expo login
 npm start
 ```
 
-Scanne le QR code avec l'iPhone. `expo-file-system`, `expo-document-picker`, SQLite et WebView font partie de l'environnement Expo Go SDK 54. Si Expo Go n'intègre pas un module natif de la version installée, utilise le build de développement EAS.
+Connecte-toi au **même compte Expo** dans Expo Go sur l'iPhone, puis scanne le QR code affiché par `npm start`. Ce script force le mode Expo Go, même si `expo-dev-client` est installé. Le PC et l'iPhone doivent pouvoir communiquer sur le réseau local ; si le QR code ne se connecte pas, essaie `npm start -- --tunnel`.
+
+Ce parcours gratuit permet de tester l'interface, l'import, la lecture, SQLite et les sources sur l'iPhone. Les tâches iOS planifiées en arrière-plan et le comportement d'un build distribué demandent une validation ultérieure dans un build natif. Expo Go affiche aussi son propre écran de démarrage, donc l'écran de démarrage final ne peut pas y être validé.
 
 ## Fonctions
 
@@ -58,7 +61,7 @@ npm run sources:verify
 4. Pour une installation interne sans TestFlight : `npx eas-cli build --profile preview --platform ios` (les appareils doivent être enregistrés).
 5. Pour TestFlight puis l'App Store : `npx eas-cli build --profile production --platform ios`, puis `npx eas-cli submit --profile production --platform ios`. Sélectionne ensuite le build dans App Store Connect pour TestFlight ou la revue App Store.
 
-Le compte Apple Developer et les données de signature sont nécessaires pour les builds distribués. L'app n'a pas encore été validée sur un iPhone réel dans ce dépôt.
+Le compte Apple Developer et les données de signature sont nécessaires pour les builds iOS distribués sur un iPhone. En attendant, utilise le parcours Expo Go ci-dessus. L'app n'a pas encore été validée sur un iPhone réel dans ce dépôt.
 
 ## Organisation
 

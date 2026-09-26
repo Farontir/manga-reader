@@ -1,6 +1,8 @@
 # Validation sur iPhone réel
 
-À remplir sur un **build de développement EAS** puis sur le build de distribution avant soumission. Noter la version iOS, le modèle, le numéro du build, les résultats et les captures d'écran des anomalies.
+Commencer avec **Expo Go SDK 57**, accessible sans compte Apple Developer : `npm install`, `npx expo login`, puis `npm start`. Se connecter au même compte Expo sur l'iPhone. Noter la version iOS, le modèle, les résultats et les captures d'écran des anomalies. Plus tard, refaire ces parcours sur un **build de développement EAS** puis sur le build de distribution avant soumission.
+
+Sur Expo Go, laisser de côté la tâche planifiée en arrière-plan, les comportements propres aux builds distribués et l'écran de démarrage natif. Le téléchargement au premier plan et la reprise lorsque l'app revient au premier plan restent à vérifier.
 
 ## Démarrage et bibliothèque
 
@@ -28,7 +30,8 @@
 ## Hors ligne et sauvegarde
 
 - [ ] Télécharger un chapitre, activer le mode avion et lire toutes ses pages.
-- [ ] Commencer un téléchargement, mettre l'app en arrière-plan, la rouvrir et vérifier la reprise des pages manquantes. Répéter après fermeture de l'app ; iOS peut différer la tâche planifiée.
+- [ ] Commencer un téléchargement, mettre l'app en arrière-plan, la rouvrir et vérifier la reprise des pages manquantes.
+- [ ] Sur un build natif ultérieur : répéter après fermeture de l'app pour vérifier la tâche planifiée ; iOS peut la différer.
 - [ ] Exporter le JSON vers Fichiers ou iCloud Drive, puis l'importer sur une installation fraîche. Vérifier les titres, liaisons, numéros de chapitre et pages lues.
 - [ ] Réinstaller les sources proposées après restauration ; réimporter les CBZ et retélécharger les images, car les fichiers ne sont pas dans le JSON.
 
