@@ -21,6 +21,11 @@ import { Screen } from '../ui/components/Screen';
 import { successFeedback } from '../ui/haptics';
 import { useTheme } from '../ui/useTheme';
 
+function reportImportError(stage: string, reason: unknown): string {
+  if (__DEV__) console.error(`[import] ${stage}`, reason);
+  return reason instanceof Error ? reason.message : String(reason);
+}
+
 export default function ImportScreen() {
   const { entryId } = useLocalSearchParams<{ entryId?: string }>();
   const router = useRouter();
@@ -54,16 +59,16 @@ export default function ImportScreen() {
       }
       await finishImport(archive, folder);
     } catch (reason) {
-      Alert.alert('Import impossible', reason instanceof Error ? reason.message : String(reason));
+      Alert.alert('Import impossible', reportImportError(kind, reason));
     } finally {
       setBusy(false);
     }
   }
 
-  async function finishImport(archive?: File, folder?: Directory) {
+  async function finishImport(archive?: File, folder?: Directory, fallbackName?: string) {
     const id = await importLocalChapter({
       entryId,
-      title,
+      title: title.trim() || (fallbackName ?? archive?.name)?.replace(/\.(cbz|zip)$/i, '') || '',
       chapterNumber: Number(number),
       archive,
       folder,
@@ -85,7 +90,7 @@ export default function ImportScreen() {
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : String(reason);
       if (!message.toLowerCase().includes('cancelled'))
-        Alert.alert('Dossier inaccessible', message);
+        Alert.alert('Dossier inaccessible', reportImportError('dossier CBZ', reason));
     } finally {
       setBusy(false);
     }
@@ -99,9 +104,9 @@ export default function ImportScreen() {
         throw new Error('CBZ trop volumineux pour cet import. Utilise un dossier d’images.');
       }
       await archive.copy(cached);
-      await finishImport(cached);
+      await finishImport(cached, undefined, archive.name);
     } catch (reason) {
-      Alert.alert('Import impossible', reason instanceof Error ? reason.message : String(reason));
+      Alert.alert('Import impossible', reportImportError(`archive ${archive.name}`, reason));
     } finally {
       try {
         if (cached.exists) cached.delete();
