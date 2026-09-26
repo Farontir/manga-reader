@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 
 import { listBindings, listProgress, markBindingHealth, saveProgress } from '../../db';
+import { prefetchImage } from '../../services/imageCache';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
 import { ZoomablePage } from '../../ui/components/ZoomablePage';
+import { selectionFeedback, successFeedback } from '../../ui/haptics';
 import { useReaderState } from '../../ui/store';
 import { useTheme } from '../../ui/useTheme';
 
@@ -88,6 +90,12 @@ export default function ReaderScreen() {
     void saveProgress(id, chapterNumber, index, pages.length, index === pages.length - 1);
   }, [id, chapterNumber, index, pages.length]);
 
+  useEffect(() => {
+    for (const page of [pages[index], pages[index + 1]]) {
+      if (page) void prefetchImage(page).catch(() => undefined);
+    }
+  }, [pages, index]);
+
   async function handlePageError(source: string | undefined) {
     if (!source) {
       setError('Image locale indisponible. Réimporte ou retélécharge ce chapitre.');
@@ -107,6 +115,7 @@ export default function ReaderScreen() {
       setInitialIndex(next);
       setIndex(next);
       setPages(replacement);
+      successFeedback();
     } catch {
       setError('Images indisponibles sur toutes les sources liées à ce chapitre.');
     } finally {
@@ -143,6 +152,7 @@ export default function ReaderScreen() {
           onPress={() => {
             setInitialIndex(currentIndex.current);
             setMode(mode === 'paged' ? 'webtoon' : 'paged');
+            selectionFeedback();
           }}
         >
           <Ionicons

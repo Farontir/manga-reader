@@ -16,6 +16,7 @@ import { getLibraryEntry } from '../db';
 import { importLocalChapter } from '../services/localImport';
 import { ActionButton } from '../ui/components/ActionButton';
 import { Screen } from '../ui/components/Screen';
+import { successFeedback } from '../ui/haptics';
 import { useTheme } from '../ui/useTheme';
 
 export default function ImportScreen() {
@@ -54,6 +55,7 @@ export default function ImportScreen() {
         asset,
         folder,
       });
+      successFeedback();
       router.replace({ pathname: '/entry/[id]', params: { id } });
     } catch (reason) {
       Alert.alert('Import impossible', reason instanceof Error ? reason.message : String(reason));
