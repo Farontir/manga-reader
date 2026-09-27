@@ -102,7 +102,9 @@ export default function ImportScreen() {
     return found.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
 
-  async function importArchives(archives: { file: File; name: string; copy?: boolean }[]) {
+  async function importArchives(
+    archives: { file: File; name: string; folderName?: string; copy?: boolean }[],
+  ) {
     let imported = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -122,6 +124,7 @@ export default function ImportScreen() {
           entryId,
           archive: cached ?? archive.file,
           archiveName: archive.name,
+          archiveFolderName: archive.folderName,
           skipExisting: true,
         });
         if (result.imported) imported += 1;
@@ -153,7 +156,14 @@ export default function ImportScreen() {
       const folder = await Directory.pickDirectoryAsync();
       const found = findArchives(folder);
       if (!found.length) throw new Error('Aucun fichier .cbz ou .zip dans ce dossier.');
-      await importArchives(found.map((file) => ({ file, name: file.name, copy: true })));
+      await importArchives(
+        found.map((file) => ({
+          file,
+          name: file.name,
+          folderName: file.parentDirectory.name,
+          copy: true,
+        })),
+      );
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : String(reason);
       if (!message.toLowerCase().includes('cancelled'))

@@ -48,43 +48,68 @@ export function parseComicInfo(xml: string): CbzMetadata {
   };
 }
 
+const MARKER_START = String.raw`(?:^|[\s._\-(\[])`;
+const MARKER_VALUE = String.raw`\.?\s*#?\s*(\d+(?:[.,]\d+)?)(?=$|[\s._\-)\]])`;
+const CHAPTER_MARKER = new RegExp(
+  `${MARKER_START}(?:chapitre|chapter|chap|ch|c)${MARKER_VALUE}`,
+  'i',
+);
+// "t" covers the French "T01" / "T.05" volume notation.
+const VOLUME_MARKER = new RegExp(`${MARKER_START}(?:tome|volume|vol|t|v)${MARKER_VALUE}`, 'i');
+
+function cleanSeries(value: string): string | undefined {
+  return (
+    value
+      .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s._-]+|[\s._\-(\[]+$/g, '')
+      .trim() || undefined
+  );
+}
+
 export function parseArchiveName(filename: string): CbzMetadata {
   const stem = filename
     .replace(/\.(?:cbz|zip)$/i, '')
-    .replace(/[_]+/g, ' ')
+    .replace(/_+/g, ' ')
+    .replace(/^(?:\s*(?:\[[^\]]*\]|\([^)]*\)))+/, '')
     .trim();
-  const chapterMatch =
-    /(?:^|[\s._-])(?:chapitre|chapter|ch|c)\.?\s*#?\s*(\d+(?:[.,]\d+)?)(?=$|[\s._-])/i.exec(stem);
-  const volumeMatch =
-    /(?:^|[\s._-])(?:tome|volume|vol|v)\.?\s*#?\s*(\d+(?:[.,]\d+)?)(?=$|[\s._-])/i.exec(stem);
+  const chapterMatch = CHAPTER_MARKER.exec(stem);
+  const volumeMatch = VOLUME_MARKER.exec(stem);
+  if (!chapterMatch && !volumeMatch) {
+    // "One Piece 1087" / "Blame! - 01": a bare trailing number is the chapter.
+    const bare = /^(.*?\S)[\s-]+#?(\d+(?:[.,]\d+)?)$/.exec(cleanSeries(stem) ?? '');
+    if (bare) return { series: cleanSeries(bare[1] ?? ''), chapter: number(bare[2]) };
+    return { series: cleanSeries(stem) };
+  }
   const firstMarker = Math.min(
     chapterMatch?.index ?? stem.length,
     volumeMatch?.index ?? stem.length,
   );
-  const series =
-    stem
-      .slice(0, firstMarker)
-      .replace(/[\s._-]+$/, '')
-      .trim() || stem;
   return {
-    series,
+    series: cleanSeries(stem.slice(0, firstMarker)),
     chapter: number(chapterMatch?.[1]),
     volume: number(volumeMatch?.[1]),
   };
 }
 
-// ComicInfo.xml wins; the filename fills only missing fields. A volume-only CBZ
+// ComicInfo.xml wins; the filename fills only missing fields, then the containing
+// folder names the series for archives like "Chapter 12.cbz". A volume-only CBZ
 // uses its volume as the local reading key, while the displayed label stays "Tome".
 export function resolveCbzMetadata(
   filename: string,
   comicInfo?: CbzMetadata,
+  folderName?: string,
 ): {
   series: string;
   chapterNumber: number;
   chapterTitle: string;
 } {
   const fallback = parseArchiveName(filename);
-  const series = comicInfo?.series || fallback.series || filename;
+  const series =
+    comicInfo?.series ||
+    fallback.series ||
+    (folderName ? cleanSeries(folderName) : undefined) ||
+    filename.replace(/\.(?:cbz|zip)$/i, '');
   const chapter = comicInfo?.chapter ?? fallback.chapter;
   const volume = comicInfo?.volume ?? fallback.volume;
   const chapterNumber = chapter ?? volume ?? 1;

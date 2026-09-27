@@ -21,6 +21,8 @@ type ImportInput = {
   chapterNumber?: number;
   archive?: File;
   archiveName?: string;
+  /** Containing folder, used as series name when the filename has none. */
+  archiveFolderName?: string;
   folder?: Directory;
   skipExisting?: boolean;
 };
@@ -115,7 +117,11 @@ export async function importLocalChapter(input: ImportInput): Promise<LocalImpor
     }
     if (!pageUris.length) throw new Error('Aucune page exploitable.');
     const inferred = input.archive
-      ? resolveCbzMetadata(input.archiveName ?? input.archive.name, comicInfo)
+      ? resolveCbzMetadata(
+          input.archiveName ?? input.archive.name,
+          comicInfo,
+          input.archiveFolderName,
+        )
       : undefined;
     const title = input.title?.trim() || inferred?.series || '';
     let chapterNumber = input.chapterNumber ?? inferred?.chapterNumber ?? 1;
