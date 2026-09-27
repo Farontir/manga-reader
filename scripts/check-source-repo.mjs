@@ -46,6 +46,16 @@ const checks = [
     valid: (body) => /list-story-item bookmark_check cover/.test(body),
     format: 'text',
   },
+  {
+    directory: 'mangakakalot',
+    sourceId: 'com.mangakakalot.gg.en',
+    url: 'https://www.mangakakalot.gg/',
+    options: {},
+    valid: (body) => /class="[^"]*\bcover\b[^"]*"/.test(body),
+    format: 'text',
+    extraUrl: 'https://www.mangabats.com/manga/one-piece',
+    extraValid: (body) => /<h1[^>]*>\s*One Piece\s*<\/h1>/.test(body),
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);
@@ -63,7 +73,14 @@ for (const check of checks.filter((item) => !selected || item.directory === sele
     });
     result.httpStatus = response.status;
     const body = check.format === 'text' ? await response.text() : await response.json();
-    if (response.ok && check.valid(body)) result.status = 'ok';
+    if (response.ok && check.valid(body)) {
+      if (check.extraUrl) {
+        const extra = await fetch(check.extraUrl, { signal: AbortSignal.timeout(15000) });
+        if (extra.ok && check.extraValid(await extra.text())) result.status = 'ok';
+      } else {
+        result.status = 'ok';
+      }
+    }
   } catch {
     /* A network error is reported as down. */
   }

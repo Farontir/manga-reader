@@ -15,4 +15,11 @@ describe('cover image source', () => {
       uri: 'https://example.com/cover.jpg',
     });
   });
+
+  it('adds a referer to Waitst covers used by MangaKakalot', () => {
+    expect(coverImageSource('https://storage4.waitst.com/thumb/sample.webp')).toEqual({
+      uri: 'https://storage4.waitst.com/thumb/sample.webp',
+      headers: { Referer: 'https://www.mangabats.com/' },
+    });
+  });
 });

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.mangakakalot.gg.en",
+  "name": "MangaKakalot",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["www.mangakakalot.gg", "www.mangabats.com"],
+  "bundle": "./bundle.js"
+}
