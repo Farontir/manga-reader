@@ -1,16 +1,20 @@
-import { FlashList, type FlashListRef, type ViewToken } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { useCallback, useRef, useState, type Ref } from 'react';
-import { PixelRatio, Pressable, useWindowDimensions } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  PixelRatio,
+  Pressable,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 
 import type { ReaderPage } from '../../services/readerPages';
 import { useReaderImage } from './useReaderImage';
+import { pageAtScroll } from './webtoonPosition';
 
 // Height/width used until a strip has loaded; the list re-measures the real size.
 const DEFAULT_RATIO = 1.45;
-// Webtoon strips are often taller than the screen, so "60 % of the item visible" never
-// happens: a page is current once it covers enough of the viewport instead.
-const viewabilityConfig = { viewAreaCoveragePercentThreshold: 40 };
 
 type PageProps = {
   page: ReaderPage;
@@ -47,7 +51,6 @@ function WebtoonPage({ page, width, initialRatio, onRatio, onPress, onError }: P
 type Props = {
   pages: ReaderPage[];
   initialIndex: number;
-  listRef?: Ref<FlashListRef<ReaderPage>>;
   onIndexChange: (index: number) => void;
   onTap: () => void;
   onScrollStart: () => void;
@@ -58,7 +61,6 @@ type Props = {
 export function WebtoonReader({
   pages,
   initialIndex,
-  listRef,
   onIndexChange,
   onTap,
   onScrollStart,
@@ -67,13 +69,24 @@ export function WebtoonReader({
   const { width, height } = useWindowDimensions();
   // Measured ratios survive item recycling, so a strip scrolled back into view keeps its size.
   const ratios = useRef(new Map<string, number>());
-  const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken<ReaderPage>[] }) => {
-      const first = viewableItems.find((item) => item.index !== null)?.index;
-      if (first !== null && first !== undefined) onIndexChange(first);
-    },
-    [onIndexChange],
-  );
+  const listRef = useRef<FlashListRef<ReaderPage>>(null);
+
+  // The current page comes from the scroll position and the measured strip layouts:
+  // viewability callbacks lag 250 ms and never reach a short last page.
+  function trackPage(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const list = listRef.current;
+    if (!list) return;
+    const firstOffset = list.getFirstItemOffset();
+    const page = pageAtScroll(
+      pages.length,
+      (index) => list.getLayout(index),
+      contentOffset.y - firstOffset,
+      layoutMeasurement.height,
+      contentSize.height - firstOffset,
+    );
+    if (page !== null) onIndexChange(page);
+  }
 
   return (
     <FlashList
@@ -84,8 +97,9 @@ export function WebtoonReader({
       drawDistance={height * 2}
       showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="never"
-      viewabilityConfig={viewabilityConfig}
-      onViewableItemsChanged={onViewableItemsChanged}
+      onScroll={trackPage}
+      onMomentumScrollEnd={trackPage}
+      scrollEventThrottle={100}
       onScrollBeginDrag={onScrollStart}
       renderItem={({ item }) => (
         <WebtoonPage
