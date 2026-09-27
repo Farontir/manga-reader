@@ -30,6 +30,7 @@ export default function AddSourceScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (reason) {
+      if (__DEV__) console.error('[source] installation', reason);
       Alert.alert(
         'Installation impossible',
         reason instanceof Error ? reason.message : String(reason),
