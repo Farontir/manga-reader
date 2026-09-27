@@ -41,6 +41,11 @@ globalThis.source = {
     return [await series()];
   },
 
+  // Single-series source: its only title is the recommendation.
+  async recommendations() {
+    return { title: 'À découvrir', items: [await series()] };
+  },
+
   async manga(id) {
     if (id !== 'peppercarrot') throw new Error('Série inconnue.');
     return series();

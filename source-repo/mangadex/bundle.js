@@ -51,6 +51,34 @@
       return (json.data || []).map(toManga);
     },
 
+    // Popular new titles, like MangaDex's home page: most followed series created in the
+    // last 30 days that already have English chapters, topped up with fresh updates.
+    async recommendations() {
+      function params(order) {
+        const value = new URLSearchParams();
+        value.set('limit', '20');
+        value.set(order, 'desc');
+        value.set('hasAvailableChapters', 'true');
+        value.append('availableTranslatedLanguage[]', 'en');
+        value.append('includes[]', 'cover_art');
+        value.append('contentRating[]', 'safe');
+        return value;
+      }
+      const trending = params('order[followedCount]');
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      trending.set('createdAtSince', since.toISOString().slice(0, 19));
+      const items = ((await request('/manga?' + trending.toString())).data || []).map(toManga);
+      if (items.length < 10) {
+        const latest = params('order[latestUploadedChapter]');
+        for (const manga of ((await request('/manga?' + latest.toString())).data || []).map(
+          toManga,
+        )) {
+          if (!items.some((item) => item.id === manga.id)) items.push(manga);
+        }
+      }
+      return { title: 'Tendances', items: items.slice(0, 20) };
+    },
+
     async manga(id) {
       const json = await request('/manga/' + encodeURIComponent(id) + '?includes[]=cover_art');
       return toManga(json.data);

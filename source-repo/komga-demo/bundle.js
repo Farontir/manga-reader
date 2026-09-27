@@ -34,6 +34,11 @@
       return (json.content || []).map(toManga);
     },
 
+    // Komga has no popularity data: show the series most recently added to the server.
+    async recommendations() {
+      const json = await request('/api/v1/series/new?size=20');
+      return { title: 'Derniers ajouts', items: (json.content || []).map(toManga) };
+    },
     async manga(id) {
       const json = await request('/api/v1/series/' + encodeURIComponent(id));
       return toManga(json);
