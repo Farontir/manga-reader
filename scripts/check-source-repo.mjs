@@ -64,6 +64,14 @@ const checks = [
     valid: (body) => /id="__NEXT_DATA__"/.test(body) && /Browse All Series/.test(body),
     format: 'text',
   },
+  {
+    directory: 'mangakatana',
+    sourceId: 'com.mangakatana.en',
+    url: 'https://mangakatana.com/',
+    options: {},
+    valid: (body) => /id="book_list"/.test(body) && /MangaKatana/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);

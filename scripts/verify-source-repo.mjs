@@ -9,6 +9,7 @@ for (const name of [
   'mangabats',
   'mangakakalot',
   'flamecomics',
+  'mangakatana',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));
