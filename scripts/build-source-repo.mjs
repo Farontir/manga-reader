@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import prettier from 'prettier';
 
-for (const name of ['mangadex', 'komga-demo', 'peppercarrot']) {
+for (const name of ['mangadex', 'komga-demo', 'peppercarrot', 'asurascans']) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
-  if (name === 'peppercarrot') {
+  if (name === 'peppercarrot' || name === 'asurascans') {
     await build({
       entryPoints: [fileURLToPath(new URL('source.js', directory))],
       outfile: fileURLToPath(new URL('bundle.js', directory)),
@@ -33,7 +33,8 @@ for (const name of ['mangadex', 'komga-demo', 'peppercarrot']) {
       'parse5/node_modules/entities',
       'parse5-htmlparser2-tree-adapter',
     ];
-    const notices = ['Third-party notices for the Pepper&Carrot source bundle.'];
+    const label = name === 'peppercarrot' ? 'Pepper&Carrot' : 'Asura Scans';
+    const notices = [`Third-party notices for the ${label} source bundle.`];
     for (const packagePath of packages) {
       const packageDirectory = new URL(`../node_modules/${packagePath}/`, import.meta.url);
       const info = JSON.parse(await readFile(new URL('package.json', packageDirectory), 'utf8'));

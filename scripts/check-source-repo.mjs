@@ -30,9 +30,18 @@ const checks = [
     valid: (body) => /figure class="thumbnail/.test(body),
     format: 'text',
   },
+  {
+    directory: 'asurascans',
+    sourceId: 'com.asurascans.en',
+    url: 'https://asurascans.com/browse?sort=popular',
+    options: {},
+    valid: (body) => /\/asura-images\/covers\//.test(body),
+    format: 'text',
+  },
 ];
 
-for (const check of checks) {
+const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);
+for (const check of checks.filter((item) => !selected || item.directory === selected)) {
   const result = {
     sourceId: check.sourceId,
     checkedAt: new Date().toISOString(),

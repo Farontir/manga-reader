@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.asurascans.en",
+  "name": "Asura Scans",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["asurascans.com", "cdn.asurascans.com"],
+  "bundle": "./bundle.js"
+}
