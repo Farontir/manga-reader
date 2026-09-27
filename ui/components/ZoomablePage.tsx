@@ -14,15 +14,49 @@ type Props = {
   viewportHeight: number;
   onError?: () => void;
   onZoomChange?: (zoomed: boolean) => void;
+  /** Paged mode: dragging a zoomed page past its edge turns to the neighbouring page. */
+  onEdgeSwipe?: (direction: EdgeDirection) => void;
+  canGoPrevious?: boolean;
+  canGoNext?: boolean;
 };
+
+export type EdgeDirection = 'previous' | 'next';
+
+// Drag beyond the edge (px) or flick speed (px/s) that turns the page while zoomed.
+const EDGE_FLIP_DISTANCE = 80;
+const EDGE_FLIP_VELOCITY = 900;
+// Share of the overshoot shown on screen, so the page visibly resists at its edge.
+const EDGE_RESISTANCE = 0.4;
+
+function translationLimit(imageSize: number, viewportSize: number, scale: number) {
+  'worklet';
+  return Math.max(0, (imageSize * scale - viewportSize) / 2);
+}
 
 function clampTranslation(value: number, imageSize: number, viewportSize: number, scale: number) {
   'worklet';
-  const limit = Math.max(0, (imageSize * scale - viewportSize) / 2);
+  const limit = translationLimit(imageSize, viewportSize, scale);
   return Math.max(-limit, Math.min(limit, value));
 }
 
-export function ZoomablePage({ page, paged, viewportHeight, onError, onZoomChange }: Props) {
+/** Clamps like `clampTranslation`, but lets the page stretch past an edge that can turn. */
+function resistTranslation(value: number, limit: number, previous: boolean, next: boolean) {
+  'worklet';
+  if (value > limit) return previous ? limit + (value - limit) * EDGE_RESISTANCE : limit;
+  if (value < -limit) return next ? -limit + (value + limit) * EDGE_RESISTANCE : -limit;
+  return value;
+}
+
+export function ZoomablePage({
+  page,
+  paged,
+  viewportHeight,
+  onError,
+  onZoomChange,
+  onEdgeSwipe,
+  canGoPrevious = false,
+  canGoNext = false,
+}: Props) {
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const [panEnabled, setPanEnabled] = useState(false);
@@ -57,6 +91,16 @@ export function ZoomablePage({ page, paged, viewportHeight, onError, onZoomChang
       scheduleOnRN(setPanEnabled, next);
       if (onZoomChange) scheduleOnRN(onZoomChange, next);
     }
+  };
+  const canTurnPrevious = paged && canGoPrevious && Boolean(onEdgeSwipe);
+  const canTurnNext = paged && canGoNext && Boolean(onEdgeSwipe);
+  const turnPage = (direction: EdgeDirection) => {
+    'worklet';
+    scale.value = withTiming(1, { duration: 150 });
+    translateX.value = withTiming(0, { duration: 150 });
+    translateY.value = withTiming(0, { duration: 150 });
+    updateZoomed(false);
+    if (onEdgeSwipe) scheduleOnRN(onEdgeSwipe, direction);
   };
   const pinch = Gesture.Pinch()
     .onStart((event) => {
@@ -105,11 +149,11 @@ export function ZoomablePage({ page, paged, viewportHeight, onError, onZoomChang
       startY.value = translateY.value;
     })
     .onUpdate((event) => {
-      translateX.value = clampTranslation(
+      translateX.value = resistTranslation(
         startX.value + event.translationX,
-        imageWidth,
-        width,
-        scale.value,
+        translationLimit(imageWidth, width, scale.value),
+        canTurnPrevious,
+        canTurnNext,
       );
       translateY.value = clampTranslation(
         startY.value + event.translationY,
@@ -117,6 +161,21 @@ export function ZoomablePage({ page, paged, viewportHeight, onError, onZoomChang
         height,
         scale.value,
       );
+    })
+    .onEnd((event) => {
+      const limit = translationLimit(imageWidth, width, scale.value);
+      const overshoot = Math.abs(startX.value + event.translationX) - limit;
+      const pulled =
+        overshoot > EDGE_FLIP_DISTANCE ||
+        (overshoot > 20 && Math.abs(event.velocityX) > EDGE_FLIP_VELOCITY);
+      // Content dragged left past its right edge reveals the next page, and vice versa.
+      if (pulled && canTurnNext && startX.value + event.translationX < 0) turnPage('next');
+      else if (pulled && canTurnPrevious && startX.value + event.translationX > 0)
+        turnPage('previous');
+      else
+        translateX.value = withTiming(
+          clampTranslation(translateX.value, imageWidth, width, scale.value),
+        );
     });
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)

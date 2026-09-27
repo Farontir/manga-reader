@@ -22,7 +22,7 @@ import {
 } from '../../db';
 import { prefetchImage } from '../../services/imageCache';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
-import { ZoomablePage } from '../../ui/components/ZoomablePage';
+import { ZoomablePage, type EdgeDirection } from '../../ui/components/ZoomablePage';
 import { selectionFeedback, successFeedback } from '../../ui/haptics';
 import { useReaderState } from '../../ui/store';
 import { useTheme } from '../../ui/useTheme';
@@ -69,6 +69,7 @@ function ReaderContent({
   const currentIndex = useRef(0);
   const switchingSource = useRef(false);
   const failedSources = useRef(new Set<string>());
+  const listRef = useRef<FlatList<ReaderPage>>(null);
   const chapterNumber = Number(chapter);
   const viewportWidth = Dimensions.get('window').width;
 
@@ -110,6 +111,16 @@ function ReaderContent({
       setIndex(next);
     },
     [],
+  );
+
+  const turnPage = useCallback(
+    (direction: EdgeDirection) => {
+      const target = currentIndex.current + (direction === 'next' ? 1 : -1);
+      if (target < 0 || target >= pages.length) return;
+      listRef.current?.scrollToIndex({ index: target, animated: true });
+      selectionFeedback();
+    },
+    [pages.length],
   );
 
   useEffect(() => {
@@ -203,6 +214,7 @@ function ReaderContent({
         <Text style={[styles.centerText, { color: theme.secondary }]}>{error}</Text>
       ) : (
         <FlatList
+          ref={listRef}
           style={styles.pages}
           onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
           key={mode}
@@ -226,13 +238,16 @@ function ReaderContent({
           removeClippedSubviews
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          renderItem={({ item }) => (
+          renderItem={({ item, index: itemIndex }) => (
             <ZoomablePage
               key={JSON.stringify([item.uri, item.headers])}
               page={item}
               paged={mode === 'paged'}
               viewportHeight={viewportHeight}
               onZoomChange={setZoomed}
+              onEdgeSwipe={turnPage}
+              canGoPrevious={itemIndex > 0}
+              canGoNext={itemIndex < pages.length - 1}
               onError={() => {
                 void handlePageError(item.sourceId);
               }}
