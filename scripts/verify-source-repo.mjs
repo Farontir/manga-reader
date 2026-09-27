@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-for (const name of ['mangadex', 'komga-demo', 'peppercarrot', 'asurascans']) {
+for (const name of ['mangadex', 'komga-demo', 'peppercarrot', 'asurascans', 'mangabats']) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));
   const bundle = await readFile(new URL('bundle.js', directory));

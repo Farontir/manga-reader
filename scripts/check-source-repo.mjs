@@ -38,6 +38,14 @@ const checks = [
     valid: (body) => /\/asura-images\/covers\//.test(body),
     format: 'text',
   },
+  {
+    directory: 'mangabats',
+    sourceId: 'com.mangabats.en',
+    url: 'https://www.mangabats.com/manga-list/hot-manga',
+    options: {},
+    valid: (body) => /list-story-item bookmark_check cover/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);

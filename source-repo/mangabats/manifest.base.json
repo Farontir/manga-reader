@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.mangabats.en",
+  "name": "MangaBats",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["www.mangabats.com"],
+  "bundle": "./bundle.js"
+}

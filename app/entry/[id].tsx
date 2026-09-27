@@ -22,6 +22,7 @@ import {
   type SourceBinding,
 } from '../../db';
 import { downloadChapter } from '../../services/downloads';
+import { coverImageSource } from '../../services/coverImage';
 import { removeEntryAndFiles } from '../../services/libraryFiles';
 import {
   chapterLabel as labelOf,
@@ -189,7 +190,11 @@ export default function EntryScreen() {
           <View>
             <View style={styles.hero}>
               {entry.coverUrl ? (
-                <Image source={{ uri: entry.coverUrl }} style={styles.cover} contentFit="cover" />
+                <Image
+                  source={coverImageSource(entry.coverUrl)}
+                  style={styles.cover}
+                  contentFit="cover"
+                />
               ) : (
                 <View style={[styles.cover, { backgroundColor: theme.border }]} />
               )}

@@ -16,6 +16,7 @@ import {
 
 import { listInstalledSources, type InstalledSource } from '../../db';
 import { searchAniList, type AniListManga } from '../../services/anilist';
+import { coverImageSource } from '../../services/coverImage';
 import { addAniListManga, addSourceManga } from '../../services/librarySources';
 import { getSourceRecommendations, searchSource } from '../../sources/api';
 import type { SourceManga, SourceRecommendations } from '../../sources/types';
@@ -234,7 +235,7 @@ export default function SearchScreen() {
                         >
                           {manga.coverUrl ? (
                             <Image
-                              source={{ uri: manga.coverUrl }}
+                              source={coverImageSource(manga.coverUrl)}
                               style={styles.cardCover}
                               contentFit="cover"
                             />
@@ -301,7 +302,7 @@ export default function SearchScreen() {
             >
               {item.manga.coverUrl ? (
                 <Image
-                  source={{ uri: item.manga.coverUrl }}
+                  source={coverImageSource(item.manga.coverUrl)}
                   style={styles.cover}
                   contentFit="cover"
                 />
