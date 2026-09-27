@@ -4,6 +4,7 @@ import { initialMigration } from './migrations/001_initial';
 import { downloadJobsMigration } from './migrations/002_download_jobs';
 import { ensureSettingsMigration } from './migrations/003_ensure_settings';
 import { repairSchemaMigration } from './migrations/004_repair_schema';
+import { importedArchivesMigration } from './migrations/005_imported_archives';
 
 let opening: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -21,6 +22,7 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     { version: 2, name: '002_download_jobs', run: downloadJobsMigration },
     { version: 3, name: '003_ensure_settings', run: ensureSettingsMigration },
     { version: 4, name: '004_repair_schema', run: repairSchemaMigration },
+    { version: 5, name: '005_imported_archives', run: importedArchivesMigration },
   ];
   for (const migration of migrations) {
     if (migration.version <= (version?.version ?? 0)) continue;
