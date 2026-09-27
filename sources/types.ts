@@ -29,4 +29,8 @@ export type SourceManifest = {
   sha256: string;
 };
 
-export type SourceMethod = 'search' | 'manga' | 'chapters' | 'pages' | 'health';
+/** Section shown in Explorer before any search: trending titles, or latest additions. */
+export type SourceRecommendations = { title: string; items: SourceManga[] };
+
+// `recommendations` is optional: bundles published before it answer "Méthode absente".
+export type SourceMethod = 'search' | 'manga' | 'chapters' | 'pages' | 'health' | 'recommendations';

@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,8 +17,8 @@ import {
 import { listInstalledSources, type InstalledSource } from '../../db';
 import { searchAniList, type AniListManga } from '../../services/anilist';
 import { addAniListManga, addSourceManga } from '../../services/librarySources';
-import { searchSource } from '../../sources/api';
-import type { SourceManga } from '../../sources/types';
+import { getSourceRecommendations, searchSource } from '../../sources/api';
+import type { SourceManga, SourceRecommendations } from '../../sources/types';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
@@ -24,6 +26,16 @@ import { useTheme } from '../../ui/useTheme';
 type Result =
   | { key: string; kind: 'anilist'; manga: AniListManga }
   | { key: string; kind: 'source'; manga: SourceManga; source: InstalledSource };
+
+type Recommendation =
+  | { status: 'loading' }
+  | { status: 'ready'; data: SourceRecommendations }
+  | { status: 'outdated' }
+  | { status: 'error' };
+
+function sourcesKey(sources: InstalledSource[]): string {
+  return sources.map((source) => `${source.id}@${source.version}`).join('|');
+}
 
 export default function SearchScreen() {
   const theme = useTheme();
@@ -34,12 +46,49 @@ export default function SearchScreen() {
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<Record<string, Recommendation>>({});
+  const [refreshing, setRefreshing] = useState(false);
   const searchToken = useRef(0);
+  const loadedFor = useRef<string | null>(null);
+
+  const loadRecommendations = useCallback(async (installed: InstalledSource[]) => {
+    loadedFor.current = sourcesKey(installed);
+    setRecommendations(
+      Object.fromEntries(installed.map((source) => [source.id, { status: 'loading' } as const])),
+    );
+    // Sources run one at a time in the sandbox: show each section as soon as it is ready.
+    await Promise.all(
+      installed.map(async (source) => {
+        let next: Recommendation;
+        try {
+          const data = await getSourceRecommendations(source);
+          next = data ? { status: 'ready', data } : { status: 'outdated' };
+        } catch {
+          next = { status: 'error' };
+        }
+        setRecommendations((current) => ({ ...current, [source.id]: next }));
+      }),
+    );
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      void listInstalledSources().then(setSources);
-    }, []),
+      void listInstalledSources().then((installed) => {
+        setSources(installed);
+        // Reload only when sources were installed, removed or updated.
+        if (loadedFor.current !== sourcesKey(installed)) void loadRecommendations(installed);
+      });
+    }, [loadRecommendations]),
   );
+
+  async function refreshRecommendations() {
+    setRefreshing(true);
+    try {
+      await loadRecommendations(sources);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function search() {
     const term = query.trim();
@@ -134,6 +183,98 @@ export default function SearchScreen() {
       </View>
       {busy ? (
         <ActivityIndicator color={theme.accent} style={{ marginTop: 32 }} />
+      ) : !query.trim() && sources.length ? (
+        <ScrollView
+          contentContainerStyle={styles.sections}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                void refreshRecommendations();
+              }}
+              tintColor={theme.accent}
+            />
+          }
+        >
+          {sources.map((source) => {
+            const state = recommendations[source.id] ?? { status: 'loading' };
+            return (
+              <View key={source.id} style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.foreground }]}>
+                  {state.status === 'ready' ? state.data.title : 'Recommandations'}
+                </Text>
+                <Text style={[styles.sectionSource, { color: theme.secondary }]}>
+                  {source.name}
+                </Text>
+                {state.status === 'loading' ? (
+                  <ActivityIndicator color={theme.accent} style={styles.sectionState} />
+                ) : state.status === 'ready' && state.data.items.length ? (
+                  <FlatList
+                    horizontal
+                    data={state.data.items}
+                    keyExtractor={(manga) => manga.id}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.carousel}
+                    renderItem={({ item: manga }) => {
+                      const result: Result = {
+                        key: `${source.id}:${manga.id}`,
+                        kind: 'source',
+                        manga,
+                        source,
+                      };
+                      return (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Ajouter ${manga.title}`}
+                          onPress={() => {
+                            void add(result);
+                          }}
+                          disabled={Boolean(adding)}
+                          style={styles.card}
+                        >
+                          {manga.coverUrl ? (
+                            <Image
+                              source={{ uri: manga.coverUrl }}
+                              style={styles.cardCover}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.cardCover,
+                                styles.cardPlaceholder,
+                                { backgroundColor: theme.surface, borderColor: theme.border },
+                              ]}
+                            >
+                              <Text style={{ color: theme.secondary, fontSize: 28 }}>✦</Text>
+                            </View>
+                          )}
+                          {adding === result.key ? (
+                            <ActivityIndicator color={theme.accent} style={styles.cardBusy} />
+                          ) : null}
+                          <Text
+                            numberOfLines={2}
+                            style={[styles.cardTitle, { color: theme.foreground }]}
+                          >
+                            {manga.title}
+                          </Text>
+                        </Pressable>
+                      );
+                    }}
+                  />
+                ) : (
+                  <Text style={[styles.sectionState, { color: theme.secondary }]}>
+                    {state.status === 'outdated'
+                      ? 'Mets à jour cette source dans l’onglet Sources pour voir ses recommandations.'
+                      : state.status === 'error'
+                        ? 'Recommandations indisponibles pour le moment. Tire vers le bas pour réessayer.'
+                        : 'Rien à recommander pour le moment.'}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
       ) : (
         <FlatList
           data={results}
@@ -215,5 +356,16 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   cover: { borderRadius: 7, height: 67, width: 47 },
+  sections: { gap: 26, paddingBottom: 30, paddingTop: 22 },
+  section: { gap: 2 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', paddingHorizontal: 20 },
+  sectionSource: { fontSize: 13, marginBottom: 10, paddingHorizontal: 20 },
+  sectionState: { fontSize: 13, lineHeight: 19, marginVertical: 12, paddingHorizontal: 20 },
+  carousel: { gap: 12, paddingHorizontal: 20 },
+  card: { width: 112 },
+  cardCover: { borderRadius: 9, height: 160, width: 112 },
+  cardPlaceholder: { alignItems: 'center', borderWidth: 1, justifyContent: 'center' },
+  cardBusy: { left: 0, position: 'absolute', right: 0, top: 70 },
+  cardTitle: { fontSize: 13, fontWeight: '700', lineHeight: 17, marginTop: 7 },
   resultTitle: { fontSize: 15, fontWeight: '700' },
 });

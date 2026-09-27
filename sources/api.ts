@@ -1,6 +1,6 @@
 import type { InstalledSource } from '../db';
 import { callSource } from '../native-bridge/sourceClient';
-import type { SourceChapter, SourceManga, SourcePage } from './types';
+import type { SourceChapter, SourceManga, SourcePage, SourceRecommendations } from './types';
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -41,6 +41,28 @@ export async function searchSource(source: InstalledSource, query: string): Prom
     .map(manga)
     .filter((item): item is SourceManga => item !== null)
     .slice(0, 50);
+}
+
+/** Returns null when the installed bundle predates `recommendations`. */
+export async function getSourceRecommendations(
+  source: InstalledSource,
+): Promise<SourceRecommendations | null> {
+  let result: unknown;
+  try {
+    result = await callSource(source, 'recommendations');
+  } catch (reason) {
+    if (reason instanceof Error && reason.message.includes('Méthode absente')) return null;
+    throw reason;
+  }
+  const data = record(result);
+  if (!data || !Array.isArray(data.items)) throw new Error('Recommandations invalides.');
+  return {
+    title: string(data.title)?.slice(0, 40) ?? 'Recommandations',
+    items: data.items
+      .map(manga)
+      .filter((item): item is SourceManga => item !== null)
+      .slice(0, 30),
+  };
 }
 
 export async function getSourceManga(source: InstalledSource, id: string): Promise<SourceManga> {
