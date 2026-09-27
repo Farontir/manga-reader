@@ -18,6 +18,7 @@ Sur Expo Go, laisser de côté la tâche planifiée en arrière-plan, les compor
 - [ ] Fermer complètement l'app puis la rouvrir : si l'accès est perdu, **Rechoisir** rouvre le sélecteur sur le dossier et la synchro reprend.
 - [ ] Supprimer un manga importé depuis le dossier surveillé : il ne revient pas au scan suivant.
 - [ ] Parcourir le chapitre en mode paginé puis vertical ; tester balayage, pincement, double toucher et changement de mode.
+- [ ] En mode webtoon, sur un chapitre à planches très hautes : défilement fluide sans trou ni saut, pas de changement de page latéral, barre d'outils masquée au défilement et réaffichée par un toucher, progression reprise à la bonne planche.
 - [ ] Fermer l'app à la page N, la rouvrir et reprendre à la même page. Vérifier la progression après un changement de mode.
 - [ ] Lire un long chapitre jusqu'à la fin sans fermeture de l'app ni forte dégradation de fluidité. Vérifier l'espace utilisé par le cache après plusieurs chapitres.
 - [ ] Supprimer un manga local et vérifier que ses fichiers et sa progression disparaissent.

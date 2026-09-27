@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,7 +12,7 @@ import {
   View,
   type ViewToken,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   getLocalChapter,
@@ -22,6 +23,7 @@ import {
 } from '../../db';
 import { prefetchImage } from '../../services/imageCache';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
+import { WebtoonReader } from '../../ui/components/WebtoonReader';
 import { ZoomablePage, type EdgeDirection } from '../../ui/components/ZoomablePage';
 import { selectionFeedback, successFeedback } from '../../ui/haptics';
 import { useReaderState } from '../../ui/store';
@@ -66,6 +68,9 @@ function ReaderContent({
   const [viewportHeight, setViewportHeight] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [chapterTitle, setChapterTitle] = useState<string | null>(null);
+  // Webtoon mode is full screen: the toolbar floats over the strip and hides while scrolling.
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const insets = useSafeAreaInsets();
   const currentIndex = useRef(0);
   const switchingSource = useRef(false);
   const failedSources = useRef(new Set<string>());
@@ -102,15 +107,19 @@ function ReaderContent({
     };
   }, [id, chapterNumber, sourceId, chapterId]);
 
+  const updateIndex = useCallback((next: number) => {
+    if (next === currentIndex.current) return;
+    currentIndex.current = next;
+    setZoomed(false);
+    setIndex(next);
+  }, []);
+
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ReaderPage>[] }) => {
       const next = viewableItems.find((item) => item.index !== null)?.index;
-      if (next === null || next === undefined || next === currentIndex.current) return;
-      currentIndex.current = next;
-      setZoomed(false);
-      setIndex(next);
+      if (next !== null && next !== undefined) updateIndex(next);
     },
-    [],
+    [updateIndex],
   );
 
   const turnPage = useCallback(
@@ -162,52 +171,81 @@ function ReaderContent({
     }
   }
 
+  const toolbar = (
+    <View
+      style={[styles.toolbar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}
+    >
+      <Pressable
+        accessibilityLabel="Retour"
+        onPress={() => router.back()}
+        style={styles.iconButton}
+      >
+        <Ionicons name="arrow-back" size={23} color={theme.foreground} />
+      </Pressable>
+      <View style={{ flex: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ color: theme.foreground, fontWeight: '800', fontSize: 16 }}
+        >
+          {chapterTitle ?? `Chapitre ${chapterNumber}`}
+        </Text>
+        <Text style={{ color: theme.secondary, fontSize: 12 }}>
+          {pages.length ? `${index + 1} / ${pages.length}` : 'Lecture'}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityLabel="Changer de mode de lecture"
+        style={styles.iconButton}
+        onPress={() => {
+          setInitialIndex(currentIndex.current);
+          setZoomed(false);
+          setOverlayVisible(true);
+          setMode(mode === 'paged' ? 'webtoon' : 'paged');
+          selectionFeedback();
+        }}
+      >
+        <Ionicons
+          name={mode === 'paged' ? 'reorder-four-outline' : 'book-outline'}
+          size={23}
+          color={theme.foreground}
+        />
+      </Pressable>
+    </View>
+  );
+
+  if (mode === 'webtoon' && !loading && !error && pages.length) {
+    return (
+      <View style={[styles.root, { backgroundColor: theme.background }]}>
+        <StatusBar hidden={!overlayVisible} animated />
+        <WebtoonReader
+          // A source switch replaces every page: restart the list at the current index.
+          key={pages[0]?.uri}
+          pages={pages}
+          initialIndex={initialIndex}
+          onIndexChange={updateIndex}
+          onTap={() => setOverlayVisible((visible) => !visible)}
+          onScrollStart={() => setOverlayVisible(false)}
+          onPageError={(page) => {
+            void handlePageError(page.sourceId);
+          }}
+        />
+        {overlayVisible ? (
+          <View
+            style={[styles.overlay, { paddingTop: insets.top, backgroundColor: theme.surface }]}
+          >
+            {toolbar}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView
       edges={['top', 'bottom']}
       style={[styles.root, { backgroundColor: theme.background }]}
     >
-      <View
-        style={[
-          styles.toolbar,
-          { backgroundColor: theme.surface, borderBottomColor: theme.border },
-        ]}
-      >
-        <Pressable
-          accessibilityLabel="Retour"
-          onPress={() => router.back()}
-          style={styles.iconButton}
-        >
-          <Ionicons name="arrow-back" size={23} color={theme.foreground} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
-            style={{ color: theme.foreground, fontWeight: '800', fontSize: 16 }}
-          >
-            {chapterTitle ?? `Chapitre ${chapterNumber}`}
-          </Text>
-          <Text style={{ color: theme.secondary, fontSize: 12 }}>
-            {pages.length ? `${index + 1} / ${pages.length}` : 'Lecture'}
-          </Text>
-        </View>
-        <Pressable
-          accessibilityLabel="Changer de mode de lecture"
-          style={styles.iconButton}
-          onPress={() => {
-            setInitialIndex(currentIndex.current);
-            setZoomed(false);
-            setMode(mode === 'paged' ? 'webtoon' : 'paged');
-            selectionFeedback();
-          }}
-        >
-          <Ionicons
-            name={mode === 'paged' ? 'reorder-four-outline' : 'book-outline'}
-            size={23}
-            color={theme.foreground}
-          />
-        </Pressable>
-      </View>
+      {toolbar}
       {loading ? (
         <ActivityIndicator color={theme.accent} style={styles.center} size="large" />
       ) : error ? (
@@ -217,21 +255,17 @@ function ReaderContent({
           ref={listRef}
           style={styles.pages}
           onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
-          key={mode}
           data={pages}
           keyExtractor={(_, itemIndex) => String(itemIndex)}
-          horizontal={mode === 'paged'}
-          pagingEnabled={mode === 'paged'}
+          horizontal
+          pagingEnabled
           scrollEnabled={!zoomed}
           initialScrollIndex={initialIndex}
-          getItemLayout={(_, itemIndex) => {
-            const estimatedLength = mode === 'paged' ? viewportWidth : viewportWidth * 1.45;
-            return {
-              length: estimatedLength,
-              offset: estimatedLength * itemIndex,
-              index: itemIndex,
-            };
-          }}
+          getItemLayout={(_, itemIndex) => ({
+            length: viewportWidth,
+            offset: viewportWidth * itemIndex,
+            index: itemIndex,
+          })}
           windowSize={3}
           maxToRenderPerBatch={2}
           initialNumToRender={2}
@@ -242,7 +276,7 @@ function ReaderContent({
             <ZoomablePage
               key={JSON.stringify([item.uri, item.headers])}
               page={item}
-              paged={mode === 'paged'}
+              paged
               viewportHeight={viewportHeight}
               onZoomChange={setZoomed}
               onEdgeSwipe={turnPage}
@@ -261,6 +295,7 @@ function ReaderContent({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  overlay: { left: 0, position: 'absolute', right: 0, top: 0 },
   pages: { flex: 1 },
   toolbar: {
     alignItems: 'center',

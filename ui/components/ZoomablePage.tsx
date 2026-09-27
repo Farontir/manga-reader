@@ -1,12 +1,12 @@
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ReaderPage } from '../../services/readerPages';
-import { cachedImageUri } from '../../services/imageCache';
+import { useReaderImage } from './useReaderImage';
 
 type Props = {
   page: ReaderPage;
@@ -60,18 +60,7 @@ export function ZoomablePage({
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const [panEnabled, setPanEnabled] = useState(false);
-  const [displayUri, setDisplayUri] = useState(page.uri);
-  useEffect(() => {
-    let active = true;
-    void cachedImageUri(page)
-      .then((uri) => {
-        if (active && uri) setDisplayUri(uri);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [page]);
+  const { source, handleError } = useReaderImage(page, onError);
   const height = paged ? viewportHeight : width * ratio;
   const imageWidth = paged ? Math.min(width, height / ratio) : width;
   const imageHeight = paged ? imageWidth * ratio : height;
@@ -209,20 +198,14 @@ export function ZoomablePage({
           style={[styles.imageContainer, { width: imageWidth, height: imageHeight }, animatedStyle]}
         >
           <Image
-            source={{
-              uri: displayUri,
-              headers: displayUri === page.uri ? page.headers : undefined,
-            }}
+            source={source}
             style={{ width: imageWidth, height: imageHeight }}
             contentFit="contain"
             cachePolicy="none"
             onLoad={(event) => {
               if (event.source.width > 0) setRatio(event.source.height / event.source.width);
             }}
-            onError={() => {
-              if (displayUri !== page.uri) setDisplayUri(page.uri);
-              else onError?.();
-            }}
+            onError={handleError}
           />
         </Animated.View>
       </View>
