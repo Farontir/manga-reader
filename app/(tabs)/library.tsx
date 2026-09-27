@@ -1,11 +1,12 @@
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { listLibraryEntries, type LibraryEntry } from '../../db';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
 
@@ -13,11 +14,15 @@ export default function LibraryScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
+  const sync = useFolderSync();
   useFocusEffect(
     useCallback(() => {
       void listLibraryEntries().then(setEntries);
     }, []),
   );
+  useEffect(() => {
+    if (sync.libraryVersion) void listLibraryEntries().then(setEntries);
+  }, [sync.libraryVersion]);
 
   return (
     <Screen>
@@ -28,6 +33,42 @@ export default function LibraryScreen() {
         </View>
         <Text style={{ color: theme.secondary }}>{entries.length} mangas</Text>
       </View>
+      {sync.running || sync.message ? (
+        <View
+          style={[styles.syncBanner, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        >
+          {sync.running ? <ActivityIndicator color={theme.accent} /> : null}
+          <Text style={[styles.syncText, { color: theme.foreground }]}>
+            {sync.running
+              ? `Recherche de nouveaux CBZ${sync.progress ? ` · ${sync.progress}` : '…'}`
+              : sync.message}
+          </Text>
+          {!sync.running && sync.needsAccess ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                pickWatchedFolder().catch((reason: unknown) => {
+                  const message = reason instanceof Error ? reason.message : String(reason);
+                  if (!message.toLowerCase().includes('cancel'))
+                    Alert.alert('Dossier inaccessible', message);
+                });
+              }}
+              style={styles.syncAction}
+            >
+              <Text style={{ color: theme.accent, fontWeight: '800' }}>Rechoisir</Text>
+            </Pressable>
+          ) : null}
+          {!sync.running && !sync.needsAccess ? (
+            <Pressable
+              accessibilityLabel="Masquer"
+              onPress={dismissFolderSyncMessage}
+              style={styles.syncAction}
+            >
+              <Text style={{ color: theme.secondary, fontSize: 18 }}>×</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <FlashList
         style={styles.listContainer}
         data={entries}
@@ -104,6 +145,19 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 5 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1 },
   listContainer: { flex: 1 },
+  syncBanner: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  syncText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  syncAction: { alignItems: 'center', justifyContent: 'center', minHeight: 32, minWidth: 32 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
   importBar: {

@@ -20,7 +20,9 @@ Ce parcours gratuit permet de tester l'interface, l'import, la lecture, SQLite e
 
 - Import CBZ (jusqu'à 120 Mo compressés, extraction progressive) ou dossier d'images ; copie locale pour lecture hors ligne.
 
-Si iOS affiche un `.cbz` grisé dans le sélecteur Fichiers, l'écran d'import propose **Choisir le dossier contenant le CBZ**. Sélectionne le dossier parent, puis touche le fichier `.cbz` ou `.zip` affiché dans l'app. Un CBZ est une archive ZIP d'images ; renommer une copie en `.zip` peut aussi dépanner si le dossier n'est pas accessible.
+**Dossier surveillé.** L'écran d'import propose **Surveiller un dossier de CBZ** : choisis le dossier où tu ranges tes CBZ (iCloud Drive, Sur mon iPhone…), sous-dossiers compris. Il est rescanné au démarrage et à chaque retour dans l'app (au plus une fois par minute) ; seuls les nouveaux fichiers sont ouverts, les CBZ d'origine ne sont jamais modifiés. iOS retire souvent l'accès au dossier quand l'app est fermée : la bibliothèque affiche alors **Rechoisir**, qui rouvre le sélecteur au même endroit. Les fichiers iCloud non téléchargés sur l'iPhone sont signalés et ignorés. Ce parcours contourne aussi les `.cbz` grisés dans le sélecteur de fichiers.
+
+La série, le tome et le chapitre viennent de `ComicInfo.xml` s'il est présent, sinon du nom du fichier (`One Piece T01.cbz`, `Naruto - Tome 5 - Chapitre 42.cbz`, `[Team] Titre - c1087 (v105).cbz`, `Titre 1087.cbz`…), sinon du nom du dossier parent (`One Piece/Chapter 12.cbz`).
 
 - Lecteur paginé ou webtoon, pinch zoom, double tap, reprise à la dernière page et suivi par **numéro de chapitre**. Les pages distantes sont préchargées autour de la page lue et conservées dans un cache temporaire LRU limité à 256 Mo.
 - Recherche AniList et recherche dans les sources installées.

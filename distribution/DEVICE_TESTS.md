@@ -13,7 +13,10 @@ Sur Expo Go, laisser de côté la tâche planifiée en arrière-plan, les compor
 ## Fichiers locaux et lecteur
 
 - [ ] Importer un CBZ de plus de 200 pages, puis un dossier d'images ; vérifier l'ordre des pages et la couverture.
-- [ ] Si un CBZ est grisé dans Fichiers, sélectionner son dossier parent et importer le CBZ depuis la liste de l'app.
+- [ ] Surveiller un dossier contenant plusieurs CBZ (dont un sous-dossier par série) : vérifier séries, tomes et chapitres détectés.
+- [ ] Ajouter un CBZ dans ce dossier via Fichiers, revenir dans l'app après une minute : il est importé seul, les autres ne sont pas rouverts.
+- [ ] Fermer complètement l'app puis la rouvrir : si l'accès est perdu, **Rechoisir** rouvre le sélecteur sur le dossier et la synchro reprend.
+- [ ] Supprimer un manga importé depuis le dossier surveillé : il ne revient pas au scan suivant.
 - [ ] Parcourir le chapitre en mode paginé puis vertical ; tester balayage, pincement, double toucher et changement de mode.
 - [ ] Fermer l'app à la page N, la rouvrir et reprendre à la même page. Vérifier la progression après un changement de mode.
 - [ ] Lire un long chapitre jusqu'à la fin sans fermeture de l'app ni forte dégradation de fluidité. Vérifier l'espace utilisé par le cache après plusieurs chapitres.

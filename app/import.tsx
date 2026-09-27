@@ -1,6 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import * as Crypto from 'expo-crypto';
-import { Directory, File, Paths } from 'expo-file-system';
+import { Directory, File } from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -15,9 +14,22 @@ import {
 } from 'react-native';
 
 import { getLibraryEntry } from '../db';
+import {
+  findArchives,
+  importArchives,
+  type ArchiveCandidate,
+  type ArchiveImportSummary,
+} from '../services/folderSync';
+import { withImportLock } from '../services/importLock';
 import { importLocalChapter } from '../services/localImport';
 import { ActionButton } from '../ui/components/ActionButton';
 import { Screen } from '../ui/components/Screen';
+import {
+  describeSync,
+  pickWatchedFolder,
+  stopWatchingFolder,
+  useFolderSync,
+} from '../ui/folderSync';
 import { successFeedback } from '../ui/haptics';
 import { useTheme } from '../ui/useTheme';
 
@@ -34,6 +46,7 @@ export default function ImportScreen() {
   const [number, setNumber] = useState('');
   const [busy, setBusy] = useState(false);
   const [importStatus, setImportStatus] = useState('');
+  const sync = useFolderSync();
 
   useEffect(() => {
     if (entryId)
@@ -55,7 +68,7 @@ export default function ImportScreen() {
         const selected = result.assets.filter((asset) => /\.(?:cbz|zip)$/i.test(asset.name));
         if (!selected.length) throw new Error('Sélectionne un ou plusieurs fichiers CBZ.');
         if (selected.length > 1) {
-          await importArchives(
+          await importIntoEntry(
             selected.map((asset) => ({ file: new File(asset.uri), name: asset.name })),
           );
           return;
@@ -77,96 +90,70 @@ export default function ImportScreen() {
   }
 
   async function finishImport(archive?: File, folder?: Directory, fallbackName?: string) {
-    const result = await importLocalChapter({
-      entryId,
-      title: title.trim() || undefined,
-      chapterNumber: number.trim() ? Number(number.replace(',', '.')) : undefined,
-      archive,
-      archiveName: fallbackName,
-      folder,
-      skipExisting: Boolean(archive && !entryId),
-    });
+    const result = await withImportLock(() =>
+      importLocalChapter({
+        entryId,
+        title: title.trim() || undefined,
+        chapterNumber: number.trim() ? Number(number.replace(',', '.')) : undefined,
+        archive,
+        archiveName: fallbackName,
+        folder,
+        skipExisting: Boolean(archive && !entryId),
+      }),
+    );
     successFeedback();
     router.replace({ pathname: '/entry/[id]', params: { id: result.entryId } });
   }
 
-  function findArchives(folder: Directory, depth = 0): File[] {
-    if (depth > 5) return [];
-    const found: File[] = [];
-    for (const item of folder.list()) {
-      if (item instanceof File && /\.(?:cbz|zip)$/i.test(item.name)) found.push(item);
-      if (item instanceof Directory) found.push(...findArchives(item, depth + 1));
-      if (found.length > 200)
-        throw new Error('Ce dossier contient plus de 200 CBZ. Choisis un sous-dossier.');
-    }
-    return found.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  function showSummary(summary: ArchiveImportSummary, extra?: string | null) {
+    if (summary.imported) successFeedback();
+    const lines = [
+      `${summary.imported} CBZ importé(s), ${summary.skipped} déjà présent(s), ${summary.errors.length} erreur(s).`,
+      extra,
+      summary.errors.slice(0, 3).join('\n'),
+    ];
+    Alert.alert('Import terminé', lines.filter(Boolean).join('\n\n'));
   }
 
-  async function importArchives(
-    archives: { file: File; name: string; folderName?: string; copy?: boolean }[],
-  ) {
-    let imported = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-    for (let index = 0; index < archives.length; index += 1) {
-      const archive = archives[index];
-      if (!archive) continue;
-      setImportStatus(`${index + 1} / ${archives.length} · ${archive.name}`);
-      const cached = archive.copy
-        ? new File(Paths.cache, `manga-import-${Crypto.randomUUID()}.cbz`)
-        : null;
-      try {
-        if (archive.file.size > 120 * 1024 * 1024) {
-          throw new Error('CBZ de plus de 120 Mo');
-        }
-        if (cached) await archive.file.copy(cached);
-        const result = await importLocalChapter({
-          entryId,
-          archive: cached ?? archive.file,
-          archiveName: archive.name,
-          archiveFolderName: archive.folderName,
-          skipExisting: true,
-        });
-        if (result.imported) imported += 1;
-        else skipped += 1;
-      } catch (reason) {
-        errors.push(`${archive.name} : ${reportImportError('archive', reason)}`);
-      } finally {
-        if (cached) {
-          try {
-            if (cached.exists) cached.delete();
-          } catch {
-            // Cache cleanup must not change the import result.
-          }
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    setImportStatus('');
-    if (imported) successFeedback();
-    Alert.alert(
-      'Import terminé',
-      `${imported} CBZ importé(s), ${skipped} déjà présent(s), ${errors.length} erreur(s).${errors.length ? `\n\n${errors.slice(0, 3).join('\n')}` : ''}`,
+  async function importIntoEntry(archives: ArchiveCandidate[]) {
+    const summary = await withImportLock(() =>
+      importArchives(archives, {
+        entryId,
+        onProgress: (index, total, name) => setImportStatus(`${index + 1} / ${total} · ${name}`),
+      }),
     );
+    setImportStatus('');
+    showSummary(summary);
   }
 
   async function pickArchiveFolder() {
     setBusy(true);
     try {
-      const folder = await Directory.pickDirectoryAsync();
-      const found = findArchives(folder);
-      if (!found.length) throw new Error('Aucun fichier .cbz ou .zip dans ce dossier.');
-      await importArchives(
-        found.map((file) => ({
-          file,
-          name: file.name,
-          folderName: file.parentDirectory.name,
-          copy: true,
-        })),
-      );
+      if (entryId) {
+        // Adding chapters to one manga: one-shot import, the folder is not watched.
+        const folder = await Directory.pickDirectoryAsync();
+        const { archives } = findArchives(folder);
+        if (!archives.length) throw new Error('Aucun fichier .cbz ou .zip dans ce dossier.');
+        await importIntoEntry(
+          archives.map((file) => ({
+            file,
+            name: file.name,
+            folderName: file.parentDirectory.name,
+            copy: true,
+          })),
+        );
+        return;
+      }
+      const result = await pickWatchedFolder();
+      if (result?.status === 'no-access') throw new Error('Impossible de lire ce dossier.');
+      if (result?.status === 'done') {
+        if (!result.summary.imported && !result.summary.skipped && !result.summary.errors.length)
+          Alert.alert('Dossier surveillé', 'Aucun nouveau CBZ pour le moment.');
+        else showSummary(result.summary, describeSync(result));
+      }
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : String(reason);
-      if (!message.toLowerCase().includes('cancelled'))
+      if (!message.toLowerCase().includes('cancel'))
         Alert.alert('Import impossible', reportImportError('dossier CBZ', reason));
     } finally {
       setBusy(false);
@@ -222,23 +209,49 @@ export default function ImportScreen() {
         />
         <View style={{ height: 10 }} />
         <Text style={[styles.note, { color: theme.secondary, marginTop: 0, marginBottom: 10 }]}>
-          Pour importer automatiquement tous les CBZ d’un dossier, sélectionne ce dossier dans
-          Fichiers. Ses sous-dossiers sont aussi parcourus.
+          {entryId
+            ? 'Importe dans ce manga tous les CBZ d’un dossier et de ses sous-dossiers.'
+            : 'Choisis le dossier où tu ranges tes CBZ (sous-dossiers compris). Il est rescanné à chaque ouverture de l’app et seuls les nouveaux fichiers sont importés. Tes fichiers ne sont jamais modifiés.'}
         </Text>
+        {!entryId && sync.watchedFolderName ? (
+          <View
+            style={[styles.watched, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            <Text style={[styles.watchedText, { color: theme.foreground }]} numberOfLines={2}>
+              Dossier surveillé : « {sync.watchedFolderName} »
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy || sync.running}
+              onPress={() => {
+                void stopWatchingFolder();
+              }}
+              style={styles.watchedAction}
+            >
+              <Text style={{ color: theme.accent, fontWeight: '700' }}>Ne plus surveiller</Text>
+            </Pressable>
+          </View>
+        ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Importer tous les CBZ d’un dossier"
-          disabled={busy}
+          accessibilityLabel={
+            entryId ? 'Importer tous les CBZ d’un dossier' : 'Surveiller un dossier de CBZ'
+          }
+          disabled={busy || sync.running}
           onPress={() => {
             void pickArchiveFolder();
           }}
           style={[
             styles.folderButton,
-            { backgroundColor: theme.foreground, opacity: busy ? 0.45 : 1 },
+            { backgroundColor: theme.foreground, opacity: busy || sync.running ? 0.45 : 1 },
           ]}
         >
           <Text style={[styles.folderButtonText, { color: theme.background }]}>
-            Importer tous les CBZ d’un dossier
+            {entryId
+              ? 'Importer tous les CBZ d’un dossier'
+              : sync.watchedFolderName
+                ? 'Changer de dossier surveillé'
+                : 'Surveiller un dossier de CBZ'}
           </Text>
         </Pressable>
         <View style={{ height: 10 }} />
@@ -252,8 +265,10 @@ export default function ImportScreen() {
           }}
         />
         {busy ? <ActivityIndicator color={theme.accent} style={{ marginTop: 22 }} /> : null}
-        {importStatus ? (
-          <Text style={[styles.note, { color: theme.secondary }]}>{importStatus}</Text>
+        {importStatus || sync.progress ? (
+          <Text style={[styles.note, { color: theme.secondary }]}>
+            {importStatus || sync.progress}
+          </Text>
         ) : null}
         <Text style={[styles.note, { color: theme.secondary }]}>
           Les CBZ de plus de 120 Mo doivent être décompressés puis importés comme dossier.
@@ -278,4 +293,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   folderButtonText: { fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  watched: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+    padding: 12,
+  },
+  watchedText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  watchedAction: { justifyContent: 'center', minHeight: 32 },
 });

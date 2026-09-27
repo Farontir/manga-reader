@@ -1,5 +1,16 @@
 # Plan de réalisation
 
+## Import automatique des CBZ (septembre 2026)
+
+iOS ne laisse lire que le dossier de l'app ou un dossier choisi par l'utilisateur. Étape 1, compatible Expo Go :
+
+1. Mémoriser le dossier choisi via « Importer tous les CBZ d'un dossier » (table `settings`) et le rescanner au démarrage puis à chaque retour au premier plan (au plus une fois par minute).
+2. Retenir chaque archive déjà traitée dans une nouvelle table `imported_archives` (migration 005, additive), identifiée par chemin relatif + taille : les scans suivants n'ouvrent que les nouveaux fichiers. Les CBZ d'origine ne sont jamais modifiés ni supprimés. Pas de clé étrangère : un manga supprimé de la bibliothèque ne revient pas au scan suivant.
+3. expo-file-system ne conserve pas l'accès sécurisé au dossier après redémarrage : si la lecture échoue, la bibliothèque propose de rechoisir le dossier (sélecteur ouvert au même endroit).
+4. Sérialiser tous les imports (manuel et automatique) pour éviter les doublons.
+
+Étape 2, avec un build natif : scanner le dossier de l'app visible dans Fichiers (« Sur mon iPhone › Manga Reader ») et déclarer le type CBZ pour « Ouvrir avec ».
+
 ## Import CBZ dans Expo Go (septembre 2026)
 
 1. Rendre l'action d'import de la bibliothèque lisible avec un bouton autonome à fort contraste.

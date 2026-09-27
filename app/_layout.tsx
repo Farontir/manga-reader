@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDatabase } from '../db';
 import { SourceHost } from '../native-bridge/SourceHost';
 import { resumeQueuedDownloads } from '../services/downloads';
+import { useFolderSyncOnForeground } from '../ui/folderSync';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -26,6 +27,7 @@ export default function RootLayout() {
         setError(reason instanceof Error ? reason.message : String(reason));
       });
   }, []);
+  useFolderSyncOnForeground(ready);
 
   if (!ready) {
     return (
