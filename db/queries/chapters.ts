@@ -110,7 +110,7 @@ export async function saveProgress(
         read_at, completed) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(library_entry_id, chapter_number) DO UPDATE SET
          page_index = excluded.page_index, total_pages = excluded.total_pages,
-         read_at = excluded.read_at, completed = excluded.completed`,
+         read_at = excluded.read_at, completed = MAX(completed, excluded.completed)`,
       entryId,
       chapterNumber,
       pageIndex,

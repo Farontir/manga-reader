@@ -88,7 +88,9 @@ function ReaderContent({
     ])
       .then(([uris, progress, localChapter]) => {
         if (!active) return;
-        const saved = progress.find((item) => item.chapterNumber === chapterNumber)?.pageIndex ?? 0;
+        const record = progress.find((item) => item.chapterNumber === chapterNumber);
+        // A finished chapter is reread from its first page.
+        const saved = record && !record.completed ? record.pageIndex : 0;
         const start = Math.min(Math.max(saved, 0), Math.max(uris.length - 1, 0));
         currentIndex.current = start;
         setInitialIndex(start);
