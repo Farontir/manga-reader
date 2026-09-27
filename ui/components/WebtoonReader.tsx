@@ -1,6 +1,6 @@
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import {
   PixelRatio,
   Pressable,
@@ -55,6 +55,10 @@ type Props = {
   onTap: () => void;
   onScrollStart: () => void;
   onPageError: (page: ReaderPage) => void;
+  /** Shown under the last strip (end of chapter). */
+  footer?: ReactElement;
+  /** The user stopped scrolling at the very bottom of the list. */
+  onReachEnd?: () => void;
 };
 
 /** Vertical, edge-to-edge strip reader: scrolling only, no horizontal page turn. */
@@ -65,6 +69,8 @@ export function WebtoonReader({
   onTap,
   onScrollStart,
   onPageError,
+  footer,
+  onReachEnd,
 }: Props) {
   const { width, height } = useWindowDimensions();
   // Measured ratios survive item recycling, so a strip scrolled back into view keeps its size.
@@ -88,6 +94,12 @@ export function WebtoonReader({
     if (page !== null) onIndexChange(page);
   }
 
+  function settle(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    trackPage(event);
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 2) onReachEnd?.();
+  }
+
   return (
     <FlashList
       ref={listRef}
@@ -98,7 +110,10 @@ export function WebtoonReader({
       showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="never"
       onScroll={trackPage}
-      onMomentumScrollEnd={trackPage}
+      // A release without momentum only fires onScrollEndDrag.
+      onScrollEndDrag={settle}
+      onMomentumScrollEnd={settle}
+      ListFooterComponent={footer}
       scrollEventThrottle={100}
       onScrollBeginDrag={onScrollStart}
       renderItem={({ item }) => (

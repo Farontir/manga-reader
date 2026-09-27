@@ -17,10 +17,18 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   getLocalChapter,
   listBindings,
+  listKnownChapters,
+  listLocalChapters,
   listProgress,
   markBindingHealth,
   saveProgress,
 } from '../../db';
+import {
+  chapterLabel,
+  mergeChapters,
+  nextChapter,
+  type ChapterItem,
+} from '../../services/chapterList';
 import { prefetchImage } from '../../services/imageCache';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
 import { WebtoonReader } from '../../ui/components/WebtoonReader';
@@ -71,6 +79,8 @@ function ReaderContent({
   // Webtoon mode is full screen: the toolbar floats over the strip and hides while scrolling.
   const [overlayVisible, setOverlayVisible] = useState(true);
   const insets = useSafeAreaInsets();
+  const [next, setNext] = useState<ChapterItem | null>(null);
+  const [advancing, setAdvancing] = useState(false);
   const currentIndex = useRef(0);
   const switchingSource = useRef(false);
   const failedSources = useRef(new Set<string>());
@@ -109,12 +119,42 @@ function ReaderContent({
     };
   }, [id, chapterNumber, sourceId, chapterId]);
 
-  const updateIndex = useCallback((next: number) => {
-    if (next === currentIndex.current) return;
-    currentIndex.current = next;
+  const updateIndex = useCallback((page: number) => {
+    if (page === currentIndex.current) return;
+    currentIndex.current = page;
     setZoomed(false);
-    setIndex(next);
+    setIndex(page);
   }, []);
+
+  useEffect(() => {
+    if (!id || !Number.isFinite(chapterNumber)) return;
+    let active = true;
+    void Promise.all([listLocalChapters(id), listKnownChapters(id), listBindings(id)])
+      .then(([local, remote, bindings]) => {
+        if (active) setNext(nextChapter(mergeChapters(local, remote, bindings), chapterNumber));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [id, chapterNumber]);
+
+  // Replacing the route remounts the reader on the next chapter; this one flushes its
+  // progress (last page, so completed) while unmounting.
+  function openNextChapter() {
+    if (!next || advancing) return;
+    setAdvancing(true);
+    successFeedback();
+    router.replace({
+      pathname: '/reader/[id]',
+      params: {
+        id,
+        chapter: String(next.number),
+        sourceId: next.sourceId,
+        chapterId: next.chapterId,
+      },
+    });
+  }
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ReaderPage>[] }) => {
@@ -244,6 +284,37 @@ function ReaderContent({
           onPageError={(page) => {
             void handlePageError(page.sourceId);
           }}
+          onReachEnd={openNextChapter}
+          footer={
+            <Pressable
+              accessibilityRole="button"
+              disabled={!next || advancing}
+              onPress={openNextChapter}
+              style={[styles.chapterEnd, { minHeight: Dimensions.get('window').height * 0.35 }]}
+            >
+              <Text style={{ color: theme.secondary, fontSize: 13 }}>
+                Fin · {chapterTitle ?? `Chapitre ${chapterNumber}`}
+              </Text>
+              {next ? (
+                <>
+                  <Text style={[styles.chapterEndTitle, { color: theme.foreground }]}>
+                    Chapitre suivant : {chapterLabel(next)}
+                  </Text>
+                  {advancing ? (
+                    <ActivityIndicator color={theme.accent} style={{ marginTop: 12 }} />
+                  ) : (
+                    <Text style={[styles.chapterEndHint, { color: theme.accent }]}>
+                      Descends jusqu’en bas ou touche pour continuer
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text style={[styles.chapterEndTitle, { color: theme.foreground }]}>
+                  Dernier chapitre disponible
+                </Text>
+              )}
+            </Pressable>
+          }
         />
         {overlayVisible ? (
           <View
@@ -312,6 +383,9 @@ function ReaderContent({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: { left: 0, position: 'absolute', right: 0, top: 0 },
+  chapterEnd: { alignItems: 'center', gap: 6, justifyContent: 'center', padding: 28 },
+  chapterEndTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  chapterEndHint: { fontSize: 13, fontWeight: '700', marginTop: 6, textAlign: 'center' },
   pages: { flex: 1 },
   toolbar: {
     alignItems: 'center',
