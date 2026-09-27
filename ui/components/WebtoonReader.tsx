@@ -9,6 +9,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
+import type { FeedItem } from '../../services/readerFeed';
 import type { ReaderPage } from '../../services/readerPages';
 import { useReaderImage } from './useReaderImage';
 import { pageAtScroll } from './webtoonPosition';
@@ -49,84 +50,90 @@ function WebtoonPage({ page, width, initialRatio, onRatio, onPress, onError }: P
 }
 
 type Props = {
-  pages: ReaderPage[];
+  /** Pages of one or more chapters, each chapter closed by a transition item. */
+  items: FeedItem[];
   initialIndex: number;
   onIndexChange: (index: number) => void;
   onTap: () => void;
   onScrollStart: () => void;
   onPageError: (page: ReaderPage) => void;
-  /** Shown under the last strip (end of chapter). */
-  footer?: ReactElement;
-  /** The user stopped scrolling at the very bottom of the list. */
-  onReachEnd?: () => void;
+  renderTransition: (item: Extract<FeedItem, { kind: 'transition' }>) => ReactElement;
+  /** Re-renders items (transitions) when state outside `items` changes. */
+  extraData?: unknown;
+  /** Less than two screens of content left: time to append the next chapter. */
+  onNearEnd?: () => void;
 };
 
-/** Vertical, edge-to-edge strip reader: scrolling only, no horizontal page turn. */
+/**
+ * Vertical, edge-to-edge strip reader: scrolling only, no horizontal page turn. Chapters
+ * appended to `items` continue the same list, so reading flows from one to the next.
+ */
 export function WebtoonReader({
-  pages,
+  items,
   initialIndex,
   onIndexChange,
   onTap,
   onScrollStart,
   onPageError,
-  footer,
-  onReachEnd,
+  renderTransition,
+  extraData,
+  onNearEnd,
 }: Props) {
   const { width, height } = useWindowDimensions();
   // Measured ratios survive item recycling, so a strip scrolled back into view keeps its size.
   const ratios = useRef(new Map<string, number>());
-  const listRef = useRef<FlashListRef<ReaderPage>>(null);
+  const listRef = useRef<FlashListRef<FeedItem>>(null);
 
-  // The current page comes from the scroll position and the measured strip layouts:
-  // viewability callbacks lag 250 ms and never reach a short last page.
-  function trackPage(event: NativeSyntheticEvent<NativeScrollEvent>) {
+  // The current item comes from the scroll position and the measured layouts: viewability
+  // callbacks lag 250 ms and never reach a short last page.
+  function trackPosition(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const list = listRef.current;
     if (!list) return;
     const firstOffset = list.getFirstItemOffset();
-    const page = pageAtScroll(
-      pages.length,
-      (index) => list.getLayout(index),
+    const index = pageAtScroll(
+      items.length,
+      (itemIndex) => list.getLayout(itemIndex),
       contentOffset.y - firstOffset,
       layoutMeasurement.height,
       contentSize.height - firstOffset,
     );
-    if (page !== null) onIndexChange(page);
-  }
-
-  function settle(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    trackPage(event);
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 2) onReachEnd?.();
+    if (index !== null) onIndexChange(index);
   }
 
   return (
     <FlashList
       ref={listRef}
-      data={pages}
-      keyExtractor={(item, index) => `${index}:${item.uri}`}
+      data={items}
+      keyExtractor={(item) => item.key}
+      getItemType={(item) => item.kind}
+      extraData={extraData}
+      onEndReached={onNearEnd}
+      onEndReachedThreshold={2}
       initialScrollIndex={initialIndex}
       drawDistance={height * 2}
       showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="never"
-      onScroll={trackPage}
-      // A release without momentum only fires onScrollEndDrag.
-      onScrollEndDrag={settle}
-      onMomentumScrollEnd={settle}
-      ListFooterComponent={footer}
+      onScroll={trackPosition}
+      onScrollEndDrag={trackPosition}
+      onMomentumScrollEnd={trackPosition}
       scrollEventThrottle={100}
       onScrollBeginDrag={onScrollStart}
-      renderItem={({ item }) => (
-        <WebtoonPage
-          key={JSON.stringify([item.uri, item.headers])}
-          page={item}
-          width={width}
-          initialRatio={ratios.current.get(item.uri) ?? DEFAULT_RATIO}
-          onRatio={(ratio) => ratios.current.set(item.uri, ratio)}
-          onPress={onTap}
-          onError={() => onPageError(item)}
-        />
-      )}
+      renderItem={({ item }) =>
+        item.kind === 'transition' ? (
+          renderTransition(item)
+        ) : (
+          <WebtoonPage
+            key={JSON.stringify([item.data.uri, item.data.headers])}
+            page={item.data}
+            width={width}
+            initialRatio={ratios.current.get(item.data.uri) ?? DEFAULT_RATIO}
+            onRatio={(ratio) => ratios.current.set(item.data.uri, ratio)}
+            onPress={onTap}
+            onError={() => onPageError(item.data)}
+          />
+        )
+      }
     />
   );
 }
