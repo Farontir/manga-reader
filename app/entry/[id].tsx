@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -5,6 +6,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 
 import {
   getLibraryEntry,
+  getSetting,
   listDownloadJobs,
   listBindings,
   listDownloadedChapters,
@@ -13,6 +15,7 @@ import {
   listLocalChapters,
   listProgress,
   setBindingPriority,
+  setSetting,
   type Chapter,
   type InstalledSource,
   type LibraryEntry,
@@ -23,9 +26,12 @@ import {
 import { downloadChapter } from '../../services/downloads';
 import { removeEntryAndFiles } from '../../services/libraryFiles';
 import { refreshEntryChapters } from '../../services/librarySources';
+import { resumeTarget } from '../../services/resume';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
+
+const CHAPTER_ORDER_KEY = 'chapters.order';
 
 type ChapterItem = {
   number: number;
@@ -76,6 +82,7 @@ export default function EntryScreen() {
   const [downloading, setDownloading] = useState<number | null>(null);
   const [downloadProgress, setDownloadProgress] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [ascending, setAscending] = useState(false);
 
   const reload = useCallback(() => {
     if (!id) return;
@@ -88,9 +95,21 @@ export default function EntryScreen() {
       listInstalledSources(),
       listDownloadedChapters(id),
       listDownloadJobs(id),
+      getSetting(CHAPTER_ORDER_KEY),
     ]).then(
-      ([nextEntry, local, remote, nextBindings, nextProgress, nextSources, downloads, jobs]) => {
+      ([
+        nextEntry,
+        local,
+        remote,
+        nextBindings,
+        nextProgress,
+        nextSources,
+        downloads,
+        jobs,
+        order,
+      ]) => {
         setEntry(nextEntry);
+        setAscending(order === 'asc');
         setBindings(nextBindings);
         setChapters(mergeChapters(local, remote, nextBindings));
         setProgress(nextProgress);
@@ -117,6 +136,31 @@ export default function EntryScreen() {
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function toggleOrder() {
+    const next = !ascending;
+    setAscending(next);
+    void setSetting(CHAPTER_ORDER_KEY, next ? 'asc' : 'desc');
+  }
+
+  function openChapter(number: number) {
+    const item = chapters.find((chapter) => chapter.number === number);
+    router.push({
+      pathname: '/reader/[id]',
+      params: {
+        id,
+        chapter: String(number),
+        sourceId: item?.sourceId,
+        chapterId: item?.chapterId,
+      },
+    });
+  }
+
+  // Local titles carry the volume ("Tome 3 · Chapitre 25"); source titles can be long names.
+  function chapterLabel(number: number) {
+    const item = chapters.find((chapter) => chapter.number === number);
+    return item?.local ? item.title : `Chapitre ${number}`;
   }
 
   async function preferSource(binding: SourceBinding) {
@@ -156,6 +200,12 @@ export default function EntryScreen() {
     ]);
   }
 
+  const resume = resumeTarget(
+    chapters.map((chapter) => chapter.number),
+    progress,
+  );
+  const shownChapters = ascending ? [...chapters].reverse() : chapters;
+
   if (!entry)
     return (
       <Screen>
@@ -165,7 +215,7 @@ export default function EntryScreen() {
   return (
     <Screen>
       <FlatList
-        data={chapters}
+        data={shownChapters}
         keyExtractor={(item) => `${item.number}`}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
@@ -194,6 +244,23 @@ export default function EntryScreen() {
             {entry.description ? (
               <Text style={[styles.description, { color: theme.secondary }]}>
                 {entry.description}
+              </Text>
+            ) : null}
+            {resume && resume.kind !== 'upToDate' ? (
+              <View style={styles.resume}>
+                <ActionButton
+                  label={
+                    resume.kind === 'resume'
+                      ? `Reprendre · ${chapterLabel(resume.chapterNumber)} · p. ${resume.pageIndex + 1}`
+                      : `${resume.kind === 'next' ? 'Continuer' : 'Commencer'} · ${chapterLabel(resume.chapterNumber)}`
+                  }
+                  icon="play"
+                  onPress={() => openChapter(resume.chapterNumber)}
+                />
+              </View>
+            ) : resume ? (
+              <Text style={[styles.upToDate, { color: theme.success }]}>
+                À jour · {chapterLabel(resume.chapterNumber)} lu
               </Text>
             ) : null}
             <ActionButton
@@ -254,7 +321,24 @@ export default function EntryScreen() {
                 </View>
               </View>
             ) : null}
-            <Text style={[styles.section, { color: theme.foreground }]}>Chapitres</Text>
+            <View style={styles.sectionRow}>
+              <Text style={[styles.section, { color: theme.foreground, marginBottom: 0 }]}>
+                Chapitres
+              </Text>
+              {chapters.length > 1 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Inverser l’ordre des chapitres"
+                  onPress={toggleOrder}
+                  style={styles.orderButton}
+                >
+                  <Ionicons name="swap-vertical" size={17} color={theme.accent} />
+                  <Text style={{ color: theme.accent, fontWeight: '700' }}>
+                    {ascending ? 'Plus anciens d’abord' : 'Plus récents d’abord'}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
             {!chapters.length ? (
               <Text style={{ color: theme.secondary, marginBottom: 20 }}>
                 Aucun chapitre. Importe un fichier ou relie une source.
@@ -266,17 +350,7 @@ export default function EntryScreen() {
           const state = progress.find((record) => record.chapterNumber === item.number);
           return (
             <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/reader/[id]',
-                  params: {
-                    id,
-                    chapter: String(item.number),
-                    sourceId: item.sourceId,
-                    chapterId: item.chapterId,
-                  },
-                })
-              }
+              onPress={() => openChapter(item.number)}
               style={[
                 styles.chapter,
                 { borderColor: theme.border, backgroundColor: theme.surface },
@@ -339,6 +413,15 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13, marginTop: 9 },
   description: { fontSize: 14, lineHeight: 21, marginBottom: 20 },
   section: { fontSize: 20, fontWeight: '800', marginBottom: 12, marginTop: 32 },
+  sectionRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  orderButton: { alignItems: 'center', flexDirection: 'row', gap: 5, paddingVertical: 4 },
+  resume: { marginBottom: 10 },
+  upToDate: { fontSize: 14, fontWeight: '700', marginBottom: 14 },
   chapter: {
     alignItems: 'center',
     borderRadius: 12,
