@@ -42,7 +42,7 @@ L'app est livrée sans source préinstallée. `source-repo/` contient trois sour
 node scripts/build-source-repo.mjs
 ```
 
-Le dépôt statique doit être accessible en HTTPS. Dans l'app, ouvre **Sources → Installer une source** et colle l'URL du dossier ou du `manifest.json`.
+Le dépôt statique doit être accessible en HTTPS. Il est publié sur GitHub Pages : dans l'app, ouvre **Sources → Installer une source** et colle par exemple `https://farontir.github.io/manga-reader/mangadex/` (autres URLs dans [source-repo/README.md](source-repo/README.md)).
 
 ## Vérifications
 

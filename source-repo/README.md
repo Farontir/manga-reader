@@ -11,7 +11,13 @@
 Le fichier `manifest.json` contient le SHA-256 du bundle. L'app vérifie cette empreinte avant installation. Les extensions n'ont pas accès à la base SQLite ; leurs requêtes passent par le bridge `app.fetch` limité aux domaines déclarés.
 La source Pepper&Carrot publie les notices de ses dépendances HTML dans `peppercarrot/THIRD_PARTY_LICENSES.txt`.
 
-Avec GitHub Pages, une source est installable depuis `https://UTILISATEUR.github.io/DEPOT/mangadex/`, `.../komga-demo/` ou `.../peppercarrot/`. L'adresse exacte dépend du compte et du nom du dépôt GitHub ; aucun dépôt distant n'est configuré dans cette copie locale.
+Ce dossier est publié sur GitHub Pages depuis [Farontir/manga-reader](https://github.com/Farontir/manga-reader). URLs à coller dans **Sources → Installer une source** :
+
+- MangaDex : `https://farontir.github.io/manga-reader/mangadex/`
+- Komga Demo : `https://farontir.github.io/manga-reader/komga-demo/`
+- Pepper&Carrot : `https://farontir.github.io/manga-reader/peppercarrot/`
+
+Le workflow commite `status.json` sur `main` à chaque vérification : faire `git pull` avant de pousser.
 
 `status.json` est l'endpoint de monitoring. Le workflow GitHub Actions `.github/workflows/source-health.yml` le renouvelle toutes les six heures quand ce dépôt est publié sur GitHub. L'app permet aussi une vérification directe depuis l'onglet Sources.
 
