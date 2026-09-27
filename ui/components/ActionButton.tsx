@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../useTheme';
 
@@ -11,25 +12,36 @@ type Props = {
   disabled?: boolean;
 };
 
+// Colours live on a plain View with a static style: on device, a Pressable style
+// callback wrapped by NativeWind rendered no background at all, leaving the
+// label the same colour as the screen.
 export function ActionButton({ label, icon, onPress, secondary = false, disabled = false }: Props) {
   const theme = useTheme();
+  const [pressed, setPressed] = useState(false);
   const foreground = secondary ? theme.foreground : theme.accentText;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: secondary ? theme.surface : theme.accent,
-          borderColor: secondary ? theme.border : theme.accent,
-          opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
-        },
-      ]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
     >
-      {icon ? <Ionicons name={icon} size={18} color={foreground} /> : null}
-      <Text style={[styles.label, { color: foreground }]}>{label}</Text>
+      <View
+        style={[
+          styles.button,
+          {
+            backgroundColor: secondary ? theme.surface : theme.accent,
+            borderColor: secondary ? theme.border : theme.accent,
+            opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
+          },
+        ]}
+      >
+        {icon ? <Ionicons name={icon} size={18} color={foreground} /> : null}
+        <Text style={[styles.label, { color: foreground }]}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
