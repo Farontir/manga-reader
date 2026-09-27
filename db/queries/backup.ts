@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 
 import type { BackupSnapshot } from '../backupFormat';
-import { getDatabase } from '../connection';
+import { withWriteTransaction } from '../connection';
 import { listKnownChapters, listProgress } from './chapters';
 import { findEntryByAniListId, getLibraryEntry, listBindings, listLibraryEntries } from './library';
 import { listInstalledSources } from './sources';
@@ -36,8 +36,7 @@ export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
       (await getLibraryEntry(entry.id));
     mappedIds.set(entry.id, existing?.id ?? entry.id);
   }
-  const db = await getDatabase();
-  await db.withExclusiveTransactionAsync(async (tx) => {
+  await withWriteTransaction(async (tx) => {
     for (const entry of snapshot.entries) {
       const id = mappedIds.get(entry.id);
       if (!id) continue;

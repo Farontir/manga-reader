@@ -7,11 +7,31 @@ import { repairSchemaMigration } from './migrations/004_repair_schema';
 import { importedArchivesMigration } from './migrations/005_imported_archives';
 import { upgradeLegacyTablesMigration } from './migrations/006_upgrade_legacy_tables';
 
+// Writers wait for a lock instead of failing at once with "database is locked".
+const BUSY_TIMEOUT_MS = 5000;
+
 let opening: Promise<SQLite.SQLiteDatabase> | null = null;
+
+/**
+ * expo-sqlite runs an exclusive transaction on a second connection, which holds the write
+ * lock until it commits; that connection needs its own busy timeout.
+ */
+async function exclusive(
+  db: SQLite.SQLiteDatabase,
+  task: (tx: SQLite.SQLiteDatabase) => Promise<void>,
+): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (tx) => {
+    await tx.execAsync(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS};`);
+    await task(tx);
+  });
+}
 
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync('manga-reader.db');
-  await db.execAsync('PRAGMA foreign_keys = ON;');
+  // WAL lets reads proceed while a transaction writes.
+  await db.execAsync(
+    `PRAGMA journal_mode = WAL; PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}; PRAGMA foreign_keys = ON;`,
+  );
   await db.execAsync(`CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL
   );`);
@@ -28,7 +48,7 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
   ];
   for (const migration of migrations) {
     if (migration.version <= (version?.version ?? 0)) continue;
-    await db.withExclusiveTransactionAsync(async (tx) => {
+    await exclusive(db, async (tx) => {
       await migration.run(tx);
       await tx.runAsync(
         'INSERT INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)',
@@ -39,6 +59,13 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     });
   }
   return db;
+}
+
+/** Atomic multi-statement write, isolated from queries running on the shared connection. */
+export async function withWriteTransaction(
+  task: (tx: SQLite.SQLiteDatabase) => Promise<void>,
+): Promise<void> {
+  await exclusive(await getDatabase(), task);
 }
 
 export function getDatabase(): Promise<SQLite.SQLiteDatabase> {

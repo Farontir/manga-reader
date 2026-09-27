@@ -134,10 +134,24 @@ function ReaderContent({
     [pages.length],
   );
 
+  // Scrolling a webtoon changes the page many times per second: save once it settles,
+  // and flush the last position when the reader closes.
+  const pendingSave = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!pages.length || !id) return;
-    void saveProgress(id, chapterNumber, index, pages.length, index === pages.length - 1);
+    const save = () => {
+      pendingSave.current = null;
+      saveProgress(id, chapterNumber, index, pages.length, index === pages.length - 1).catch(
+        (reason: unknown) => {
+          if (__DEV__) console.warn('[reader] progression non enregistrée', reason);
+        },
+      );
+    };
+    pendingSave.current = save;
+    const timer = setTimeout(save, 400);
+    return () => clearTimeout(timer);
   }, [id, chapterNumber, index, pages.length]);
+  useEffect(() => () => pendingSave.current?.(), []);
 
   useEffect(() => {
     for (const page of [pages[index], pages[index + 1]]) {

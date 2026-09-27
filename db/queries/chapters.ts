@@ -1,4 +1,4 @@
-import { getDatabase } from '../connection';
+import { getDatabase, withWriteTransaction } from '../connection';
 import type { Chapter, DownloadedChapter, LocalChapter, Progress } from '../schema';
 
 type ChapterRow = {
@@ -52,8 +52,7 @@ export async function replaceKnownChapters(
   sourceId: string,
   chapters: Omit<Chapter, 'libraryEntryId' | 'sourceId' | 'fetchedAt'>[],
 ): Promise<void> {
-  const db = await getDatabase();
-  await db.withExclusiveTransactionAsync(async (tx) => {
+  await withWriteTransaction(async (tx) => {
     await tx.runAsync(
       'DELETE FROM known_chapters WHERE library_entry_id = ? AND source_id = ?',
       entryId,
@@ -104,22 +103,22 @@ export async function saveProgress(
 ): Promise<void> {
   const db = await getDatabase();
   const now = new Date().toISOString();
-  await db.withExclusiveTransactionAsync(async (tx) => {
-    await tx.runAsync(
-      `INSERT INTO read_progress(library_entry_id, chapter_number, page_index, total_pages,
+  // Plain writes on the shared connection: saved on every page turn, an exclusive
+  // transaction here made rapid saves fail with "database is locked".
+  await db.runAsync(
+    `INSERT INTO read_progress(library_entry_id, chapter_number, page_index, total_pages,
         read_at, completed) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(library_entry_id, chapter_number) DO UPDATE SET
          page_index = excluded.page_index, total_pages = excluded.total_pages,
          read_at = excluded.read_at, completed = MAX(completed, excluded.completed)`,
-      entryId,
-      chapterNumber,
-      pageIndex,
-      totalPages,
-      now,
-      completed ? 1 : 0,
-    );
-    await tx.runAsync('UPDATE library_entries SET last_read_at = ? WHERE id = ?', now, entryId);
-  });
+    entryId,
+    chapterNumber,
+    pageIndex,
+    totalPages,
+    now,
+    completed ? 1 : 0,
+  );
+  await db.runAsync('UPDATE library_entries SET last_read_at = ? WHERE id = ?', now, entryId);
 }
 
 export async function listProgress(entryId: string): Promise<Progress[]> {
