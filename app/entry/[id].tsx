@@ -16,15 +16,18 @@ import {
   listProgress,
   setBindingPriority,
   setSetting,
-  type Chapter,
   type InstalledSource,
   type LibraryEntry,
-  type LocalChapter,
   type Progress,
   type SourceBinding,
 } from '../../db';
 import { downloadChapter } from '../../services/downloads';
 import { removeEntryAndFiles } from '../../services/libraryFiles';
+import {
+  chapterLabel as labelOf,
+  mergeChapters,
+  type ChapterItem,
+} from '../../services/chapterList';
 import { refreshEntryChapters } from '../../services/librarySources';
 import { resumeTarget } from '../../services/resume';
 import { ActionButton } from '../../ui/components/ActionButton';
@@ -32,41 +35,6 @@ import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
 
 const CHAPTER_ORDER_KEY = 'chapters.order';
-
-type ChapterItem = {
-  number: number;
-  title: string;
-  local: boolean;
-  sourceId?: string;
-  chapterId?: string;
-};
-
-function mergeChapters(
-  local: LocalChapter[],
-  remote: Chapter[],
-  bindings: SourceBinding[],
-): ChapterItem[] {
-  const items: ChapterItem[] = local.map((chapter) => ({
-    number: chapter.chapterNumber,
-    title: chapter.title,
-    local: true,
-  }));
-  const priorities = new Map(bindings.map((binding) => [binding.sourceId, binding.priority]));
-  for (const chapter of [...remote].sort(
-    (a, b) => (priorities.get(b.sourceId) ?? 0) - (priorities.get(a.sourceId) ?? 0),
-  )) {
-    if (!items.some((item) => item.number === chapter.number)) {
-      items.push({
-        number: chapter.number,
-        title: chapter.title ?? `Chapitre ${chapter.number}`,
-        local: false,
-        sourceId: chapter.sourceId,
-        chapterId: chapter.chapterId,
-      });
-    }
-  }
-  return items.sort((a, b) => b.number - a.number);
-}
 
 export default function EntryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -157,10 +125,9 @@ export default function EntryScreen() {
     });
   }
 
-  // Local titles carry the volume ("Tome 3 · Chapitre 25"); source titles can be long names.
   function chapterLabel(number: number) {
     const item = chapters.find((chapter) => chapter.number === number);
-    return item?.local ? item.title : `Chapitre ${number}`;
+    return item ? labelOf(item) : `Chapitre ${number}`;
   }
 
   async function preferSource(binding: SourceBinding) {
