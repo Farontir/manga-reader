@@ -3,15 +3,29 @@ import { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ReaderPage } from '../../services/readerPages';
 import { cachedImageUri } from '../../services/imageCache';
 
-type Props = { page: ReaderPage; paged: boolean; viewportHeight: number; onError?: () => void };
+type Props = {
+  page: ReaderPage;
+  paged: boolean;
+  viewportHeight: number;
+  onError?: () => void;
+  onZoomChange?: (zoomed: boolean) => void;
+};
 
-export function ZoomablePage({ page, paged, viewportHeight, onError }: Props) {
+function clampTranslation(value: number, imageSize: number, viewportSize: number, scale: number) {
+  'worklet';
+  const limit = Math.max(0, (imageSize * scale - viewportSize) / 2);
+  return Math.max(-limit, Math.min(limit, value));
+}
+
+export function ZoomablePage({ page, paged, viewportHeight, onError, onZoomChange }: Props) {
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
+  const [panEnabled, setPanEnabled] = useState(false);
   const [displayUri, setDisplayUri] = useState(page.uri);
   useEffect(() => {
     let active = true;
@@ -24,37 +38,124 @@ export function ZoomablePage({ page, paged, viewportHeight, onError }: Props) {
       active = false;
     };
   }, [page]);
+  const height = paged ? viewportHeight : width * ratio;
+  const imageWidth = paged ? Math.min(width, height / ratio) : width;
+  const imageHeight = paged ? imageWidth * ratio : height;
   const scale = useSharedValue(1);
   const startScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
+  const focalX = useSharedValue(0);
+  const focalY = useSharedValue(0);
+  const isZoomed = useSharedValue(false);
+  const updateZoomed = (next: boolean) => {
+    'worklet';
+    if (isZoomed.value !== next) {
+      isZoomed.value = next;
+      scheduleOnRN(setPanEnabled, next);
+      if (onZoomChange) scheduleOnRN(onZoomChange, next);
+    }
+  };
   const pinch = Gesture.Pinch()
-    .onBegin(() => {
+    .onStart((event) => {
       startScale.value = scale.value;
+      startX.value = translateX.value;
+      startY.value = translateY.value;
+      focalX.value = event.focalX;
+      focalY.value = event.focalY;
     })
     .onUpdate((event) => {
-      scale.value = Math.min(3, Math.max(1, startScale.value * event.scale));
+      const next = Math.min(4, Math.max(1, startScale.value * event.scale));
+      const factor = next / startScale.value;
+      scale.value = next;
+      translateX.value = clampTranslation(
+        startX.value +
+          (event.focalX - focalX.value) +
+          (1 - factor) * (focalX.value - width / 2 - startX.value),
+        imageWidth,
+        width,
+        next,
+      );
+      translateY.value = clampTranslation(
+        startY.value +
+          (event.focalY - focalY.value) +
+          (1 - factor) * (focalY.value - height / 2 - startY.value),
+        imageHeight,
+        height,
+        next,
+      );
     })
     .onEnd(() => {
-      if (scale.value < 1.05) scale.value = withTiming(1);
+      if (scale.value < 1.05) {
+        scale.value = withTiming(1);
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+        updateZoomed(false);
+      } else {
+        updateZoomed(true);
+      }
+    });
+  const pan = Gesture.Pan()
+    .enabled(panEnabled)
+    .maxPointers(1)
+    .onStart(() => {
+      startX.value = translateX.value;
+      startY.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      translateX.value = clampTranslation(
+        startX.value + event.translationX,
+        imageWidth,
+        width,
+        scale.value,
+      );
+      translateY.value = clampTranslation(
+        startY.value + event.translationY,
+        imageHeight,
+        height,
+        scale.value,
+      );
     });
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
-    .onEnd(() => {
-      scale.value = withTiming(scale.value > 1.2 ? 1 : 2);
+    .onEnd((event) => {
+      const next = scale.value > 1.2 ? 1 : 2;
+      scale.value = withTiming(next);
+      translateX.value = withTiming(
+        next === 1
+          ? 0
+          : clampTranslation((1 - next) * (event.x - width / 2), imageWidth, width, next),
+      );
+      translateY.value = withTiming(
+        next === 1
+          ? 0
+          : clampTranslation((1 - next) * (event.y - height / 2), imageHeight, height, next),
+      );
+      updateZoomed(next > 1);
     });
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const height = paged ? viewportHeight : width * ratio;
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
 
   return (
-    <GestureDetector gesture={Gesture.Simultaneous(pinch, doubleTap)}>
+    <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap)}>
       <View style={[styles.container, { width, height }]}>
-        <Animated.View style={[styles.imageContainer, { width, height }, animatedStyle]}>
+        <Animated.View
+          style={[styles.imageContainer, { width: imageWidth, height: imageHeight }, animatedStyle]}
+        >
           <Image
             source={{
               uri: displayUri,
               headers: displayUri === page.uri ? page.headers : undefined,
             }}
-            style={{ width, height }}
-            contentFit={paged ? 'contain' : 'fill'}
+            style={{ width: imageWidth, height: imageHeight }}
+            contentFit="contain"
             cachePolicy="none"
             onLoad={(event) => {
               if (event.source.width > 0) setRatio(event.source.height / event.source.width);

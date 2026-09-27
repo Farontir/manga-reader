@@ -13,7 +13,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { listBindings, listProgress, markBindingHealth, saveProgress } from '../../db';
+import {
+  getLocalChapter,
+  listBindings,
+  listProgress,
+  markBindingHealth,
+  saveProgress,
+} from '../../db';
 import { prefetchImage } from '../../services/imageCache';
 import { resolveChapterPages, type ReaderPage } from '../../services/readerPages';
 import { ZoomablePage } from '../../ui/components/ZoomablePage';
@@ -58,6 +64,8 @@ function ReaderContent({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
+  const [chapterTitle, setChapterTitle] = useState<string | null>(null);
   const currentIndex = useRef(0);
   const switchingSource = useRef(false);
   const failedSources = useRef(new Set<string>());
@@ -70,8 +78,9 @@ function ReaderContent({
     void Promise.all([
       resolveChapterPages(id, chapterNumber, sourceId, chapterId),
       listProgress(id),
+      getLocalChapter(id, chapterNumber),
     ])
-      .then(([uris, progress]) => {
+      .then(([uris, progress, localChapter]) => {
         if (!active) return;
         const saved = progress.find((item) => item.chapterNumber === chapterNumber)?.pageIndex ?? 0;
         const start = Math.min(Math.max(saved, 0), Math.max(uris.length - 1, 0));
@@ -79,6 +88,7 @@ function ReaderContent({
         setInitialIndex(start);
         setIndex(start);
         setPages(uris);
+        setChapterTitle(localChapter?.title ?? null);
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : String(reason));
@@ -96,6 +106,7 @@ function ReaderContent({
       const next = viewableItems.find((item) => item.index !== null)?.index;
       if (next === null || next === undefined || next === currentIndex.current) return;
       currentIndex.current = next;
+      setZoomed(false);
       setIndex(next);
     },
     [],
@@ -128,6 +139,7 @@ function ReaderContent({
       ]);
       const next = Math.min(currentIndex.current, replacement.length - 1);
       currentIndex.current = next;
+      setZoomed(false);
       setInitialIndex(next);
       setIndex(next);
       setPages(replacement);
@@ -158,8 +170,11 @@ function ReaderContent({
           <Ionicons name="arrow-back" size={23} color={theme.foreground} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.foreground, fontWeight: '800', fontSize: 16 }}>
-            Chapitre {chapterNumber}
+          <Text
+            numberOfLines={1}
+            style={{ color: theme.foreground, fontWeight: '800', fontSize: 16 }}
+          >
+            {chapterTitle ?? `Chapitre ${chapterNumber}`}
           </Text>
           <Text style={{ color: theme.secondary, fontSize: 12 }}>
             {pages.length ? `${index + 1} / ${pages.length}` : 'Lecture'}
@@ -170,6 +185,7 @@ function ReaderContent({
           style={styles.iconButton}
           onPress={() => {
             setInitialIndex(currentIndex.current);
+            setZoomed(false);
             setMode(mode === 'paged' ? 'webtoon' : 'paged');
             selectionFeedback();
           }}
@@ -194,6 +210,7 @@ function ReaderContent({
           keyExtractor={(_, itemIndex) => String(itemIndex)}
           horizontal={mode === 'paged'}
           pagingEnabled={mode === 'paged'}
+          scrollEnabled={!zoomed}
           initialScrollIndex={initialIndex}
           getItemLayout={(_, itemIndex) => {
             const estimatedLength = mode === 'paged' ? viewportWidth : viewportWidth * 1.45;
@@ -215,6 +232,7 @@ function ReaderContent({
               page={item}
               paged={mode === 'paged'}
               viewportHeight={viewportHeight}
+              onZoomChange={setZoomed}
               onError={() => {
                 void handlePageError(item.sourceId);
               }}
