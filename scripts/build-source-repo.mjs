@@ -11,9 +11,10 @@ for (const name of [
   'asurascans',
   'mangabats',
   'mangakakalot',
+  'flamecomics',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
-  if (['peppercarrot', 'asurascans', 'mangabats', 'mangakakalot'].includes(name)) {
+  if (['peppercarrot', 'asurascans', 'mangabats', 'mangakakalot', 'flamecomics'].includes(name)) {
     await build({
       entryPoints: [fileURLToPath(new URL('source.js', directory))],
       outfile: fileURLToPath(new URL('bundle.js', directory)),
@@ -45,6 +46,7 @@ for (const name of [
       asurascans: 'Asura Scans',
       mangabats: 'MangaBats',
       mangakakalot: 'MangaKakalot',
+      flamecomics: 'Flame Comics',
     }[name];
     const notices = [`Third-party notices for the ${label} source bundle.`];
     for (const packagePath of packages) {

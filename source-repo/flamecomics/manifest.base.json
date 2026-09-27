@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "xyz.flamecomics.en",
+  "name": "Flame Comics",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "safe",
+  "allowedHosts": ["flamecomics.xyz"],
+  "bundle": "./bundle.js"
+}

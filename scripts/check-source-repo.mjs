@@ -56,6 +56,14 @@ const checks = [
     extraUrl: 'https://www.mangabats.com/manga/one-piece',
     extraValid: (body) => /<h1[^>]*>\s*One Piece\s*<\/h1>/.test(body),
   },
+  {
+    directory: 'flamecomics',
+    sourceId: 'xyz.flamecomics.en',
+    url: 'https://flamecomics.xyz/browse',
+    options: {},
+    valid: (body) => /id="__NEXT_DATA__"/.test(body) && /Browse All Series/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);
