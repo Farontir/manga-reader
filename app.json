@@ -12,13 +12,18 @@
       "infoPlist": {
         "UIFileSharingEnabled": true,
         "LSSupportsOpeningDocumentsInPlace": true
+      },
+      "bundleIdentifier": "com.farontir.mangareader",
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#121820"
-      }
+      },
+      "package": "com.farontir.mangareader"
     },
     "web": {
       "favicon": "./assets/favicon.png"
