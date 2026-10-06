@@ -2,7 +2,7 @@
 
 ## Texte proposé (fr-FR)
 
-**Nom :** Manga Reader  
+**Nom :** Kumo Reader  
 **Sous-titre :** Votre bibliothèque vous suit  
 **Catégorie :** Livres
 
