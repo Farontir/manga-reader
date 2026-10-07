@@ -235,12 +235,6 @@ export default function EntryScreen() {
                 À jour · {chapterLabel(resume.chapterNumber)} lu
               </Text>
             ) : null}
-            <ActionButton
-              label="Importer un chapitre"
-              icon="add"
-              secondary
-              onPress={() => router.push({ pathname: '/import', params: { entryId: id } })}
-            />
             {bindings.length ? (
               <View style={{ marginTop: 24 }}>
                 <Text style={[styles.section, { color: theme.foreground, marginTop: 0 }]}>
@@ -313,7 +307,8 @@ export default function EntryScreen() {
             </View>
             {!chapters.length ? (
               <Text style={{ color: theme.secondary, marginBottom: 20 }}>
-                Aucun chapitre. Importe un fichier ou relie une source.
+                Aucun chapitre. Relie une source, ou importe un fichier depuis Réglages → Fichiers
+                locaux.
               </Text>
             ) : null}
           </View>

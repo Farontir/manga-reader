@@ -24,20 +24,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="discover"
         options={{
-          title: 'Explorer',
+          title: 'Découvrir',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" color={color} size={size} />
+            <Ionicons name="compass-outline" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
-        name="sources"
+        name="search"
         options={{
-          title: 'Sources',
+          title: 'Recherche',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="layers-outline" color={color} size={size} />
+            <Ionicons name="search-outline" color={color} size={size} />
           ),
         }}
       />

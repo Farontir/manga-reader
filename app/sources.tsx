@@ -11,14 +11,14 @@ import {
   View,
 } from 'react-native';
 
-import { listInstalledSources, setSourceHealth, type InstalledSource } from '../../db';
-import { matchSourceToLibrary } from '../../services/librarySources';
-import { inspectSourceHealth } from '../../sources/api';
-import { installSource, uninstallSource } from '../../sources/install';
-import { ActionButton } from '../../ui/components/ActionButton';
-import { EmptyState } from '../../ui/components/EmptyState';
-import { Screen } from '../../ui/components/Screen';
-import { useTheme } from '../../ui/useTheme';
+import { listInstalledSources, setSourceHealth, type InstalledSource } from '../db';
+import { matchSourceToLibrary } from '../services/librarySources';
+import { inspectSourceHealth } from '../sources/api';
+import { installSource, uninstallSource } from '../sources/install';
+import { ActionButton } from '../ui/components/ActionButton';
+import { EmptyState } from '../ui/components/EmptyState';
+import { Screen } from '../ui/components/Screen';
+import { useTheme } from '../ui/useTheme';
 
 export default function SourcesScreen() {
   const theme = useTheme();
@@ -91,7 +91,6 @@ export default function SourcesScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.foreground }]}>Sources</Text>
         <Text style={[styles.subtitle, { color: theme.secondary }]}>
           Installe tes extensions depuis une URL HTTPS. Ta bibliothèque reste indépendante de leurs
           serveurs.
@@ -188,9 +187,8 @@ export default function SourcesScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 20 },
-  title: { fontSize: 32, fontWeight: '800' },
-  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 5 },
+  header: { paddingHorizontal: 20, paddingTop: 16 },
+  subtitle: { fontSize: 14, lineHeight: 21 },
   check: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 17, padding: 5 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },

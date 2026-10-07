@@ -79,7 +79,7 @@ export default function LibraryScreen() {
           <EmptyState
             icon="book-outline"
             title="Ta bibliothèque t’attend"
-            detail="Importe un CBZ ou cherche un manga. Ta progression restera ici, même si une source disparaît."
+            detail="Ajoute un manga depuis Découvrir ou Recherche. Ta progression restera ici, même si une source disparaît."
           />
         }
         renderItem={({ item }) => (
@@ -111,26 +111,6 @@ export default function LibraryScreen() {
           </Pressable>
         )}
       />
-      <View
-        style={[
-          styles.importBar,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
-        ]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Importer un CBZ"
-          onPress={() => router.push('/import')}
-          style={({ pressed }) => [
-            styles.importButton,
-            { backgroundColor: theme.foreground, opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Text style={[styles.importButtonText, { color: theme.background }]}>
-            Importer un CBZ
-          </Text>
-        </Pressable>
-      </View>
     </Screen>
   );
 }
@@ -161,20 +141,6 @@ const styles = StyleSheet.create({
   syncAction: { alignItems: 'center', justifyContent: 'center', minHeight: 32, minWidth: 32 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
-  importBar: {
-    borderTopWidth: 1,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  importButton: {
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    borderRadius: 14,
-    justifyContent: 'center',
-    minHeight: 52,
-  },
-  importButtonText: { fontSize: 17, fontWeight: '800', textAlign: 'center' },
   row: {
     alignItems: 'center',
     borderRadius: 16,
