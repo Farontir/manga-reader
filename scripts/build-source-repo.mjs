@@ -83,3 +83,6 @@ for (const name of [
   );
   process.stdout.write(`${name} manifest: ${sha256}\n`);
 }
+
+// Keep the install page in sync with the rebuilt manifests.
+await import('./build-source-page.mjs');
