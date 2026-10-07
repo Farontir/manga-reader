@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'source-repo/**'
+      - 'scripts/build-source-page.mjs'
       - '.github/workflows/source-health.yml'
   schedule:
     - cron: '17 */6 * * *'
@@ -26,6 +27,7 @@ jobs:
         with:
           node-version: '24'
       - run: node scripts/verify-source-repo.mjs
+      - run: node scripts/build-source-page.mjs
       - run: node scripts/check-source-repo.mjs
       - name: Publish status
         run: |

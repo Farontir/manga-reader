@@ -4,7 +4,7 @@
 
 1. Modifier le `bundle.js` concerné si nécessaire.
 2. Exécuter `node scripts/build-source-repo.mjs` depuis la racine du projet.
-   Vérifier ensuite les huit empreintes avec `npm run sources:verify`.
+   Vérifier ensuite les huit empreintes avec `npm run sources:verify` et régénérer la page d'installation avec `npm run sources:page`. Le workflow GitHub Pages régénère également cette page à chaque déploiement à partir des manifestes présents.
 3. Publier le contenu de `source-repo/` sur un hébergement HTTPS statique. Le workflow fourni déploie ce dossier sur GitHub Pages quand le dépôt est connecté à GitHub et que **Settings → Pages → Source: GitHub Actions** est activé.
 4. Coller l'URL du dossier voulu dans l'onglet Sources de l'app.
 

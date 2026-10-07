@@ -1,24 +1,21 @@
 // Writes source-repo/index.html: the install page served at the root of the source repo.
 // Each button opens Kumo Reader on its "add source" screen with the source URL filled in;
 // the app shows the manifest and asks for confirmation before installing anything.
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 
-const FEATURED = [
-  {
-    name: 'mangadex',
-    description:
-      'Catalogue communautaire MangaDex, chapitres en anglais, via son API publique. Explorer affiche les tendances du moment.',
-  },
-  {
-    name: 'komga-demo',
-    description:
-      'Serveur de démonstration Komga, avec des œuvres du domaine public. Sert de modèle pour brancher ton propre serveur.',
-  },
-  {
-    name: 'peppercarrot',
-    description: 'Pepper&Carrot, le webcomic libre de David Revoy (CC BY 4.0).',
-  },
-];
+const descriptions = {
+  asurascans: 'Catalogue et chapitres publics d’Asura Scans.',
+  flamecomics: 'Catalogue et chapitres publics de Flame Comics.',
+  'komga-demo':
+    'Serveur de démonstration Komga, avec des œuvres du domaine public. Sert de modèle pour brancher ton propre serveur.',
+  mangabats: 'Catalogue et chapitres publics de MangaBats.',
+  mangadex:
+    'Catalogue communautaire MangaDex, chapitres en anglais, via son API publique. Explorer affiche les tendances du moment.',
+  mangakakalot:
+    'Catalogue MangaKakalot, avec le miroir MangaBats pour les fiches et pages bloquées sur le domaine principal.',
+  mangakatana: 'Catalogue, fiches et chapitres publics de MangaKatana.',
+  peppercarrot: 'Pepper&Carrot, le webcomic libre de David Revoy (CC BY 4.0).',
+};
 
 const escape = (value) =>
   String(value).replace(
@@ -27,10 +24,16 @@ const escape = (value) =>
   );
 
 const cards = [];
-for (const { name, description } of FEATURED) {
-  const manifest = JSON.parse(
-    await readFile(new URL(`../source-repo/${name}/manifest.json`, import.meta.url), 'utf8'),
-  );
+const sourceRepo = new URL('../source-repo/', import.meta.url);
+const directories = (await readdir(sourceRepo, { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort((a, b) => a.localeCompare(b, 'fr'));
+
+for (const name of directories) {
+  const manifest = JSON.parse(await readFile(new URL(`${name}/manifest.json`, sourceRepo), 'utf8'));
+  await readFile(new URL(`${name}/bundle.js`, sourceRepo));
+  const description = descriptions[name] ?? `Source ${manifest.name}.`;
   cards.push(`      <article class="card" data-source="${escape(name)}">
         <div class="card-head">
           <h2>${escape(manifest.name)}</h2>
@@ -174,5 +177,5 @@ ${cards.join('\n')}
 </html>
 `;
 
-await writeFile(new URL('../source-repo/index.html', import.meta.url), html);
-process.stdout.write(`index.html: ${FEATURED.length} sources\n`);
+await writeFile(new URL('index.html', sourceRepo), html);
+process.stdout.write(`index.html: ${cards.length} sources\n`);

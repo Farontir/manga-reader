@@ -32,42 +32,17 @@
           --down: #ff7070;
         }
       }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font:
-          16px/1.5 -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          Roboto,
-          sans-serif;
+        font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
-      main {
-        margin: 0 auto;
-        max-width: 640px;
-        padding: 40px 16px 56px;
-      }
-      .eyebrow {
-        color: var(--accent);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        margin: 0;
-      }
-      h1 {
-        font-size: 32px;
-        letter-spacing: -0.02em;
-        line-height: 1.15;
-        margin: 6px 0 12px;
-      }
-      .intro {
-        color: var(--muted);
-        margin: 0 0 28px;
-      }
+      main { margin: 0 auto; max-width: 640px; padding: 40px 16px 56px; }
+      .eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.16em; margin: 0; }
+      h1 { font-size: 32px; letter-spacing: -0.02em; line-height: 1.15; margin: 6px 0 12px; }
+      .intro { color: var(--muted); margin: 0 0 28px; }
       .card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -75,47 +50,16 @@
         margin-bottom: 14px;
         padding: 18px;
       }
-      .card-head {
-        align-items: baseline;
-        display: flex;
-        gap: 12px;
-        justify-content: space-between;
-      }
-      h2 {
-        font-size: 19px;
-        margin: 0;
-      }
-      .card p {
-        margin: 8px 0 0;
-      }
-      .meta {
-        color: var(--muted);
-        font-size: 13px;
-        overflow-wrap: anywhere;
-      }
-      .status {
-        color: var(--muted);
-        flex-shrink: 0;
-        font-size: 13px;
-        font-weight: 700;
-      }
-      .status.ok {
-        color: var(--ok);
-      }
-      .status.degraded {
-        color: var(--warn);
-      }
-      .status.down {
-        color: var(--down);
-      }
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 16px;
-      }
-      .install,
-      .copy {
+      .card-head { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
+      h2 { font-size: 19px; margin: 0; }
+      .card p { margin: 8px 0 0; }
+      .meta { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+      .status { color: var(--muted); flex-shrink: 0; font-size: 13px; font-weight: 700; }
+      .status.ok { color: var(--ok); }
+      .status.degraded { color: var(--warn); }
+      .status.down { color: var(--down); }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+      .install, .copy {
         border-radius: 12px;
         cursor: pointer;
         font: inherit;
@@ -125,34 +69,11 @@
         padding: 11px 16px;
         text-align: center;
       }
-      .install {
-        background: var(--accent);
-        border: 1px solid var(--accent);
-        color: var(--accent-text);
-        flex: 1 1 220px;
-        text-decoration: none;
-      }
-      .copy {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text);
-        flex: 0 1 auto;
-      }
-      .install:focus-visible,
-      .copy:focus-visible {
-        outline: 3px solid var(--accent);
-        outline-offset: 2px;
-      }
-      .help {
-        border-top: 1px solid var(--border);
-        color: var(--muted);
-        font-size: 14px;
-        margin-top: 28px;
-        padding-top: 20px;
-      }
-      .help p {
-        margin: 0 0 10px;
-      }
+      .install { background: var(--accent); border: 1px solid var(--accent); color: var(--accent-text); flex: 1 1 220px; text-decoration: none; }
+      .copy { background: transparent; border: 1px solid var(--border); color: var(--text); flex: 0 1 auto; }
+      .install:focus-visible, .copy:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+      .help { border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; margin-top: 28px; padding-top: 20px; }
+      .help p { margin: 0 0 10px; }
     </style>
   </head>
   <body>
@@ -160,19 +81,28 @@
       <p class="eyebrow">KUMO READER</p>
       <h1>Sources</h1>
       <p class="intro">
-        Ouvre cette page sur ton iPhone et touche « Installer » : Kumo Reader affiche la source et
-        te demande de confirmer avant de l’installer.
+        Ouvre cette page sur ton iPhone et touche « Installer » : Kumo Reader affiche la source
+        et te demande de confirmer avant de l’installer.
       </p>
-      <article class="card" data-source="mangadex">
+      <article class="card" data-source="asurascans">
         <div class="card-head">
-          <h2>MangaDex English</h2>
+          <h2>Asura Scans</h2>
           <span class="status" data-status>…</span>
         </div>
-        <p class="meta">Version 1.1.0 · EN · api.mangadex.org</p>
-        <p>
-          Catalogue communautaire MangaDex, chapitres en anglais, via son API publique. Explorer
-          affiche les tendances du moment.
-        </p>
+        <p class="meta">Version 1.0.0 · EN · asurascans.com, cdn.asurascans.com</p>
+        <p>Catalogue et chapitres publics d’Asura Scans.</p>
+        <div class="actions">
+          <a class="install" data-install href="#">Installer dans Kumo Reader</a>
+          <button class="copy" type="button" data-copy>Copier l’URL</button>
+        </div>
+      </article>
+      <article class="card" data-source="flamecomics">
+        <div class="card-head">
+          <h2>Flame Comics</h2>
+          <span class="status" data-status>…</span>
+        </div>
+        <p class="meta">Version 1.0.0 · EN · flamecomics.xyz</p>
+        <p>Catalogue et chapitres publics de Flame Comics.</p>
         <div class="actions">
           <a class="install" data-install href="#">Installer dans Kumo Reader</a>
           <button class="copy" type="button" data-copy>Copier l’URL</button>
@@ -184,10 +114,55 @@
           <span class="status" data-status>…</span>
         </div>
         <p class="meta">Version 1.1.0 · EN · demo.komga.org</p>
-        <p>
-          Serveur de démonstration Komga, avec des œuvres du domaine public. Sert de modèle pour
-          brancher ton propre serveur.
-        </p>
+        <p>Serveur de démonstration Komga, avec des œuvres du domaine public. Sert de modèle pour brancher ton propre serveur.</p>
+        <div class="actions">
+          <a class="install" data-install href="#">Installer dans Kumo Reader</a>
+          <button class="copy" type="button" data-copy>Copier l’URL</button>
+        </div>
+      </article>
+      <article class="card" data-source="mangabats">
+        <div class="card-head">
+          <h2>MangaBats</h2>
+          <span class="status" data-status>…</span>
+        </div>
+        <p class="meta">Version 1.0.0 · EN · www.mangabats.com</p>
+        <p>Catalogue et chapitres publics de MangaBats.</p>
+        <div class="actions">
+          <a class="install" data-install href="#">Installer dans Kumo Reader</a>
+          <button class="copy" type="button" data-copy>Copier l’URL</button>
+        </div>
+      </article>
+      <article class="card" data-source="mangadex">
+        <div class="card-head">
+          <h2>MangaDex English</h2>
+          <span class="status" data-status>…</span>
+        </div>
+        <p class="meta">Version 1.1.0 · EN · api.mangadex.org</p>
+        <p>Catalogue communautaire MangaDex, chapitres en anglais, via son API publique. Explorer affiche les tendances du moment.</p>
+        <div class="actions">
+          <a class="install" data-install href="#">Installer dans Kumo Reader</a>
+          <button class="copy" type="button" data-copy>Copier l’URL</button>
+        </div>
+      </article>
+      <article class="card" data-source="mangakakalot">
+        <div class="card-head">
+          <h2>MangaKakalot</h2>
+          <span class="status" data-status>…</span>
+        </div>
+        <p class="meta">Version 1.0.0 · EN · www.mangakakalot.gg, www.mangabats.com</p>
+        <p>Catalogue MangaKakalot, avec le miroir MangaBats pour les fiches et pages bloquées sur le domaine principal.</p>
+        <div class="actions">
+          <a class="install" data-install href="#">Installer dans Kumo Reader</a>
+          <button class="copy" type="button" data-copy>Copier l’URL</button>
+        </div>
+      </article>
+      <article class="card" data-source="mangakatana">
+        <div class="card-head">
+          <h2>MangaKatana</h2>
+          <span class="status" data-status>…</span>
+        </div>
+        <p class="meta">Version 1.0.0 · EN · mangakatana.com</p>
+        <p>Catalogue, fiches et chapitres publics de MangaKatana.</p>
         <div class="actions">
           <a class="install" data-install href="#">Installer dans Kumo Reader</a>
           <button class="copy" type="button" data-copy>Copier l’URL</button>

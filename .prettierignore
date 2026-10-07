@@ -4,3 +4,4 @@ node_modules/
 coverage/
 package-lock.json
 source-repo/**/bundle.js
+source-repo/index.html
