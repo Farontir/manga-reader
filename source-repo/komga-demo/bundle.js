@@ -39,6 +39,22 @@
       const json = await request('/api/v1/series/new?size=20');
       return { title: 'Derniers ajouts', items: (json.content || []).map(toManga) };
     },
+    async discover() {
+      const sections = [
+        { title: 'Derniers ajouts', path: '/api/v1/series/new?size=20' },
+        { title: 'Récemment mis à jour', path: '/api/v1/series/updated?size=20' },
+      ];
+      const result = [];
+      for (const section of sections) {
+        try {
+          const json = await request(section.path);
+          result.push({ title: section.title, items: (json.content || []).map(toManga) });
+        } catch {
+          // Skip this section.
+        }
+      }
+      return { sections: result };
+    },
     async manga(id) {
       const json = await request('/api/v1/series/' + encodeURIComponent(id));
       return toManga(json);

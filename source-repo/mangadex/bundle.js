@@ -40,6 +40,30 @@
     };
   }
 
+  function listParams(order) {
+    const value = new URLSearchParams();
+    value.set('limit', '20');
+    value.set(order, 'desc');
+    value.set('hasAvailableChapters', 'true');
+    value.append('availableTranslatedLanguage[]', 'en');
+    value.append('includes[]', 'cover_art');
+    value.append('contentRating[]', 'safe');
+    return value;
+  }
+
+  async function list(params) {
+    return ((await request('/manga?' + params.toString())).data || []).map(toManga);
+  }
+
+  // Popular new titles, like MangaDex's home page: most followed series created in the
+  // last 30 days that already have English chapters.
+  function trendingParams() {
+    const params = listParams('order[followedCount]');
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    params.set('createdAtSince', since.toISOString().slice(0, 19));
+    return params;
+  }
+
   globalThis.source = {
     async search(query) {
       const params = new URLSearchParams();
@@ -53,30 +77,33 @@
 
     // Popular new titles, like MangaDex's home page: most followed series created in the
     // last 30 days that already have English chapters, topped up with fresh updates.
+    // Kept for app builds that only know the single-section recommendations().
     async recommendations() {
-      function params(order) {
-        const value = new URLSearchParams();
-        value.set('limit', '20');
-        value.set(order, 'desc');
-        value.set('hasAvailableChapters', 'true');
-        value.append('availableTranslatedLanguage[]', 'en');
-        value.append('includes[]', 'cover_art');
-        value.append('contentRating[]', 'safe');
-        return value;
-      }
-      const trending = params('order[followedCount]');
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      trending.set('createdAtSince', since.toISOString().slice(0, 19));
-      const items = ((await request('/manga?' + trending.toString())).data || []).map(toManga);
+      const items = await list(trendingParams());
       if (items.length < 10) {
-        const latest = params('order[latestUploadedChapter]');
-        for (const manga of ((await request('/manga?' + latest.toString())).data || []).map(
-          toManga,
-        )) {
+        for (const manga of await list(listParams('order[latestUploadedChapter]'))) {
           if (!items.some((item) => item.id === manga.id)) items.push(manga);
         }
       }
       return { title: 'Tendances', items: items.slice(0, 20) };
+    },
+
+    // Discover page: each section loads on its own, so one failing request keeps the others.
+    async discover() {
+      const sections = [
+        { title: 'Tendances', params: trendingParams() },
+        { title: 'Mises à jour récentes', params: listParams('order[latestUploadedChapter]') },
+        { title: 'Les plus suivis', params: listParams('order[followedCount]') },
+      ];
+      const result = [];
+      for (const section of sections) {
+        try {
+          result.push({ title: section.title, items: await list(section.params) });
+        } catch {
+          // Skip this section.
+        }
+      }
+      return { sections: result };
     },
 
     async manga(id) {
