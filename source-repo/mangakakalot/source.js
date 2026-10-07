@@ -165,6 +165,16 @@ globalThis.source = {
     return { title: 'Populaires sur MangaKakalot', items: cardItems($).slice(0, 30) };
   },
 
+  async discover() {
+    const [home, latest] = await Promise.all([document('/'), document('/manga-list/latest-manga')]);
+    return {
+      sections: [
+        { title: 'Populaires', items: cardItems(home).slice(0, 30) },
+        { title: 'Dernières mises à jour', items: cardItems(latest).slice(0, 30) },
+      ],
+    };
+  },
+
   async manga(id) {
     const path = mangaPath(id);
     if (!path) throw new Error('Manga MangaKakalot inconnu.');

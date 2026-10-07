@@ -154,6 +154,19 @@ globalThis.source = {
     return { title: 'Populaires sur MangaBats', items: cardItems($).slice(0, 30) };
   },
 
+  async discover() {
+    const [popular, latest] = await Promise.all([
+      document('/manga-list/hot-manga'),
+      document('/manga-list/latest-manga'),
+    ]);
+    return {
+      sections: [
+        { title: 'Populaires', items: cardItems(popular).slice(0, 30) },
+        { title: 'Dernières mises à jour', items: cardItems(latest).slice(0, 30) },
+      ],
+    };
+  },
+
   async manga(id) {
     const path = mangaPath(id);
     if (!path) throw new Error('Manga MangaBats inconnu.');

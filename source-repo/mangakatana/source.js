@@ -67,7 +67,7 @@ function hasAdultGenre(genres) {
   return genres.some((genre) => adultGenres.has(genre.toLowerCase()));
 }
 
-function cardItems($) {
+function cardItems($, genre) {
   const seen = new Set();
   const items = [];
   $('#book_list .item').each((_, element) => {
@@ -80,6 +80,7 @@ function cardItems($) {
       .map((__, genre) => $(genre).text().trim())
       .get();
     if (!id || !title || seen.has(id) || hasAdultGenre(genres)) return;
+    if (genre && !genres.some((value) => genre.includes(value.toLowerCase()))) return;
     seen.add(id);
     items.push({
       id,
@@ -108,6 +109,16 @@ globalThis.source = {
   async recommendations() {
     const $ = await document('/');
     return { title: 'Dernières mises à jour MangaKatana', items: cardItems($).slice(0, 30) };
+  },
+
+  async discover() {
+    const $ = await document('/');
+    return {
+      sections: [
+        { title: 'Dernières mises à jour', items: cardItems($).slice(0, 30) },
+        { title: 'Action et aventure', items: cardItems($, ['action', 'adventure']).slice(0, 30) },
+      ],
+    };
   },
 
   async manga(id) {

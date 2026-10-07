@@ -113,6 +113,28 @@ globalThis.source = {
     return { title: 'Populaires sur Flame Comics', items: rows.slice(0, 30).map(item) };
   },
 
+  async discover() {
+    const rows = await catalogue();
+    return {
+      sections: [
+        {
+          title: 'Populaires',
+          items: [...rows]
+            .sort((a, b) => (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity))
+            .slice(0, 30)
+            .map(item),
+        },
+        {
+          title: 'Les plus appréciés',
+          items: [...rows]
+            .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))
+            .slice(0, 30)
+            .map(item),
+        },
+      ],
+    };
+  },
+
   async manga(id) {
     const number = seriesId(id);
     if (!number) throw new Error('Série Flame Comics inconnue.');

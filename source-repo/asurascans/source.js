@@ -71,6 +71,19 @@ globalThis.source = {
     return { title: 'Populaires sur Asura Scans', items: browseItems($) };
   },
 
+  async discover() {
+    const [popular, browse] = await Promise.all([
+      document('/browse?sort=popular'),
+      document('/browse'),
+    ]);
+    return {
+      sections: [
+        { title: 'Populaires', items: browseItems(popular) },
+        { title: 'À découvrir', items: browseItems(browse) },
+      ],
+    };
+  },
+
   async manga(id) {
     const path = seriesPath(id);
     if (!path) throw new Error('Série Asura Scans inconnue.');
