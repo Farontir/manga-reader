@@ -8,6 +8,7 @@ import {
   type InstalledSource,
 } from '../db';
 import { parseManifest, resolveBundleUrl, resolveManifestUrl } from './manifest';
+import type { SourceManifest } from './types';
 
 async function fetchText(url: string, maxBytes: number): Promise<string> {
   const controller = new AbortController();
@@ -21,6 +22,12 @@ async function fetchText(url: string, maxBytes: number): Promise<string> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** Reads and validates a source manifest without installing anything. */
+export async function previewSource(inputUrl: string): Promise<SourceManifest> {
+  const raw = await fetchText(resolveManifestUrl(inputUrl), 64000);
+  return parseManifest(JSON.parse(raw) as unknown);
 }
 
 export async function installSource(inputUrl: string): Promise<InstalledSource> {

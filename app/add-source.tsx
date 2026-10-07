@@ -1,8 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { installSource } from '../sources/install';
+import { installSource, previewSource } from '../sources/install';
+import type { SourceManifest } from '../sources/types';
 import { matchSourceToLibrary } from '../services/librarySources';
 import { inspectSourceHealth } from '../sources/api';
 import { successFeedback } from '../ui/haptics';
@@ -17,6 +26,23 @@ export default function AddSourceScreen() {
   const { url: initialUrl } = useLocalSearchParams<{ url?: string }>();
   const [url, setUrl] = useState(initialUrl ?? '');
   const [busy, setBusy] = useState(false);
+  // Opened from an install link: show what the link points to before anything is installed.
+  const [preview, setPreview] = useState<SourceManifest | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!initialUrl) return;
+    let active = true;
+    previewSource(initialUrl)
+      .then((manifest) => {
+        if (active) setPreview(manifest);
+      })
+      .catch((reason: unknown) => {
+        if (active) setPreviewError(reason instanceof Error ? reason.message : String(reason));
+      });
+    return () => {
+      active = false;
+    };
+  }, [initialUrl]);
 
   async function install() {
     setBusy(true);
@@ -48,6 +74,29 @@ export default function AddSourceScreen() {
           Colle l’URL d’un dépôt de source ou de son manifest.json. Vérifie que tu fais confiance à
           son auteur.
         </Text>
+        {initialUrl ? (
+          <View
+            style={[styles.preview, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          >
+            {preview ? (
+              <>
+                <Text style={[styles.previewName, { color: theme.foreground }]}>
+                  {preview.name}
+                </Text>
+                <Text style={{ color: theme.secondary, marginTop: 4 }}>
+                  Version {preview.version} · {preview.language.toUpperCase()}
+                </Text>
+                <Text style={{ color: theme.secondary, marginTop: 4 }}>
+                  Domaines contactés : {preview.allowedHosts.join(', ')}
+                </Text>
+              </>
+            ) : previewError ? (
+              <Text style={{ color: theme.danger }}>{previewError}</Text>
+            ) : (
+              <ActivityIndicator color={theme.accent} />
+            )}
+          </View>
+        ) : null}
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
@@ -92,4 +141,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   note: { fontSize: 12, lineHeight: 19, marginTop: 20 },
+  preview: { borderRadius: 12, borderWidth: 1, marginBottom: 16, padding: 14 },
+  previewName: { fontSize: 18, fontWeight: '800' },
 });
