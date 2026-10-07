@@ -29,8 +29,10 @@ export type SourceManifest = {
   sha256: string;
 };
 
-/** Section shown in Explorer before any search: trending titles, or latest additions. */
-export type SourceRecommendations = { title: string; items: SourceManga[] };
+/** A titled row of manga in a source's Discover page (trending, latest updates…). */
+export type SourceSection = { title: string; items: SourceManga[] };
 
-// `recommendations` is optional: bundles published before it answer "Méthode absente".
-export type SourceMethod = 'search' | 'manga' | 'chapters' | 'pages' | 'health' | 'recommendations';
+// `discover` (several sections) and `recommendations` (one section) are optional: bundles
+// that predate them answer "Méthode absente".
+export type SourceMethod =
+  'search' | 'manga' | 'chapters' | 'pages' | 'health' | 'recommendations' | 'discover';

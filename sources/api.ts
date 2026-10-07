@@ -1,72 +1,45 @@
 import type { InstalledSource } from '../db';
 import { callSource } from '../native-bridge/sourceClient';
-import type { SourceChapter, SourceManga, SourcePage, SourceRecommendations } from './types';
-
-function record(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function string(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-function optionalStrings(value: unknown): string[] | undefined {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : undefined;
-}
-
-function manga(value: unknown): SourceManga | null {
-  const data = record(value);
-  if (!data) return null;
-  const id = string(data.id),
-    title = string(data.title);
-  if (!id || !title) return null;
-  return {
-    id,
-    title,
-    altTitles: optionalStrings(data.altTitles),
-    coverUrl: string(data.coverUrl),
-    description: string(data.description),
-    anilistId: typeof data.anilistId === 'number' ? data.anilistId : undefined,
-  };
-}
+import { parseDiscover, parseManga, parseSection, record, string } from './parse';
+import type { SourceChapter, SourceManga, SourcePage, SourceSection } from './types';
 
 export async function searchSource(source: InstalledSource, query: string): Promise<SourceManga[]> {
   const result = await callSource(source, 'search', [query]);
   if (!Array.isArray(result)) throw new Error('Résultat de recherche invalide.');
   return result
-    .map(manga)
+    .map(parseManga)
     .filter((item): item is SourceManga => item !== null)
     .slice(0, 50);
 }
 
-/** Returns null when the installed bundle predates `recommendations`. */
-export async function getSourceRecommendations(
+function isMissingMethod(reason: unknown): boolean {
+  return reason instanceof Error && reason.message.includes('Méthode absente');
+}
+
+/**
+ * Sections of a source's Discover page: `discover()`, else the single section of older
+ * `recommendations()` bundles. `supported` is false when the bundle offers neither.
+ */
+export async function getSourceDiscover(
   source: InstalledSource,
-): Promise<SourceRecommendations | null> {
-  let result: unknown;
+): Promise<{ sections: SourceSection[]; supported: boolean }> {
   try {
-    result = await callSource(source, 'recommendations');
+    return { sections: parseDiscover(await callSource(source, 'discover')), supported: true };
   } catch (reason) {
-    if (reason instanceof Error && reason.message.includes('Méthode absente')) return null;
+    if (!isMissingMethod(reason)) throw reason;
+  }
+  try {
+    const section = parseSection(await callSource(source, 'recommendations'));
+    if (!section) throw new Error('Recommandations invalides.');
+    return { sections: section.items.length ? [section] : [], supported: true };
+  } catch (reason) {
+    if (isMissingMethod(reason)) return { sections: [], supported: false };
     throw reason;
   }
-  const data = record(result);
-  if (!data || !Array.isArray(data.items)) throw new Error('Recommandations invalides.');
-  return {
-    title: string(data.title)?.slice(0, 40) ?? 'Recommandations',
-    items: data.items
-      .map(manga)
-      .filter((item): item is SourceManga => item !== null)
-      .slice(0, 30),
-  };
 }
 
 export async function getSourceManga(source: InstalledSource, id: string): Promise<SourceManga> {
-  const result = manga(await callSource(source, 'manga', [id]));
+  const result = parseManga(await callSource(source, 'manga', [id]));
   if (!result) throw new Error('Fiche manga invalide.');
   return result;
 }
