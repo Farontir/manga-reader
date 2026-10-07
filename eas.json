@@ -19,7 +19,8 @@
     "production": {
       "ios": {
         "appName": "Kumo Reader",
-        "language": "fr-FR"
+        "language": "fr-FR",
+        "ascAppId": "6819871043"
       }
     }
   }
