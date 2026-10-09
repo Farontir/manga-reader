@@ -11,6 +11,7 @@ import { SourceHost } from '../native-bridge/SourceHost';
 import { resumeQueuedDownloads } from '../services/downloads';
 import { preferEnglishTitles } from '../services/titleFix';
 import { useFolderSyncOnForeground } from '../ui/folderSync';
+import { useLibraryRefreshOnForeground } from '../ui/libraryRefresh';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -32,6 +33,7 @@ export default function RootLayout() {
       });
   }, []);
   useFolderSyncOnForeground(ready);
+  useLibraryRefreshOnForeground(ready);
 
   if (!ready) {
     return (

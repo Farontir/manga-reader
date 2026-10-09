@@ -52,6 +52,11 @@ const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
 type Saver = ReturnType<typeof createProgressSaver>;
 
 export default function ReaderScreen() {
+  const setOpen = useReaderState((state) => state.setOpen);
+  useEffect(() => {
+    setOpen(true);
+    return () => setOpen(false);
+  }, [setOpen]);
   const params = useLocalSearchParams<{
     id: string;
     chapter: string;

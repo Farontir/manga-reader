@@ -8,6 +8,7 @@ import { countUnreadChapters, listLibraryEntries, type LibraryEntry } from '../.
 import { coverImageSource } from '../../services/coverImage';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
+import { refreshLibrary, useLibraryRefresh } from '../../ui/libraryRefresh';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
 
@@ -17,16 +18,33 @@ export default function LibraryScreen() {
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [unread, setUnread] = useState<Record<string, number>>({});
   const sync = useFolderSync();
+  const refresh = useLibraryRefresh();
+  const [pulling, setPulling] = useState(false);
   const reload = useCallback(() => {
     void Promise.all([listLibraryEntries(), countUnreadChapters()]).then(([list, counts]) => {
       setEntries(list);
       setUnread(counts);
     });
   }, []);
-  useFocusEffect(reload);
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      // Opening the library looks for new chapters (throttled to every 15 minutes).
+      void refreshLibrary(false);
+    }, [reload]),
+  );
   useEffect(() => {
-    if (sync.libraryVersion) reload();
-  }, [sync.libraryVersion, reload]);
+    if (sync.libraryVersion || refresh.version) reload();
+  }, [sync.libraryVersion, refresh.version, reload]);
+
+  async function pullToRefresh() {
+    setPulling(true);
+    try {
+      await refreshLibrary(true);
+    } finally {
+      setPulling(false);
+    }
+  }
 
   return (
     <Screen>
@@ -37,6 +55,11 @@ export default function LibraryScreen() {
         </View>
         <Text style={{ color: theme.secondary }}>{entries.length} mangas</Text>
       </View>
+      {refresh.running && !pulling && refresh.total ? (
+        <Text style={[styles.refreshing, { color: theme.secondary }]}>
+          Recherche de nouveaux chapitres… {refresh.done}/{refresh.total}
+        </Text>
+      ) : null}
       {sync.running || sync.message ? (
         <View
           style={[styles.syncBanner, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -77,6 +100,10 @@ export default function LibraryScreen() {
         style={styles.listContainer}
         data={entries}
         keyExtractor={(item) => item.id}
+        refreshing={pulling}
+        onRefresh={() => {
+          void pullToRefresh();
+        }}
         contentContainerStyle={entries.length ? styles.list : styles.emptyList}
         ListEmptyComponent={
           <EmptyState
@@ -169,6 +196,7 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   cover: { alignItems: 'center', borderRadius: 9, height: 78, justifyContent: 'center', width: 55 },
+  refreshing: { fontSize: 12, paddingHorizontal: 20, paddingTop: 6 },
   badge: {
     alignItems: 'center',
     borderRadius: 12,
