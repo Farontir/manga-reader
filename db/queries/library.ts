@@ -2,6 +2,7 @@ import * as Crypto from 'expo-crypto';
 
 import { getDatabase } from '../connection';
 import type { LibraryEntry, SourceBinding } from '../schema';
+import { PRUNE_BROWSED_ENTRIES_SQL } from './pruneSql';
 
 type EntryRow = {
   id: string;
@@ -13,6 +14,7 @@ type EntryRow = {
   status: string | null;
   added_at: string;
   last_read_at: string | null;
+  in_library: number;
 };
 type BindingRow = {
   id: string;
@@ -42,6 +44,7 @@ function entryFromRow(row: EntryRow): LibraryEntry {
     status: row.status,
     addedAt: row.added_at,
     lastReadAt: row.last_read_at,
+    inLibrary: row.in_library !== 0,
   };
 }
 
@@ -58,7 +61,12 @@ function bindingFromRow(row: BindingRow): SourceBinding {
 }
 
 export type NewEntry = Pick<LibraryEntry, 'canonicalTitle'> &
-  Partial<Pick<LibraryEntry, 'altTitles' | 'coverUrl' | 'anilistId' | 'description' | 'status'>>;
+  Partial<
+    Pick<
+      LibraryEntry,
+      'altTitles' | 'coverUrl' | 'anilistId' | 'description' | 'status' | 'inLibrary'
+    >
+  >;
 
 export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry> {
   const db = await getDatabase();
@@ -72,11 +80,13 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     status: input.status ?? null,
     addedAt: new Date().toISOString(),
     lastReadAt: null,
+    inLibrary: input.inLibrary ?? true,
   };
   if (!entry.canonicalTitle) throw new Error('Le titre est obligatoire.');
   await db.runAsync(
     `INSERT INTO library_entries(id, canonical_title, alt_titles_json, cover_url, anilist_id,
-      description, status, added_at, last_read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      description, status, added_at, last_read_at, in_library)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     entry.id,
     entry.canonicalTitle,
     JSON.stringify(entry.altTitles),
@@ -86,16 +96,36 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     entry.status,
     entry.addedAt,
     null,
+    entry.inLibrary ? 1 : 0,
   );
   return entry;
 }
 
-export async function listLibraryEntries(): Promise<LibraryEntry[]> {
+/** Bookmarked entries by default; `all` also returns manga only opened from a source. */
+export async function listLibraryEntries(
+  scope: 'library' | 'all' = 'library',
+): Promise<LibraryEntry[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<EntryRow>(
-    'SELECT * FROM library_entries ORDER BY last_read_at DESC, added_at DESC',
+    `SELECT * FROM library_entries ${scope === 'library' ? 'WHERE in_library = 1' : ''}
+     ORDER BY last_read_at DESC, added_at DESC`,
   );
   return rows.map(entryFromRow);
+}
+
+export async function setInLibrary(id: string, inLibrary: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE library_entries SET in_library = ? WHERE id = ?',
+    inLibrary ? 1 : 0,
+    id,
+  );
+}
+
+/** Forgets manga only browsed (bindings and chapter lists cascade) before `cutoff`. */
+export async function pruneBrowsedEntries(cutoff: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(PRUNE_BROWSED_ENTRIES_SQL, cutoff);
 }
 
 export async function getLibraryEntry(id: string): Promise<LibraryEntry | null> {

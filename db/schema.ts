@@ -8,6 +8,8 @@ export type LibraryEntry = {
   status: string | null;
   addedAt: string;
   lastReadAt: string | null;
+  /** Bookmarked: shown in the library. Entries opened from Discover/Search start false. */
+  inLibrary: boolean;
 };
 
 export type SourceBinding = {
