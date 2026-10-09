@@ -25,14 +25,26 @@
       : undefined;
   }
 
+  // English first: a manhwa's main title is often romanized Korean, with the English one
+  // only among the alternative titles.
+  function displayTitle(attributes) {
+    const title = attributes.title || {};
+    if (title.en) return title.en;
+    const english = (attributes.altTitles || []).find((alt) => alt && alt.en);
+    return english ? english.en : localized(title);
+  }
+
   function toManga(manga) {
     const attributes = manga.attributes || {};
-    const altTitles = (attributes.altTitles || []).map(localized).filter(Boolean);
+    const title = displayTitle(attributes);
+    const altTitles = [localized(attributes.title)]
+      .concat((attributes.altTitles || []).map(localized))
+      .filter((alt, index, all) => alt && alt !== title && all.indexOf(alt) === index);
     const link = attributes.links && attributes.links.al;
     const anilistId = link && Number(link);
     return {
       id: manga.id,
-      title: localized(attributes.title) || manga.id,
+      title: title || manga.id,
       altTitles: altTitles,
       coverUrl: coverOf(manga),
       description: localized(attributes.description),
