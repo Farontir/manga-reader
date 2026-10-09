@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { getSetting, listInstalledSources, setSetting, type InstalledSource } from '../../db';
-import { addSourceManga } from '../../services/librarySources';
+import { openSourceManga } from '../../services/librarySources';
 import { getSourceDiscover, searchSource } from '../../sources/api';
 import type { SourceManga, SourceSection } from '../../sources/types';
 import { ActionButton } from '../../ui/components/ActionButton';
@@ -142,7 +142,7 @@ export default function DiscoverScreen() {
     setAdding(manga.id);
     setError(null);
     try {
-      const entry = await addSourceManga(selected.id, manga);
+      const entry = await openSourceManga(selected.id, manga);
       router.push({ pathname: '/entry/[id]', params: { id: entry.id } });
     } catch (reason) {
       setError(message(reason));

@@ -15,7 +15,7 @@ import {
 import { listInstalledSources, type InstalledSource } from '../../db';
 import { searchAniList, type AniListManga } from '../../services/anilist';
 import { coverImageSource } from '../../services/coverImage';
-import { addAniListManga, addSourceManga } from '../../services/librarySources';
+import { openAniListManga, openSourceManga } from '../../services/librarySources';
 import { searchSource } from '../../sources/api';
 import type { SourceManga } from '../../sources/types';
 import { EmptyState } from '../../ui/components/EmptyState';
@@ -90,8 +90,8 @@ export default function SearchScreen() {
     try {
       const entry =
         result.kind === 'anilist'
-          ? await addAniListManga(result.manga)
-          : await addSourceManga(result.source.id, result.manga);
+          ? await openAniListManga(result.manga)
+          : await openSourceManga(result.source.id, result.manga);
       router.push({ pathname: '/entry/[id]', params: { id: entry.id } });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -179,7 +179,7 @@ export default function SearchScreen() {
               {adding === item.key ? (
                 <ActivityIndicator color={theme.accent} />
               ) : (
-                <Ionicons name="add-circle" size={27} color={theme.accent} />
+                <Ionicons name="chevron-forward" size={22} color={theme.secondary} />
               )}
             </Pressable>
           )}

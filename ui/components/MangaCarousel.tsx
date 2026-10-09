@@ -28,7 +28,7 @@ export function MangaCover({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Ajouter ${manga.title}`}
+      accessibilityLabel={`Ouvrir ${manga.title}`}
       onPress={onPress}
       disabled={disabled}
       style={{ width: size.width }}

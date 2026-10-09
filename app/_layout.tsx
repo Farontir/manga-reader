@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { getDatabase } from '../db';
+import { getDatabase, pruneBrowsedEntries } from '../db';
 import { SourceHost } from '../native-bridge/SourceHost';
 import { resumeQueuedDownloads } from '../services/downloads';
 import { useFolderSyncOnForeground } from '../ui/folderSync';
@@ -22,6 +22,8 @@ export default function RootLayout() {
       .then(() => {
         setReady(true);
         void resumeQueuedDownloads().catch(() => undefined);
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        void pruneBrowsedEntries(weekAgo).catch(() => undefined);
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : String(reason));

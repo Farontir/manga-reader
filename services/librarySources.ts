@@ -76,7 +76,11 @@ export async function matchSourceToLibrary(source: InstalledSource): Promise<num
   return count;
 }
 
-export async function addAniListManga(manga: AniListManga): Promise<LibraryEntry> {
+/**
+ * Entry to open for an AniList result. A new entry is not bookmarked: it only reaches the
+ * library through the bookmark on its page.
+ */
+export async function openAniListManga(manga: AniListManga): Promise<LibraryEntry> {
   const existing = await findEntryByAniListId(manga.id);
   if (existing) return existing;
   const entry = await createLibraryEntry({
@@ -86,12 +90,14 @@ export async function addAniListManga(manga: AniListManga): Promise<LibraryEntry
     anilistId: manga.id,
     description: manga.description,
     status: manga.status,
+    inLibrary: false,
   });
   await bindMatchingSources(entry);
   return entry;
 }
 
-export async function addSourceManga(sourceId: string, manga: SourceManga): Promise<LibraryEntry> {
+/** Entry to open for a source result (matched on AniList), not bookmarked when new. */
+export async function openSourceManga(sourceId: string, manga: SourceManga): Promise<LibraryEntry> {
   let matched: AniListManga | undefined;
   try {
     if (manga.anilistId) {
@@ -113,6 +119,7 @@ export async function addSourceManga(sourceId: string, manga: SourceManga): Prom
       coverUrl: matched?.coverUrl ?? manga.coverUrl,
       description: matched?.description ?? manga.description,
       anilistId: matched?.id ?? null,
+      inLibrary: false,
     }));
   await upsertBinding({ libraryEntryId: entry.id, sourceId, mangaId: manga.id, priority: 1 });
   try {

@@ -9,6 +9,7 @@ import {
   listLibraryEntries,
   listLocalChapters,
   putLocalChapter,
+  setInLibrary,
   updateLibraryEntry,
 } from '../db';
 import { extractCbzPages } from './cbzStream';
@@ -132,7 +133,7 @@ export async function importLocalChapter(input: ImportInput): Promise<LocalImpor
     let entryId = input.entryId;
     if (!entryId && input.skipExisting) {
       const normalized = title.normalize('NFKC').trim().toLocaleLowerCase();
-      entryId = (await listLibraryEntries()).find(
+      entryId = (await listLibraryEntries('all')).find(
         (entry) => entry.canonicalTitle.normalize('NFKC').trim().toLocaleLowerCase() === normalized,
       )?.id;
     }
@@ -165,6 +166,7 @@ export async function importLocalChapter(input: ImportInput): Promise<LocalImpor
       entryId = createdEntryId;
     }
     if (!entryId) throw new Error('Import impossible.');
+    if (!createdEntryId) await setInLibrary(entryId, true);
     await putLocalChapter({
       libraryEntryId: entryId,
       chapterNumber,

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -15,6 +15,7 @@ import {
   listLocalChapters,
   listProgress,
   setBindingPriority,
+  setInLibrary,
   setSetting,
   type InstalledSource,
   type LibraryEntry,
@@ -33,6 +34,7 @@ import { refreshEntryChapters } from '../../services/librarySources';
 import { resumeTarget } from '../../services/resume';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
+import { selectionFeedback, successFeedback } from '../../ui/haptics';
 import { useTheme } from '../../ui/useTheme';
 
 const CHAPTER_ORDER_KEY = 'chapters.order';
@@ -155,8 +157,22 @@ export default function EntryScreen() {
     }
   }
 
+  async function toggleBookmark() {
+    if (!entry) return;
+    const next = !entry.inLibrary;
+    setEntry({ ...entry, inLibrary: next });
+    if (next) successFeedback();
+    else selectionFeedback();
+    try {
+      await setInLibrary(entry.id, next);
+    } catch (reason) {
+      setEntry({ ...entry, inLibrary: !next });
+      Alert.alert('Signet impossible', reason instanceof Error ? reason.message : String(reason));
+    }
+  }
+
   function confirmDelete() {
-    Alert.alert('Retirer ce manga ?', 'La progression et les fichiers associés seront supprimés.', [
+    Alert.alert('Effacer ce manga ?', 'La progression et les fichiers associés seront supprimés.', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
@@ -182,6 +198,29 @@ export default function EntryScreen() {
     );
   return (
     <Screen>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                entry.inLibrary ? 'Retirer de la bibliothèque' : 'Ajouter à la bibliothèque'
+              }
+              accessibilityState={{ selected: entry.inLibrary }}
+              hitSlop={10}
+              onPress={() => {
+                void toggleBookmark();
+              }}
+            >
+              <Ionicons
+                name={entry.inLibrary ? 'bookmark' : 'bookmark-outline'}
+                size={24}
+                color={theme.accent}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
         data={shownChapters}
         keyExtractor={(item) => `${item.number}`}
@@ -363,7 +402,7 @@ export default function EntryScreen() {
         ListFooterComponent={
           <Pressable onPress={confirmDelete} style={styles.delete}>
             <Text style={{ color: theme.danger, textAlign: 'center' }}>
-              Supprimer de la bibliothèque
+              Effacer ce manga et sa progression
             </Text>
           </Pressable>
         }
