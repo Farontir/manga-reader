@@ -6,6 +6,7 @@ type ReaderState = {
 };
 
 export const useReaderState = create<ReaderState>((set) => ({
-  mode: 'paged',
+  // Webtoon (vertical scrolling) by default; the reader toolbar switches to paged.
+  mode: 'webtoon',
   setMode: (mode) => set({ mode }),
 }));
