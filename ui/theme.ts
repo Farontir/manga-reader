@@ -9,6 +9,8 @@ export type Theme = {
   danger: string;
   success: string;
   warning: string;
+  /** Unread badge background; white text on it in both themes. */
+  badge: string;
 };
 
 export const themes: Record<'light' | 'dark', Theme> = {
@@ -23,6 +25,7 @@ export const themes: Record<'light' | 'dark', Theme> = {
     danger: '#CF3C3C',
     success: '#23855D',
     warning: '#A96E00',
+    badge: '#D7322A',
   },
   dark: {
     background: '#111519',
@@ -35,5 +38,6 @@ export const themes: Record<'light' | 'dark', Theme> = {
     danger: '#FF7070',
     success: '#70CFA0',
     warning: '#F4B64E',
+    badge: '#D7322A',
   },
 };

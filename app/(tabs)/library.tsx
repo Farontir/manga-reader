@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { listLibraryEntries, type LibraryEntry } from '../../db';
+import { countUnreadChapters, listLibraryEntries, type LibraryEntry } from '../../db';
 import { coverImageSource } from '../../services/coverImage';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
@@ -15,15 +15,18 @@ export default function LibraryScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
+  const [unread, setUnread] = useState<Record<string, number>>({});
   const sync = useFolderSync();
-  useFocusEffect(
-    useCallback(() => {
-      void listLibraryEntries().then(setEntries);
-    }, []),
-  );
+  const reload = useCallback(() => {
+    void Promise.all([listLibraryEntries(), countUnreadChapters()]).then(([list, counts]) => {
+      setEntries(list);
+      setUnread(counts);
+    });
+  }, []);
+  useFocusEffect(reload);
   useEffect(() => {
-    if (sync.libraryVersion) void listLibraryEntries().then(setEntries);
-  }, [sync.libraryVersion]);
+    if (sync.libraryVersion) reload();
+  }, [sync.libraryVersion, reload]);
 
   return (
     <Screen>
@@ -87,18 +90,33 @@ export default function LibraryScreen() {
             onPress={() => router.push({ pathname: '/entry/[id]', params: { id: item.id } })}
             style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            {item.coverUrl ? (
-              <Image
-                source={coverImageSource(item.coverUrl)}
-                style={styles.cover}
-                contentFit="cover"
-                cachePolicy="disk"
-              />
-            ) : (
-              <View style={[styles.cover, { backgroundColor: theme.border }]}>
-                <Text style={{ color: theme.secondary, fontSize: 25 }}>✦</Text>
-              </View>
-            )}
+            <View>
+              {item.coverUrl ? (
+                <Image
+                  source={coverImageSource(item.coverUrl)}
+                  style={styles.cover}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                />
+              ) : (
+                <View style={[styles.cover, { backgroundColor: theme.border }]}>
+                  <Text style={{ color: theme.secondary, fontSize: 25 }}>✦</Text>
+                </View>
+              )}
+              {unread[item.id] ? (
+                <View
+                  accessibilityLabel={`${unread[item.id]} chapitre(s) non lu(s)`}
+                  style={[
+                    styles.badge,
+                    { backgroundColor: theme.badge, borderColor: theme.surface },
+                  ]}
+                >
+                  <Text style={styles.badgeText}>
+                    {(unread[item.id] ?? 0) > 999 ? '999+' : unread[item.id]}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             <View style={{ flex: 1 }}>
               <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.foreground }]}>
                 {item.canonicalTitle}
@@ -151,5 +169,18 @@ const styles = StyleSheet.create({
     padding: 11,
   },
   cover: { alignItems: 'center', borderRadius: 9, height: 78, justifyContent: 'center', width: 55 },
+  badge: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 2,
+    height: 24,
+    justifyContent: 'center',
+    minWidth: 24,
+    paddingHorizontal: 5,
+    position: 'absolute',
+    right: -9,
+    top: -8,
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontVariant: ['tabular-nums'], fontWeight: '800' },
   rowTitle: { fontSize: 16, fontWeight: '700' },
 });
