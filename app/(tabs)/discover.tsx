@@ -311,10 +311,9 @@ export default function DiscoverScreen() {
                           accessibilityRole="button"
                           accessibilityLabel={`Genre ${genre.title}`}
                           onPress={() => openListing(genre.id, genre.title)}
-                          style={({ pressed }) => [
-                            styles.genre,
-                            { backgroundColor: theme.accent, opacity: pressed ? 0.8 : 1 },
-                          ]}
+                          // Static style only: NativeWind drops Pressable style callbacks
+                          // on device (same bug as ActionButton).
+                          style={[styles.genre, { backgroundColor: theme.accent }]}
                         >
                           <View style={[styles.genreArrow, { backgroundColor: theme.background }]}>
                             <Ionicons name="arrow-forward" size={16} color={theme.accent} />
