@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseDiscover, parseManga, parseSection } from './parse';
+import { parseCatalogPage, parseDiscover, parseManga, parseSection } from './parse';
 
 describe('source result parsing', () => {
   it('keeps valid manga and drops incomplete ones', () => {
@@ -47,5 +47,32 @@ describe('source result parsing', () => {
   it('rejects a discover result without sections', () => {
     expect(() => parseDiscover({ title: 'x', items: [] })).toThrow('Discover invalide.');
     expect(parseSection({ title: 'x' })).toBeNull();
+  });
+
+  it('parses a catalogue page with its sorts', () => {
+    expect(
+      parseCatalogPage({
+        items: [{ id: '1', title: 'A' }, { title: 'no id' }],
+        hasMore: true,
+        sorts: [
+          { id: 'popular', title: 'Populaires' },
+          { id: 'popular', title: 'Doublon' },
+          { id: 'az' },
+          { id: 'az', title: 'A–Z' },
+        ],
+      }),
+    ).toEqual({
+      items: [expect.objectContaining({ id: '1', title: 'A' })],
+      hasMore: true,
+      sorts: [
+        { id: 'popular', title: 'Populaires' },
+        { id: 'az', title: 'A–Z' },
+      ],
+    });
+  });
+
+  it('treats a missing hasMore as the last page and rejects malformed pages', () => {
+    expect(parseCatalogPage({ items: [] })).toEqual({ items: [], hasMore: false, sorts: [] });
+    expect(() => parseCatalogPage({ sections: [] })).toThrow('Catalogue invalide.');
   });
 });

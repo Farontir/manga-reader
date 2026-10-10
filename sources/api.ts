@@ -1,7 +1,13 @@
 import type { InstalledSource } from '../db';
 import { callSource } from '../native-bridge/sourceClient';
-import { parseDiscover, parseManga, parseSection, record, string } from './parse';
-import type { SourceChapter, SourceManga, SourcePage, SourceSection } from './types';
+import { parseCatalogPage, parseDiscover, parseManga, parseSection, record, string } from './parse';
+import type {
+  SourceCatalogPage,
+  SourceChapter,
+  SourceManga,
+  SourcePage,
+  SourceSection,
+} from './types';
 
 export async function searchSource(source: InstalledSource, query: string): Promise<SourceManga[]> {
   const result = await callSource(source, 'search', [query]);
@@ -34,6 +40,23 @@ export async function getSourceDiscover(
     return { sections: section.items.length ? [section] : [], supported: true };
   } catch (reason) {
     if (isMissingMethod(reason)) return { sections: [], supported: false };
+    throw reason;
+  }
+}
+
+/**
+ * One page (1-based) of a source's full catalogue in the given order (the source's
+ * default when omitted); null when the bundle has no catalogue.
+ */
+export async function getSourceCatalog(
+  source: InstalledSource,
+  page: number,
+  sort?: string,
+): Promise<SourceCatalogPage | null> {
+  try {
+    return parseCatalogPage(await callSource(source, 'catalog', [page, sort ?? null]));
+  } catch (reason) {
+    if (isMissingMethod(reason)) return null;
     throw reason;
   }
 }

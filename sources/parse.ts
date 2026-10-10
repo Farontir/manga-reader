@@ -1,4 +1,4 @@
-import type { SourceManga, SourceSection } from './types';
+import type { SourceCatalogPage, SourceManga, SourceSection, SourceSort } from './types';
 
 // Source bundles are untrusted: everything they return is validated here.
 
@@ -61,4 +61,32 @@ export function parseDiscover(value: unknown): SourceSection[] {
     .map((section) => parseSection(section))
     .filter((section): section is SourceSection => !!section && section.items.length > 0)
     .slice(0, MAX_SECTIONS);
+}
+
+const MAX_PAGE_ITEMS = 100;
+const MAX_SORTS = 8;
+
+/** `catalog(page, sort)` result: `{ items, hasMore, sorts? }`. */
+export function parseCatalogPage(value: unknown): SourceCatalogPage {
+  const data = record(value);
+  if (!data || !Array.isArray(data.items)) throw new Error('Catalogue invalide.');
+  const sorts: SourceSort[] = [];
+  if (Array.isArray(data.sorts)) {
+    for (const item of data.sorts) {
+      const sort = record(item);
+      const id = string(sort?.id);
+      const title = string(sort?.title);
+      if (id && title && !sorts.some((known) => known.id === id)) {
+        sorts.push({ id, title: title.slice(0, 30) });
+      }
+    }
+  }
+  return {
+    items: data.items
+      .map(parseManga)
+      .filter((item): item is SourceManga => item !== null)
+      .slice(0, MAX_PAGE_ITEMS),
+    hasMore: data.hasMore === true,
+    sorts: sorts.slice(0, MAX_SORTS),
+  };
 }
