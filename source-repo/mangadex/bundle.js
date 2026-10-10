@@ -86,6 +86,37 @@
     { id: 'az', title: 'A–Z', order: 'order[title]', direction: 'asc' },
   ];
 
+  // Listing ids understood by catalog(): a sort above, 'trending', or 'tag:<MangaDex tag id>'.
+  function listingParams(listing) {
+    if (listing === 'trending') {
+      const params = trendingParams();
+      params.delete('limit');
+      return params;
+    }
+    const tag = typeof listing === 'string' && listing.startsWith('tag:') ? listing.slice(4) : '';
+    const choice = CATALOG_SORTS.find((item) => item.id === listing) || CATALOG_SORTS[0];
+    const params = listParams(tag ? 'order[followedCount]' : choice.order);
+    params.delete('limit');
+    if (!tag) params.set(choice.order, choice.direction);
+    if (tag) params.append('includedTags[]', tag);
+    return params;
+  }
+
+  let genres = null;
+
+  // MangaDex genre tags, fetched once per sandbox session.
+  async function genreList() {
+    if (!genres) {
+      const json = await request('/manga/tag');
+      genres = (json.data || [])
+        .filter((tag) => tag.attributes && tag.attributes.group === 'genre')
+        .map((tag) => ({ id: 'tag:' + tag.id, title: localized(tag.attributes.name) }))
+        .filter((tag) => tag.title)
+        .sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return genres;
+  }
+
   globalThis.source = {
     async search(query) {
       const params = new URLSearchParams();
@@ -113,35 +144,39 @@
     // Discover page: each section loads on its own, so one failing request keeps the others.
     async discover() {
       const sections = [
-        { title: 'Tendances', params: trendingParams() },
-        { title: 'Mises à jour récentes', params: listParams('order[latestUploadedChapter]') },
-        { title: 'Les plus suivis', params: listParams('order[followedCount]') },
+        { title: 'Tendances', params: trendingParams(), more: 'trending' },
+        {
+          title: 'Mises à jour récentes',
+          params: listParams('order[latestUploadedChapter]'),
+          more: 'updated',
+        },
+        { title: 'Les plus suivis', params: listParams('order[followedCount]'), more: 'popular' },
       ];
       const result = [];
       for (const section of sections) {
         try {
-          result.push({ title: section.title, items: await list(section.params) });
+          result.push({ title: section.title, items: await list(section.params), more: section.more });
         } catch {
           // Skip this section.
         }
       }
-      return { sections: result };
+      let tags = [];
+      try {
+        tags = await genreList();
+      } catch {
+        // Genres are optional.
+      }
+      return { sections: result, genres: tags };
     },
 
     // Full catalogue, 30 readable titles (English chapters) per page.
     async catalog(page, sort) {
-      const choice = CATALOG_SORTS.find((item) => item.id === sort) || CATALOG_SORTS[0];
       const sorts = CATALOG_SORTS.map((item) => ({ id: item.id, title: item.title }));
       const offset = (Math.max(1, Number(page) || 1) - 1) * CATALOG_PAGE;
       if (offset + CATALOG_PAGE > CATALOG_MAX) return { items: [], hasMore: false, sorts: sorts };
-      const params = new URLSearchParams();
+      const params = listingParams(sort);
       params.set('limit', String(CATALOG_PAGE));
       params.set('offset', String(offset));
-      params.set(choice.order, choice.direction);
-      params.set('hasAvailableChapters', 'true');
-      params.append('availableTranslatedLanguage[]', 'en');
-      params.append('includes[]', 'cover_art');
-      params.append('contentRating[]', 'safe');
       const json = await request('/manga?' + params.toString());
       const items = (json.data || []).map(toManga);
       const total = Math.min(Number(json.total) || 0, CATALOG_MAX);

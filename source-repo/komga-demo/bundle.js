@@ -41,14 +41,18 @@
     },
     async discover() {
       const sections = [
-        { title: 'Derniers ajouts', path: '/api/v1/series/new?size=20' },
-        { title: 'Récemment mis à jour', path: '/api/v1/series/updated?size=20' },
+        { title: 'Derniers ajouts', path: '/api/v1/series/new?size=20', more: 'recent' },
+        { title: 'Récemment mis à jour', path: '/api/v1/series/updated?size=20', more: 'updated' },
       ];
       const result = [];
       for (const section of sections) {
         try {
           const json = await request(section.path);
-          result.push({ title: section.title, items: (json.content || []).map(toManga) });
+          result.push({
+            title: section.title,
+            items: (json.content || []).map(toManga),
+            more: section.more,
+          });
         } catch {
           // Skip this section.
         }
