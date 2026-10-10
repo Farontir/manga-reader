@@ -94,6 +94,29 @@ function normalized(value) {
     .toLowerCase();
 }
 
+function genreSlug(value) {
+  return normalized(value)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function genreList(rows) {
+  const counts = new Map();
+  for (const row of rows) {
+    for (const title of row.categories ?? []) {
+      const slug = genreSlug(title);
+      if (!slug || adultTags.has(slug)) continue;
+      const entry = counts.get(slug) ?? { id: `genre:${slug}`, title: String(title), count: 0 };
+      entry.count += 1;
+      counts.set(slug, entry);
+    }
+  }
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
+    .slice(0, 30)
+    .map(({ id, title }) => ({ id, title }));
+}
+
 globalThis.source = {
   async search(query) {
     const needle = normalized(String(query ?? '').trim());
@@ -119,6 +142,7 @@ globalThis.source = {
       sections: [
         {
           title: 'Populaires',
+          more: 'popular',
           items: [...rows]
             .sort((a, b) => (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity))
             .slice(0, 30)
@@ -126,12 +150,14 @@ globalThis.source = {
         },
         {
           title: 'Les plus appréciés',
+          more: 'liked',
           items: [...rows]
             .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))
             .slice(0, 30)
             .map(item),
         },
       ],
+      genres: genreList(rows),
     };
   },
 
@@ -143,7 +169,15 @@ globalThis.source = {
       { id: 'liked', title: 'Les plus appréciés' },
       { id: 'az', title: 'A–Z' },
     ];
-    const rows = [...(await catalogue())];
+    const catalogueRows = await catalogue();
+    const genre =
+      typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
+    if (genre && !genreList(catalogueRows).some((entry) => entry.id === sort)) {
+      throw new Error('Genre Flame Comics inconnu.');
+    }
+    const rows = genre
+      ? catalogueRows.filter((row) => row.categories?.some((title) => genreSlug(title) === genre))
+      : [...catalogueRows];
     if (sort === 'liked') rows.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
     else if (sort === 'az') rows.sort((a, b) => a.title.localeCompare(b.title));
     else rows.sort((a, b) => (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity));

@@ -4,6 +4,20 @@ import { load } from 'cheerio';
 const base = 'https://mangakatana.com';
 const referer = `${base}/`;
 const adultGenres = new Set(['adult', 'ecchi', 'erotica', 'loli', 'sexual violence', 'shota']);
+const genreNames = {
+  action: 'Action',
+  adventure: 'Aventure',
+  comedy: 'Comédie',
+  drama: 'Drame',
+  fantasy: 'Fantasy',
+  mystery: 'Mystère',
+  romance: 'Romance',
+  'school-life': 'Vie scolaire',
+  'sci-fi': 'Science-fiction',
+  'slice-of-life': 'Tranche de vie',
+  sports: 'Sport',
+  supernatural: 'Surnaturel',
+};
 
 function mangaPath(value) {
   if (typeof value !== 'string') return null;
@@ -91,12 +105,23 @@ function cardItems($, genre) {
   return items;
 }
 
-function hasNextPage($, page) {
+function genresFrom($) {
+  const available = new Set();
+  $('a[href*="/genre/"]').each((_, link) => {
+    const url = new URL($(link).attr('href'), base);
+    if (url.origin === base) available.add(url.pathname.slice('/genre/'.length).replace(/\/$/, ''));
+  });
+  return Object.entries(genreNames)
+    .filter(([slug]) => available.has(slug))
+    .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
+}
+
+function hasNextPage($, page, prefix = '') {
   return $('a[href]')
     .toArray()
     .some((link) => {
       const url = new URL($(link).attr('href'), base);
-      return url.origin === base && url.pathname === `/page/${page + 1}`;
+      return url.origin === base && url.pathname === `${prefix}/page/${page + 1}`;
     });
 }
 
@@ -124,18 +149,26 @@ globalThis.source = {
     const $ = await document('/');
     return {
       sections: [
-        { title: 'Dernières mises à jour', items: cardItems($).slice(0, 30) },
-        { title: 'Action et aventure', items: cardItems($, ['action', 'adventure']).slice(0, 30) },
+        { title: 'Dernières mises à jour', items: cardItems($).slice(0, 30), more: 'updated' },
+        { title: 'Action', items: cardItems($, ['action']).slice(0, 30), more: 'genre:action' },
       ],
+      genres: genresFrom($),
     };
   },
 
-  async catalog(page) {
+  async catalog(page, sort) {
     const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
-    const $ = await document(current === 1 ? '/' : `/page/${current}`);
+    const genre =
+      typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
+    if (genre && !Object.prototype.hasOwnProperty.call(genreNames, genre)) {
+      throw new Error('Genre MangaKatana inconnu.');
+    }
+    const prefix = genre ? `/genre/${genre}` : '';
+    const path = current === 1 ? prefix || '/' : `${prefix}/page/${current}`;
+    const $ = await document(path);
     return {
       items: cardItems($).slice(0, 30),
-      hasMore: hasNextPage($, current),
+      hasMore: hasNextPage($, current, prefix),
       sorts: [{ id: 'updated', title: 'Mises à jour récentes' }],
     };
   },

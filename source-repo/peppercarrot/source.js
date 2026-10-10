@@ -47,11 +47,11 @@ globalThis.source = {
   },
 
   async discover() {
-    return { sections: [{ title: 'À découvrir', items: [await series()] }] };
+    return { sections: [{ title: 'À découvrir', items: [await series()], more: 'all' }] };
   },
 
-  async catalog() {
-    return { items: [await series()], hasMore: false, sorts: [] };
+  async catalog(page) {
+    return { items: page > 1 ? [] : [await series()], hasMore: false, sorts: [] };
   },
 
   async manga(id) {
