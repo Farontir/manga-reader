@@ -249,6 +249,24 @@ export default function DiscoverScreen() {
                 </Pressable>
               ) : null}
             </View>
+            {selected && !results ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({
+                    pathname: '/catalog/[sourceId]',
+                    params: { sourceId: selected.id },
+                  })
+                }
+                style={[styles.catalogLink, { borderColor: theme.border }]}
+              >
+                <Ionicons name="albums-outline" size={20} color={theme.accent} />
+                <Text style={[styles.catalogText, { color: theme.foreground }]}>
+                  Parcourir tout le catalogue
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={theme.secondary} />
+              </Pressable>
+            ) : null}
             {error ? <Text style={[styles.note, { color: theme.danger }]}>{error}</Text> : null}
             {searching ? (
               <ActivityIndicator color={theme.accent} style={styles.spinner} />
@@ -331,6 +349,17 @@ const styles = StyleSheet.create({
   tab: { borderBottomColor: 'transparent', borderBottomWidth: 3, paddingVertical: 11 },
   tabLabel: { fontSize: 16, fontWeight: '700' },
   content: { gap: 26, paddingBottom: 36, paddingTop: 18 },
+  catalogLink: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: -8,
+    minHeight: 50,
+    paddingHorizontal: 20,
+  },
+  catalogText: { flex: 1, fontSize: 16, fontWeight: '700' },
   searchBox: {
     alignItems: 'center',
     borderRadius: 14,

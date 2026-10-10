@@ -78,6 +78,7 @@ export default function RootLayout() {
         <Stack.Screen name="reader/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="import" options={{ title: 'Fichiers locaux' }} />
         <Stack.Screen name="sources" options={{ title: 'Sources' }} />
+        <Stack.Screen name="catalog/[sourceId]" options={{ title: 'Catalogue' }} />
         <Stack.Screen name="add-source" options={{ title: 'Installer une source' }} />
       </Stack>
     </GestureHandlerRootView>

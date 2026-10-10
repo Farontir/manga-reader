@@ -15,16 +15,21 @@ export function MangaCover({
   variant = 'regular',
   busy = false,
   disabled = false,
+  width,
   onPress,
 }: {
   manga: SourceManga;
   variant?: keyof typeof SIZES;
+  /** Fixed cover width (grids); the height follows the usual 1:1.43 cover ratio. */
+  width?: number;
   busy?: boolean;
   disabled?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const size = SIZES[variant];
+  const size = width
+    ? { width, height: Math.round(width * 1.43), title: SIZES.regular.title }
+    : SIZES[variant];
   return (
     <Pressable
       accessibilityRole="button"
