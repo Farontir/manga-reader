@@ -84,6 +84,25 @@ globalThis.source = {
     };
   },
 
+  async catalog(page, sort) {
+    const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
+    const sorts = [
+      { id: 'recent', title: 'Mises à jour récentes' },
+      { id: 'popular', title: 'Populaires' },
+    ];
+    const popular = sort === 'popular';
+    const query = [popular ? 'sort=popular' : null, current > 1 ? `page=${current}` : null]
+      .filter(Boolean)
+      .join('&');
+    const $ = await document(`/browse${query ? `?${query}` : ''}`);
+    const items = browseItems($);
+    const total = Number($('#series-count').attr('data-total'));
+    const hasMore = Number.isFinite(total)
+      ? current * 20 < total
+      : $(`a[aria-label="Page ${current + 1}"]`).length > 0;
+    return { items, hasMore, sorts };
+  },
+
   async manga(id) {
     const path = seriesPath(id);
     if (!path) throw new Error('Série Asura Scans inconnue.');

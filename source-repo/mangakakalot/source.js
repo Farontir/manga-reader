@@ -93,6 +93,19 @@ function cardItems($) {
   return items;
 }
 
+function hasNextPage($, path, page) {
+  return $('a[href]')
+    .toArray()
+    .some((link) => {
+      const url = new URL($(link).attr('href'), mirror);
+      return (
+        [base, mirror].includes(url.origin) &&
+        url.pathname === path &&
+        url.searchParams.get('page') === String(page + 1)
+      );
+    });
+}
+
 async function exactTitle(query) {
   const slug = slugify(query);
   if (!slug) return null;
@@ -172,6 +185,21 @@ globalThis.source = {
         { title: 'Populaires', items: cardItems(home).slice(0, 30) },
         { title: 'Dernières mises à jour', items: cardItems(latest).slice(0, 30) },
       ],
+    };
+  },
+
+  async catalog(page, sort) {
+    const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
+    const sorts = [
+      { id: 'hot', title: 'Populaires' },
+      { id: 'latest', title: 'Dernières mises à jour' },
+    ];
+    const path = sort === 'latest' ? '/manga-list/latest-manga' : '/manga-list/hot-manga';
+    const $ = await document(`${path}${current > 1 ? `?page=${current}` : ''}`);
+    return {
+      items: cardItems($).slice(0, 30),
+      hasMore: hasNextPage($, path, current),
+      sorts,
     };
   },
 
