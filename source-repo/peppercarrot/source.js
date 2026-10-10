@@ -50,6 +50,10 @@ globalThis.source = {
     return { sections: [{ title: 'À découvrir', items: [await series()] }] };
   },
 
+  async catalog() {
+    return { items: [await series()], hasMore: false, sorts: [] };
+  },
+
   async manga(id) {
     if (id !== 'peppercarrot') throw new Error('Série inconnue.');
     return series();

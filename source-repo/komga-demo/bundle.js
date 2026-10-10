@@ -55,6 +55,25 @@
       }
       return { sections: result };
     },
+    // Full catalogue, 30 series per page.
+    async catalog(page, sort) {
+      const sorts = [
+        { id: 'az', title: 'A–Z', sort: 'metadata.titleSort,asc' },
+        { id: 'recent', title: 'Ajouts récents', sort: 'createdDate,desc' },
+        { id: 'updated', title: 'Mis à jour', sort: 'lastModifiedDate,desc' },
+      ];
+      const choice = sorts.find((item) => item.id === sort) || sorts[0];
+      const index = Math.max(0, (Number(page) || 1) - 1);
+      const json = await request(
+        '/api/v1/series/list?size=30&page=' + index + '&sort=' + encodeURIComponent(choice.sort),
+        {},
+      );
+      return {
+        items: (json.content || []).map(toManga),
+        hasMore: json.last === false,
+        sorts: sorts.map((item) => ({ id: item.id, title: item.title })),
+      };
+    },
     async manga(id) {
       const json = await request('/api/v1/series/' + encodeURIComponent(id));
       return toManga(json);

@@ -76,6 +76,16 @@
     return params;
   }
 
+  const CATALOG_PAGE = 30;
+  // MangaDex refuses list requests whose offset + limit go beyond 10 000.
+  const CATALOG_MAX = 10000;
+  const CATALOG_SORTS = [
+    { id: 'popular', title: 'Populaires', order: 'order[followedCount]', direction: 'desc' },
+    { id: 'updated', title: 'Mis à jour', order: 'order[latestUploadedChapter]', direction: 'desc' },
+    { id: 'new', title: 'Nouveautés', order: 'order[createdAt]', direction: 'desc' },
+    { id: 'az', title: 'A–Z', order: 'order[title]', direction: 'asc' },
+  ];
+
   globalThis.source = {
     async search(query) {
       const params = new URLSearchParams();
@@ -116,6 +126,26 @@
         }
       }
       return { sections: result };
+    },
+
+    // Full catalogue, 30 readable titles (English chapters) per page.
+    async catalog(page, sort) {
+      const choice = CATALOG_SORTS.find((item) => item.id === sort) || CATALOG_SORTS[0];
+      const sorts = CATALOG_SORTS.map((item) => ({ id: item.id, title: item.title }));
+      const offset = (Math.max(1, Number(page) || 1) - 1) * CATALOG_PAGE;
+      if (offset + CATALOG_PAGE > CATALOG_MAX) return { items: [], hasMore: false, sorts: sorts };
+      const params = new URLSearchParams();
+      params.set('limit', String(CATALOG_PAGE));
+      params.set('offset', String(offset));
+      params.set(choice.order, choice.direction);
+      params.set('hasAvailableChapters', 'true');
+      params.append('availableTranslatedLanguage[]', 'en');
+      params.append('includes[]', 'cover_art');
+      params.append('contentRating[]', 'safe');
+      const json = await request('/manga?' + params.toString());
+      const items = (json.data || []).map(toManga);
+      const total = Math.min(Number(json.total) || 0, CATALOG_MAX);
+      return { items: items, hasMore: offset + items.length < total, sorts: sorts };
     },
 
     async manga(id) {
