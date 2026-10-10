@@ -19,7 +19,7 @@ describe('source result parsing', () => {
   });
 
   it('parses discover sections, dropping empty or malformed ones', () => {
-    const sections = parseDiscover({
+    const { sections } = parseDiscover({
       sections: [
         { title: 'Tendances', items: [{ id: '1', title: 'A' }, { title: 'no id' }] },
         { title: 'Vide', items: [] },
@@ -37,7 +37,7 @@ describe('source result parsing', () => {
 
   it('caps sections and items', () => {
     const items = Array.from({ length: 50 }, (_, index) => ({ id: String(index), title: 'T' }));
-    const sections = parseDiscover({
+    const { sections } = parseDiscover({
       sections: Array.from({ length: 10 }, (_, index) => ({ title: `S${index}`, items })),
     });
     expect(sections).toHaveLength(6);
@@ -74,5 +74,27 @@ describe('source result parsing', () => {
   it('treats a missing hasMore as the last page and rejects malformed pages', () => {
     expect(parseCatalogPage({ items: [] })).toEqual({ items: [], hasMore: false, sorts: [] });
     expect(() => parseCatalogPage({ sections: [] })).toThrow('Catalogue invalide.');
+  });
+
+  it('keeps the full-listing id of sections and the genres of a discover page', () => {
+    expect(
+      parseDiscover({
+        sections: [
+          { title: 'Populaires', items: [{ id: '1', title: 'A' }], more: 'popular' },
+          { title: 'Sans suite', items: [{ id: '2', title: 'B' }], more: '' },
+        ],
+        genres: [
+          { id: 'tag:action', title: 'Action' },
+          { id: 'tag:action', title: 'Doublon' },
+          { title: 'Sans id' },
+        ],
+      }),
+    ).toEqual({
+      sections: [
+        { title: 'Populaires', items: [expect.objectContaining({ id: '1' })], more: 'popular' },
+        { title: 'Sans suite', items: [expect.objectContaining({ id: '2' })] },
+      ],
+      genres: [{ id: 'tag:action', title: 'Action' }],
+    });
   });
 });

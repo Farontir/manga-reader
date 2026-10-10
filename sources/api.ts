@@ -6,7 +6,7 @@ import type {
   SourceChapter,
   SourceManga,
   SourcePage,
-  SourceSection,
+  SourceDiscover,
 } from './types';
 
 export async function searchSource(source: InstalledSource, query: string): Promise<SourceManga[]> {
@@ -28,18 +28,18 @@ function isMissingMethod(reason: unknown): boolean {
  */
 export async function getSourceDiscover(
   source: InstalledSource,
-): Promise<{ sections: SourceSection[]; supported: boolean }> {
+): Promise<SourceDiscover & { supported: boolean }> {
   try {
-    return { sections: parseDiscover(await callSource(source, 'discover')), supported: true };
+    return { ...parseDiscover(await callSource(source, 'discover')), supported: true };
   } catch (reason) {
     if (!isMissingMethod(reason)) throw reason;
   }
   try {
     const section = parseSection(await callSource(source, 'recommendations'));
     if (!section) throw new Error('Recommandations invalides.');
-    return { sections: section.items.length ? [section] : [], supported: true };
+    return { sections: section.items.length ? [section] : [], genres: [], supported: true };
   } catch (reason) {
-    if (isMissingMethod(reason)) return { sections: [], supported: false };
+    if (isMissingMethod(reason)) return { sections: [], genres: [], supported: false };
     throw reason;
   }
 }

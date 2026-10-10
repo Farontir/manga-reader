@@ -29,11 +29,20 @@ export type SourceManifest = {
   sha256: string;
 };
 
-/** A titled row of manga in a source's Discover page (trending, latest updates…). */
-export type SourceSection = { title: string; items: SourceManga[] };
+/**
+ * A titled row of manga in a source's Discover page (trending, latest updates…). `more`
+ * is the listing id that opens the whole category through `catalog(page, more)`.
+ */
+export type SourceSection = { title: string; items: SourceManga[]; more?: string };
 
 /** A way to order a source's full catalogue, offered by the source itself. */
 export type SourceSort = { id: string; title: string };
+
+/** A genre listed on a source's Discover page; `id` is a listing id for `catalog()`. */
+export type SourceGenre = { id: string; title: string };
+
+/** Everything a source's Discover page shows. */
+export type SourceDiscover = { sections: SourceSection[]; genres: SourceGenre[] };
 
 /** One page of a source's full catalogue. `sorts` lists the orders the source supports. */
 export type SourceCatalogPage = { items: SourceManga[]; hasMore: boolean; sorts: SourceSort[] };

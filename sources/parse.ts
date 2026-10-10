@@ -1,4 +1,11 @@
-import type { SourceCatalogPage, SourceManga, SourceSection, SourceSort } from './types';
+import type {
+  SourceCatalogPage,
+  SourceDiscover,
+  SourceGenre,
+  SourceManga,
+  SourceSection,
+  SourceSort,
+} from './types';
 
 // Source bundles are untrusted: everything they return is validated here.
 
@@ -44,23 +51,45 @@ export function parseSection(
 ): SourceSection | null {
   const data = record(value);
   if (!data || !Array.isArray(data.items)) return null;
+  const more = string(data.more)?.slice(0, 200);
   return {
     title: string(data.title)?.slice(0, 40) ?? fallbackTitle,
     items: data.items
       .map(parseManga)
       .filter((item): item is SourceManga => item !== null)
       .slice(0, MAX_ITEMS),
+    ...(more ? { more } : {}),
   };
 }
 
-/** `discover()` result: `{ sections: [...] }`, empty sections dropped. */
-export function parseDiscover(value: unknown): SourceSection[] {
-  const sections = record(value)?.sections;
-  if (!Array.isArray(sections)) throw new Error('Discover invalide.');
-  return sections
-    .map((section) => parseSection(section))
-    .filter((section): section is SourceSection => !!section && section.items.length > 0)
-    .slice(0, MAX_SECTIONS);
+/** `{ id, title }` pairs (sorts, genres), duplicates and incomplete ones dropped. */
+function parseOptions(value: unknown, max: number): SourceSort[] {
+  const options: SourceSort[] = [];
+  if (!Array.isArray(value)) return options;
+  for (const item of value) {
+    const option = record(item);
+    const id = string(option?.id)?.slice(0, 200);
+    const title = string(option?.title);
+    if (id && title && !options.some((known) => known.id === id)) {
+      options.push({ id, title: title.slice(0, 30) });
+    }
+  }
+  return options.slice(0, max);
+}
+
+const MAX_GENRES = 60;
+
+/** `discover()` result: `{ sections: [...], genres?: [...] }`, empty sections dropped. */
+export function parseDiscover(value: unknown): SourceDiscover {
+  const data = record(value);
+  if (!data || !Array.isArray(data.sections)) throw new Error('Discover invalide.');
+  return {
+    sections: data.sections
+      .map((section) => parseSection(section))
+      .filter((section): section is SourceSection => !!section && section.items.length > 0)
+      .slice(0, MAX_SECTIONS),
+    genres: parseOptions(data.genres, MAX_GENRES) as SourceGenre[],
+  };
 }
 
 const MAX_PAGE_ITEMS = 100;
@@ -70,23 +99,13 @@ const MAX_SORTS = 8;
 export function parseCatalogPage(value: unknown): SourceCatalogPage {
   const data = record(value);
   if (!data || !Array.isArray(data.items)) throw new Error('Catalogue invalide.');
-  const sorts: SourceSort[] = [];
-  if (Array.isArray(data.sorts)) {
-    for (const item of data.sorts) {
-      const sort = record(item);
-      const id = string(sort?.id);
-      const title = string(sort?.title);
-      if (id && title && !sorts.some((known) => known.id === id)) {
-        sorts.push({ id, title: title.slice(0, 30) });
-      }
-    }
-  }
+  const sorts = parseOptions(data.sorts, MAX_SORTS);
   return {
     items: data.items
       .map(parseManga)
       .filter((item): item is SourceManga => item !== null)
       .slice(0, MAX_PAGE_ITEMS),
     hasMore: data.hasMore === true,
-    sorts: sorts.slice(0, MAX_SORTS),
+    sorts,
   };
 }
