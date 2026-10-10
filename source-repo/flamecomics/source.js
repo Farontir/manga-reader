@@ -135,6 +135,26 @@ globalThis.source = {
     };
   },
 
+  async catalog(page, sort) {
+    const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
+    const size = 30;
+    const sorts = [
+      { id: 'popular', title: 'Populaires' },
+      { id: 'liked', title: 'Les plus appréciés' },
+      { id: 'az', title: 'A–Z' },
+    ];
+    const rows = [...(await catalogue())];
+    if (sort === 'liked') rows.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    else if (sort === 'az') rows.sort((a, b) => a.title.localeCompare(b.title));
+    else rows.sort((a, b) => (a.popularityRank ?? Infinity) - (b.popularityRank ?? Infinity));
+    const offset = (current - 1) * size;
+    return {
+      items: rows.slice(offset, offset + size).map(item),
+      hasMore: offset + size < rows.length,
+      sorts,
+    };
+  },
+
   async manga(id) {
     const number = seriesId(id);
     if (!number) throw new Error('Série Flame Comics inconnue.');

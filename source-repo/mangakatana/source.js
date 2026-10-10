@@ -91,6 +91,15 @@ function cardItems($, genre) {
   return items;
 }
 
+function hasNextPage($, page) {
+  return $('a[href]')
+    .toArray()
+    .some((link) => {
+      const url = new URL($(link).attr('href'), base);
+      return url.origin === base && url.pathname === `/page/${page + 1}`;
+    });
+}
+
 function assertSafe($) {
   const genres = $('div.genres a')
     .map((_, genre) => $(genre).text().trim())
@@ -118,6 +127,16 @@ globalThis.source = {
         { title: 'Dernières mises à jour', items: cardItems($).slice(0, 30) },
         { title: 'Action et aventure', items: cardItems($, ['action', 'adventure']).slice(0, 30) },
       ],
+    };
+  },
+
+  async catalog(page) {
+    const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
+    const $ = await document(current === 1 ? '/' : `/page/${current}`);
+    return {
+      items: cardItems($).slice(0, 30),
+      hasMore: hasNextPage($, current),
+      sorts: [{ id: 'updated', title: 'Mises à jour récentes' }],
     };
   },
 
