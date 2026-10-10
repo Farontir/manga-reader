@@ -1,6 +1,7 @@
 import { Directory, Paths } from 'expo-file-system';
 
 import { deleteLibraryEntry, listLocalChapters } from '../db';
+import { appFileUri } from './appFiles';
 
 export async function removeEntryAndFiles(entryId: string): Promise<void> {
   const local = await listLocalChapters(entryId);
@@ -8,8 +9,9 @@ export async function removeEntryAndFiles(entryId: string): Promise<void> {
   const localRoot = new Directory(Paths.document, 'local');
   const localPrefix = `${localRoot.uri.replace(/\/+$/, '')}/`;
   for (const chapter of local) {
-    const uri = chapter.pageUris[0];
-    if (!uri) continue;
+    const saved = chapter.pageUris[0];
+    if (!saved) continue;
+    const uri = appFileUri(saved);
     const separator = uri.lastIndexOf('/');
     const folderUri = uri.slice(0, separator);
     if (!folderUri.startsWith(localPrefix)) continue;

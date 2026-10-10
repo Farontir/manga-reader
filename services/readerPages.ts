@@ -11,6 +11,7 @@ import {
   setBindingPriority,
 } from '../db';
 import { getSourcePages } from '../sources/api';
+import { appFileUri } from './appFiles';
 
 export type ReaderPage = { uri: string; headers?: Record<string, string>; sourceId?: string };
 
@@ -22,12 +23,11 @@ export async function resolveChapterPages(
   excludedSourceIds: string[] = [],
 ): Promise<ReaderPage[]> {
   const local = await getLocalChapter(entryId, chapterNumber);
-  if (local?.pageUris.length) return local.pageUris.map((uri) => ({ uri }));
+  if (local?.pageUris.length) return local.pageUris.map((uri) => ({ uri: appFileUri(uri) }));
   const download = await getDownloadedChapter(entryId, chapterNumber);
   if (download?.pageUris.length) {
-    if (download.pageUris.every((uri) => new File(uri).exists)) {
-      return download.pageUris.map((uri) => ({ uri }));
-    }
+    const uris = download.pageUris.map(appFileUri);
+    if (uris.every((uri) => new File(uri).exists)) return uris.map((uri) => ({ uri }));
     await deleteDownloadedChapter(entryId, chapterNumber);
   }
   const [bindings, chapters] = await Promise.all([

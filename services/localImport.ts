@@ -12,6 +12,7 @@ import {
   setInLibrary,
   updateLibraryEntry,
 } from '../db';
+import { appFileUri } from './appFiles';
 import { extractCbzPages } from './cbzStream';
 import { resolveCbzMetadata, type CbzMetadata } from './cbzMetadata';
 import { isImagePath } from './pageFiles';
@@ -180,7 +181,7 @@ export async function importLocalChapter(input: ImportInput): Promise<LocalImpor
     if (entry && (!entry.coverUrl || entry.coverUrl === previous?.pageUris[0])) {
       await updateLibraryEntry(entryId, { coverUrl: pageUris[0] });
     }
-    const previousPage = previous?.pageUris[0];
+    const previousPage = previous?.pageUris[0] ? appFileUri(previous.pageUris[0]) : undefined;
     if (previousPage) {
       const previousFolder = previousPage.slice(0, previousPage.lastIndexOf('/'));
       const localRoot = new Directory(Paths.document, 'local');

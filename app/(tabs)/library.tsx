@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { countUnreadChapters, listLibraryEntries, type LibraryEntry } from '../../db';
-import { coverImageSource } from '../../services/coverImage';
+import { libraryCoverSource } from '../../services/appFiles';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
 import { refreshLibrary, useLibraryRefresh } from '../../ui/libraryRefresh';
@@ -120,7 +120,7 @@ export default function LibraryScreen() {
             <View>
               {item.coverUrl ? (
                 <Image
-                  source={coverImageSource(item.coverUrl)}
+                  source={libraryCoverSource(item.coverUrl)}
                   style={styles.cover}
                   contentFit="cover"
                   cachePolicy="disk"
