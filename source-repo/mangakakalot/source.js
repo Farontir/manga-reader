@@ -6,6 +6,18 @@ const base = 'https://www.mangakakalot.gg';
 // public HTML routes can return a Cloudflare challenge to native HTTP clients.
 const mirror = 'https://www.mangabats.com';
 const referer = `${base}/`;
+const genreNames = {
+  action: 'Action',
+  adventure: 'Aventure',
+  comedy: 'Comédie',
+  drama: 'Drame',
+  fantasy: 'Fantasy',
+  romance: 'Romance',
+  'sci-fi': 'Science-fiction',
+  'school-life': 'Vie scolaire',
+  'slice-of-life': 'Tranche de vie',
+  supernatural: 'Surnaturel',
+};
 
 // Keep stable path IDs so the primary and mirror can serve the same manga.
 function mangaPath(value) {
@@ -91,6 +103,19 @@ function cardItems($) {
     items.push({ id, title, coverUrl: coverUrl ?? undefined });
   });
   return items;
+}
+
+function genresFrom($) {
+  const available = new Set();
+  $('a[href*="/genre/"]').each((_, link) => {
+    const url = new URL($(link).attr('href'), mirror);
+    if ([base, mirror].includes(url.origin)) {
+      available.add(url.pathname.slice('/genre/'.length).replace(/\/$/, ''));
+    }
+  });
+  return Object.entries(genreNames)
+    .filter(([slug]) => available.has(slug))
+    .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
 }
 
 function hasNextPage($, path, page) {
@@ -179,12 +204,16 @@ globalThis.source = {
   },
 
   async discover() {
-    const [home, latest] = await Promise.all([document('/'), document('/manga-list/latest-manga')]);
+    const [popular, latest] = await Promise.all([
+      document('/manga-list/hot-manga'),
+      document('/manga-list/latest-manga'),
+    ]);
     return {
       sections: [
-        { title: 'Populaires', items: cardItems(home).slice(0, 30) },
-        { title: 'Dernières mises à jour', items: cardItems(latest).slice(0, 30) },
+        { title: 'Populaires', items: cardItems(popular).slice(0, 30), more: 'hot' },
+        { title: 'Dernières mises à jour', items: cardItems(latest).slice(0, 30), more: 'latest' },
       ],
+      genres: genresFrom(popular),
     };
   },
 
@@ -194,7 +223,16 @@ globalThis.source = {
       { id: 'hot', title: 'Populaires' },
       { id: 'latest', title: 'Dernières mises à jour' },
     ];
-    const path = sort === 'latest' ? '/manga-list/latest-manga' : '/manga-list/hot-manga';
+    const genre =
+      typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
+    if (genre && !Object.prototype.hasOwnProperty.call(genreNames, genre)) {
+      throw new Error('Genre MangaKakalot inconnu.');
+    }
+    const path = genre
+      ? `/genre/${genre}`
+      : sort === 'latest'
+        ? '/manga-list/latest-manga'
+        : '/manga-list/hot-manga';
     const $ = await document(`${path}${current > 1 ? `?page=${current}` : ''}`);
     return {
       items: cardItems($).slice(0, 30),
