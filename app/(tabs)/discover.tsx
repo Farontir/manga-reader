@@ -15,7 +15,7 @@ import {
 import { getSetting, listInstalledSources, setSetting, type InstalledSource } from '../../db';
 import { openSourceManga } from '../../services/librarySources';
 import { getSourceDiscover, searchSource } from '../../sources/api';
-import type { SourceManga, SourceSection } from '../../sources/types';
+import type { SourceGenre, SourceManga, SourceSection } from '../../sources/types';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { MangaCarousel, MangaCover } from '../../ui/components/MangaCarousel';
@@ -26,7 +26,7 @@ const SELECTED_SOURCE_KEY = 'discover.source';
 
 type DiscoverState =
   | { status: 'loading' }
-  | { status: 'ready'; sections: SourceSection[]; supported: boolean }
+  | { status: 'ready'; sections: SourceSection[]; genres: SourceGenre[]; supported: boolean }
   | { status: 'error'; message: string };
 
 function message(reason: unknown): string {
@@ -135,6 +135,15 @@ export default function DiscoverScreen() {
     } finally {
       setRefreshing(false);
     }
+  }
+
+  // Opens one category (a section's full list or a genre) as an endless grid.
+  function openListing(listing: string, title: string) {
+    if (!selected) return;
+    router.push({
+      pathname: '/catalog/[sourceId]',
+      params: { sourceId: selected.id, listing, title },
+    });
   }
 
   async function add(manga: SourceManga) {
@@ -249,24 +258,6 @@ export default function DiscoverScreen() {
                 </Pressable>
               ) : null}
             </View>
-            {selected && !results ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() =>
-                  router.push({
-                    pathname: '/catalog/[sourceId]',
-                    params: { sourceId: selected.id },
-                  })
-                }
-                style={[styles.catalogLink, { borderColor: theme.border }]}
-              >
-                <Ionicons name="albums-outline" size={20} color={theme.accent} />
-                <Text style={[styles.catalogText, { color: theme.foreground }]}>
-                  Parcourir tout le catalogue
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={theme.secondary} />
-              </Pressable>
-            ) : null}
             {error ? <Text style={[styles.note, { color: theme.danger }]}>{error}</Text> : null}
             {searching ? (
               <ActivityIndicator color={theme.accent} style={styles.spinner} />
@@ -304,22 +295,71 @@ export default function DiscoverScreen() {
                   <Text style={{ color: theme.accent, fontWeight: '700' }}>Réessayer</Text>
                 </Pressable>
               </View>
-            ) : page.sections.length ? (
-              page.sections.map((section, index) => (
-                <View key={`${index}:${section.title}`} style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: theme.foreground }]}>
-                    {section.title}
-                  </Text>
-                  <MangaCarousel
-                    items={section.items}
-                    variant={index === 0 ? 'featured' : 'regular'}
-                    busyId={adding}
-                    onPress={(manga) => {
-                      void add(manga);
-                    }}
-                  />
-                </View>
-              ))
+            ) : page.sections.length || page.genres.length ? (
+              <>
+                {page.genres.length ? (
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: theme.foreground }]}>Genres</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.genres}
+                    >
+                      {page.genres.map((genre) => (
+                        <Pressable
+                          key={genre.id}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Genre ${genre.title}`}
+                          onPress={() => openListing(genre.id, genre.title)}
+                          style={({ pressed }) => [
+                            styles.genre,
+                            { backgroundColor: theme.accent, opacity: pressed ? 0.8 : 1 },
+                          ]}
+                        >
+                          <View style={[styles.genreArrow, { backgroundColor: theme.background }]}>
+                            <Ionicons name="arrow-forward" size={16} color={theme.accent} />
+                          </View>
+                          <Text
+                            numberOfLines={2}
+                            style={[styles.genreTitle, { color: theme.accentText }]}
+                          >
+                            {genre.title}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
+                {page.sections.map((section, index) => (
+                  <View key={`${index}:${section.title}`} style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionTitle, { color: theme.foreground }]}>
+                        {section.title}
+                      </Text>
+                      {section.more ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Tout voir : ${section.title}`}
+                          hitSlop={8}
+                          onPress={() => openListing(section.more as string, section.title)}
+                          style={styles.seeAll}
+                        >
+                          <Text style={{ color: theme.accent, fontWeight: '700' }}>Tout voir</Text>
+                          <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    <MangaCarousel
+                      items={section.items}
+                      variant={index === 0 ? 'featured' : 'regular'}
+                      busyId={adding}
+                      onPress={(manga) => {
+                        void add(manga);
+                      }}
+                    />
+                  </View>
+                ))}
+              </>
             ) : (
               <Text style={[styles.note, { color: theme.secondary }]}>
                 {page.supported
@@ -349,17 +389,6 @@ const styles = StyleSheet.create({
   tab: { borderBottomColor: 'transparent', borderBottomWidth: 3, paddingVertical: 11 },
   tabLabel: { fontSize: 16, fontWeight: '700' },
   content: { gap: 26, paddingBottom: 36, paddingTop: 18 },
-  catalogLink: {
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: -8,
-    minHeight: 50,
-    paddingHorizontal: 20,
-  },
-  catalogText: { flex: 1, fontSize: 16, fontWeight: '700' },
   searchBox: {
     alignItems: 'center',
     borderRadius: 14,
@@ -375,7 +404,29 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, lineHeight: 21, paddingHorizontal: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingHorizontal: 20 },
   section: { gap: 12 },
-  sectionTitle: { fontSize: 21, fontWeight: '800', paddingHorizontal: 20 },
+  sectionTitle: { flex: 1, fontSize: 21, fontWeight: '800', paddingHorizontal: 20 },
+  sectionHeader: { alignItems: 'center', flexDirection: 'row', paddingRight: 16 },
+  seeAll: { alignItems: 'center', flexDirection: 'row', gap: 2, paddingVertical: 4 },
+  genres: { gap: 12, paddingHorizontal: 20 },
+  genre: {
+    borderRadius: 16,
+    height: 96,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    padding: 14,
+    width: 150,
+  },
+  genreArrow: {
+    alignItems: 'center',
+    borderBottomLeftRadius: 22,
+    height: 40,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 44,
+  },
+  genreTitle: { fontSize: 17, fontWeight: '800' },
   empty: { flex: 1, justifyContent: 'center' },
   emptyAction: { paddingHorizontal: 40 },
 });

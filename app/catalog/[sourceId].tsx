@@ -27,9 +27,16 @@ function message(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason);
 }
 
-/** A source's whole catalogue as an endless grid, in the orders the source offers. */
+/**
+ * A source's catalogue as an endless grid: one category (`listing`, from a Discover section
+ * or genre) or, without it, the whole catalogue in the orders the source offers.
+ */
 export default function CatalogScreen() {
-  const { sourceId } = useLocalSearchParams<{ sourceId: string }>();
+  const { sourceId, listing, title } = useLocalSearchParams<{
+    sourceId: string;
+    listing?: string;
+    title?: string;
+  }>();
   const router = useRouter();
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -84,12 +91,12 @@ export default function CatalogScreen() {
     void getInstalledSource(sourceId).then((found) => {
       if (!active) return;
       setSource(found);
-      if (found) void loadPage(found, 1, null);
+      if (found) void loadPage(found, 1, listing ?? null);
     });
     return () => {
       active = false;
     };
-  }, [sourceId, loadPage]);
+  }, [sourceId, listing, loadPage]);
 
   function chooseSort(id: string) {
     if (!source || id === (sort ?? sorts[0]?.id)) return;
@@ -99,8 +106,11 @@ export default function CatalogScreen() {
     void loadPage(source, 1, id);
   }
 
+  // A category keeps its listing; the whole catalogue follows the chosen sort.
+  const current = listing ?? sort;
+
   function loadMore() {
-    if (source && hasMore && !loading && !error) void loadPage(source, page + 1, sort);
+    if (source && hasMore && !loading && !error) void loadPage(source, page + 1, current);
   }
 
   async function open(manga: SourceManga) {
@@ -120,7 +130,7 @@ export default function CatalogScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <Stack.Screen options={{ title: source?.name ?? 'Catalogue' }} />
+      <Stack.Screen options={{ title: title ?? source?.name ?? 'Catalogue' }} />
       {unsupported ? (
         <EmptyState
           icon="albums-outline"
@@ -137,7 +147,7 @@ export default function CatalogScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.8}
           ListHeaderComponent={
-            sorts.length > 1 ? (
+            !listing && sorts.length > 1 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -198,7 +208,7 @@ export default function CatalogScreen() {
               {error ? (
                 <Pressable
                   onPress={() => {
-                    if (source) void loadPage(source, items.length ? page + 1 : 1, sort);
+                    if (source) void loadPage(source, items.length ? page + 1 : 1, current);
                   }}
                 >
                   <Text style={[styles.note, { color: theme.danger }]}>
