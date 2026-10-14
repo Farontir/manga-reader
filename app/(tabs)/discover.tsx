@@ -146,6 +146,11 @@ export default function DiscoverScreen() {
     });
   }
 
+  function openGenres() {
+    if (!selected) return;
+    router.push({ pathname: '/genres/[sourceId]', params: { sourceId: selected.id } });
+  }
+
   async function add(manga: SourceManga) {
     if (!selected) return;
     setAdding(manga.id);
@@ -299,13 +304,28 @@ export default function DiscoverScreen() {
               <>
                 {page.genres.length ? (
                   <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: theme.foreground }]}>Genres</Text>
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionTitle, { color: theme.foreground }]}>
+                        Catégories
+                      </Text>
+                      {page.genres.length > 12 ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Voir les ${page.genres.length} catégories`}
+                          onPress={openGenres}
+                          style={styles.seeAll}
+                        >
+                          <Text style={{ color: theme.accent, fontWeight: '700' }}>Tout voir</Text>
+                          <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+                        </Pressable>
+                      ) : null}
+                    </View>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.genres}
                     >
-                      {page.genres.map((genre) => (
+                      {page.genres.slice(0, 12).map((genre) => (
                         <Pressable
                           key={genre.id}
                           accessibilityRole="button"

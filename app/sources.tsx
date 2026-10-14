@@ -14,10 +14,11 @@ import {
 import { listInstalledSources, setSourceHealth, type InstalledSource } from '../db';
 import { matchSourceToLibrary } from '../services/librarySources';
 import { inspectSourceHealth } from '../sources/api';
-import { installSource, uninstallSource } from '../sources/install';
+import { installSource, previewSource, uninstallSource } from '../sources/install';
 import { ActionButton } from '../ui/components/ActionButton';
 import { EmptyState } from '../ui/components/EmptyState';
 import { Screen } from '../ui/components/Screen';
+import { confirmAdultSource } from '../ui/confirmAdultSource';
 import { useTheme } from '../ui/useTheme';
 
 export default function SourcesScreen() {
@@ -51,6 +52,14 @@ export default function SourcesScreen() {
 
   // Reinstalls from the repository, checks health and links library manga.
   async function reinstall(source: InstalledSource) {
+    const manifest = await previewSource(source.repoUrl);
+    if (
+      manifest.contentRating === 'adult' &&
+      source.contentRating !== 'adult' &&
+      !(await confirmAdultSource(manifest.name))
+    ) {
+      return null;
+    }
     const installed = await installSource(source.repoUrl);
     const status = await inspectSourceHealth(installed);
     await setSourceHealth(installed.id, status);
@@ -64,7 +73,12 @@ export default function SourcesScreen() {
       for (const [index, source] of sources.entries()) {
         setUpdatingAll(`${index + 1}/${sources.length}`);
         try {
-          const { installed } = await reinstall(source);
+          const result = await reinstall(source);
+          if (!result) {
+            lines.push(`${source.name} · ignorée`);
+            continue;
+          }
+          const { installed } = result;
           lines.push(
             installed.version === source.version
               ? `${installed.name} · v${installed.version}`
@@ -86,7 +100,9 @@ export default function SourcesScreen() {
   async function update(source: InstalledSource) {
     setUpdating(source.id);
     try {
-      const { installed, matched } = await reinstall(source);
+      const result = await reinstall(source);
+      if (!result) return;
+      const { installed, matched } = result;
       reload();
       Alert.alert('Source mise à jour', `${installed.name} · ${matched} manga(s) relié(s).`);
     } catch (reason) {
@@ -190,6 +206,7 @@ export default function SourcesScreen() {
               </Text>
               <Text style={{ color: theme.secondary, marginTop: 4 }}>
                 {item.language.toUpperCase()} · v{item.version}
+                {item.contentRating === 'adult' ? ' · Contenu adulte' : ''}
               </Text>
               <Text
                 style={{

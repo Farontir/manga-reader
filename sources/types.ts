@@ -25,7 +25,7 @@ export type SourceManifest = {
   name: string;
   version: string;
   language: string;
-  contentRating: 'safe';
+  contentRating: 'safe' | 'adult';
   allowedHosts: string[];
   bundle: string;
   sha256: string;

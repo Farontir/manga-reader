@@ -97,4 +97,14 @@ describe('source result parsing', () => {
       genres: [{ id: 'tag:action', title: 'Action' }],
     });
   });
+
+  it('keeps large source category lists including Adult', () => {
+    const genres = Array.from({ length: 284 }, (_, index) => ({
+      id: index === 1 ? 'genre:adult' : `genre:category-${index}`,
+      title: index === 1 ? 'Adult' : `Catégorie ${index}`,
+    }));
+    const parsed = parseDiscover({ sections: [], genres });
+    expect(parsed.genres).toHaveLength(284);
+    expect(parsed.genres[1]).toEqual({ id: 'genre:adult', title: 'Adult' });
+  });
 });

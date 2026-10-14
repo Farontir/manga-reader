@@ -88,7 +88,7 @@ function parseOptions(value: unknown, max: number): SourceSort[] {
   return options.slice(0, max);
 }
 
-const MAX_GENRES = 60;
+const MAX_GENRES = 500;
 
 /** `discover()` result: `{ sections: [...], genres?: [...] }`, empty sections dropped. */
 export function parseDiscover(value: unknown): SourceDiscover {

@@ -18,6 +18,7 @@ import { successFeedback } from '../ui/haptics';
 import { setSourceHealth } from '../db';
 import { ActionButton } from '../ui/components/ActionButton';
 import { Screen } from '../ui/components/Screen';
+import { confirmAdultSource } from '../ui/confirmAdultSource';
 import { useTheme } from '../ui/useTheme';
 
 export default function AddSourceScreen() {
@@ -47,6 +48,8 @@ export default function AddSourceScreen() {
   async function install() {
     setBusy(true);
     try {
+      const manifest = await previewSource(url);
+      if (manifest.contentRating === 'adult' && !(await confirmAdultSource(manifest.name))) return;
       const source = await installSource(url);
       const health = await inspectSourceHealth(source);
       await setSourceHealth(source.id, health);
@@ -85,6 +88,7 @@ export default function AddSourceScreen() {
                 </Text>
                 <Text style={{ color: theme.secondary, marginTop: 4 }}>
                   Version {preview.version} · {preview.language.toUpperCase()}
+                  {preview.contentRating === 'adult' ? ' · Contenu adulte' : ''}
                 </Text>
                 <Text style={{ color: theme.secondary, marginTop: 4 }}>
                   Domaines contactés : {preview.allowedHosts.join(', ')}

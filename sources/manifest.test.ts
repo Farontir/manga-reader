@@ -24,9 +24,10 @@ describe('source manifest', () => {
     );
   });
 
-  it('refuses unsafe manifests', () => {
+  it('accepts declared adult sources and rejects unknown ratings', () => {
     expect(parseManifest(valid).id).toBe(valid.id);
-    expect(() => parseManifest({ ...valid, contentRating: 'adult' })).toThrow();
+    expect(parseManifest({ ...valid, contentRating: 'adult' }).contentRating).toBe('adult');
+    expect(() => parseManifest({ ...valid, contentRating: 'unknown' })).toThrow();
     expect(() => parseManifest({ ...valid, allowedHosts: ['127.0.0.1'] })).toThrow();
     expect(() => resolveManifestUrl('http://example.org')).toThrow();
   });

@@ -30,7 +30,9 @@ export function parseManifest(value: unknown): SourceManifest {
   ) {
     throw new Error('Métadonnées de source invalides.');
   }
-  if (contentRating !== 'safe') throw new Error('Seules les sources tout public sont acceptées.');
+  if (contentRating !== 'safe' && contentRating !== 'adult') {
+    throw new Error('Classification de contenu invalide.');
+  }
   if (
     !Array.isArray(allowedHosts) ||
     !allowedHosts.length ||

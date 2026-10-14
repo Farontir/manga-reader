@@ -39,7 +39,7 @@ for (const name of directories) {
           <h2>${escape(manifest.name)}</h2>
           <span class="status" data-status>…</span>
         </div>
-        <p class="meta">Version ${escape(manifest.version)} · ${escape(manifest.language.toUpperCase())} · ${escape(manifest.allowedHosts.join(', '))}</p>
+        <p class="meta">Version ${escape(manifest.version)} · ${escape(manifest.language.toUpperCase())} · ${manifest.contentRating === 'adult' ? 'Contenu adulte · ' : ''}${escape(manifest.allowedHosts.join(', '))}</p>
         <p>${escape(description)}</p>
         <div class="actions">
           <a class="install" data-install href="#">Installer dans Kumo Reader</a>
