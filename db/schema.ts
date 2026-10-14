@@ -1,3 +1,5 @@
+import type { MangaDetails } from '../services/mangaDetails';
+
 export type LibraryEntry = {
   id: string;
   canonicalTitle: string;
@@ -10,6 +12,8 @@ export type LibraryEntry = {
   lastReadAt: string | null;
   /** Bookmarked: shown in the library. Entries opened from Discover/Search start false. */
   inLibrary: boolean;
+  /** Genres, authors, format… fetched from AniList or the source; null until fetched. */
+  details: MangaDetails | null;
 };
 
 export type SourceBinding = {

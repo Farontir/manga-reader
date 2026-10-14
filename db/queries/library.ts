@@ -15,6 +15,7 @@ type EntryRow = {
   added_at: string;
   last_read_at: string | null;
   in_library: number;
+  details_json: string | null;
 };
 type BindingRow = {
   id: string;
@@ -46,7 +47,18 @@ function entryFromRow(row: EntryRow): LibraryEntry {
     addedAt: row.added_at,
     lastReadAt: row.last_read_at,
     inLibrary: row.in_library !== 0,
+    details: parseDetails(row.details_json),
   };
+}
+
+function parseDetails(value: string | null): LibraryEntry['details'] {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? (parsed as LibraryEntry['details']) : null;
+  } catch {
+    return null;
+  }
 }
 
 function bindingFromRow(row: BindingRow): SourceBinding {
@@ -83,6 +95,7 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     addedAt: new Date().toISOString(),
     lastReadAt: null,
     inLibrary: input.inLibrary ?? true,
+    details: null,
   };
   if (!entry.canonicalTitle) throw new Error('Le titre est obligatoire.');
   await db.runAsync(
@@ -113,6 +126,21 @@ export async function listLibraryEntries(
      ORDER BY last_read_at DESC, added_at DESC`,
   );
   return rows.map(entryFromRow);
+}
+
+/** Stores fetched details, and the synopsis when one was found. */
+export async function setEntryDetails(
+  id: string,
+  details: NonNullable<LibraryEntry['details']>,
+  description: string | null,
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE library_entries SET details_json = ?, description = COALESCE(?, description) WHERE id = ?',
+    JSON.stringify(details),
+    description,
+    id,
+  );
 }
 
 export async function setInLibrary(id: string, inLibrary: boolean): Promise<void> {

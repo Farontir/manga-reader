@@ -5,6 +5,8 @@ export type SourceManga = {
   coverUrl?: string;
   description?: string;
   anilistId?: number;
+  genres?: string[];
+  authors?: string[];
 };
 
 export type SourceChapter = {

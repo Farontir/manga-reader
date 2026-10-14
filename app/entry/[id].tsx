@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -32,6 +32,8 @@ import {
   type ChapterItem,
 } from '../../services/chapterList';
 import { refreshEntryChapters } from '../../services/librarySources';
+import { refreshEntryDetails } from '../../services/entryDetails';
+import { detailsLine } from '../../services/mangaDetails';
 import { resumeTarget } from '../../services/resume';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
@@ -56,6 +58,8 @@ export default function EntryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [ascending, setAscending] = useState(false);
   const [chapterCounts, setChapterCounts] = useState<Record<string, number>>({});
+  const [synopsisOpen, setSynopsisOpen] = useState(false);
+  const detailsChecked = useRef(false);
 
   const reload = useCallback(() => {
     if (!id) return;
@@ -98,6 +102,17 @@ export default function EntryScreen() {
     );
   }, [id]);
   useFocusEffect(reload);
+
+  // Synopsis, genres… are fetched once per visit when missing or older than a week.
+  useEffect(() => {
+    if (!entry || detailsChecked.current) return;
+    detailsChecked.current = true;
+    void refreshEntryDetails(entry)
+      .then((changed) => {
+        if (changed) reload();
+      })
+      .catch(() => undefined);
+  }, [entry, reload]);
 
   async function refresh() {
     setRefreshing(true);
@@ -259,10 +274,54 @@ export default function EntryScreen() {
                 </Text>
               </View>
             </View>
-            {entry.description ? (
-              <Text style={[styles.description, { color: theme.secondary }]}>
-                {entry.description}
+            {detailsLine(entry.details, entry.status) ? (
+              <Text style={[styles.detailsLine, { color: theme.foreground }]}>
+                {detailsLine(entry.details, entry.status)}
               </Text>
+            ) : null}
+            {entry.details?.authors.length ? (
+              <Text style={[styles.authors, { color: theme.secondary }]}>
+                Par {entry.details.authors.join(', ')}
+              </Text>
+            ) : null}
+            {entry.details?.genres.length ? (
+              <View style={styles.genres}>
+                {entry.details.genres.map((genre) => (
+                  <View
+                    key={genre}
+                    style={[
+                      styles.genre,
+                      { backgroundColor: theme.surface, borderColor: theme.border },
+                    ]}
+                  >
+                    <Text style={{ color: theme.foreground, fontSize: 12, fontWeight: '700' }}>
+                      {genre}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {entry.description ? (
+              <View style={styles.synopsis}>
+                <Text style={[styles.sectionSmall, { color: theme.foreground }]}>Synopsis</Text>
+                <Text
+                  numberOfLines={synopsisOpen ? undefined : 4}
+                  style={[styles.description, { color: theme.secondary }]}
+                >
+                  {entry.description}
+                </Text>
+                {entry.description.length > 180 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setSynopsisOpen((open) => !open)}
+                  >
+                    <Text style={{ color: theme.accent, fontWeight: '700', marginTop: 4 }}>
+                      {synopsisOpen ? 'Moins' : 'Plus'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
             {resume && resume.kind !== 'upToDate' ? (
               <View style={styles.resume}>
@@ -449,7 +508,13 @@ const styles = StyleSheet.create({
   cover: { borderRadius: 12, height: 150, width: 106 },
   title: { fontSize: 26, fontWeight: '800', lineHeight: 32 },
   meta: { fontSize: 13, marginTop: 9 },
-  description: { fontSize: 14, lineHeight: 21, marginBottom: 20 },
+  description: { fontSize: 14, lineHeight: 21 },
+  detailsLine: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
+  authors: { fontSize: 13, marginBottom: 12 },
+  genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
+  genre: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  synopsis: { marginBottom: 20 },
+  sectionSmall: { fontSize: 16, fontWeight: '800', marginBottom: 6 },
   section: { fontSize: 20, fontWeight: '800', marginBottom: 12, marginTop: 32 },
   sectionRow: {
     alignItems: 'flex-end',

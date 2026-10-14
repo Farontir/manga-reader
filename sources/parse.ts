@@ -25,6 +25,15 @@ function optionalStrings(value: unknown): string[] | undefined {
     : undefined;
 }
 
+/** `{ [key]: [...] }` with up to 20 short strings, or nothing when absent. */
+function optionalList(key: 'genres' | 'authors', value: unknown) {
+  const list = optionalStrings(value)
+    ?.map((item) => item.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 20);
+  return list?.length ? { [key]: list } : {};
+}
+
 export function parseManga(value: unknown): SourceManga | null {
   const data = record(value);
   if (!data) return null;
@@ -38,6 +47,8 @@ export function parseManga(value: unknown): SourceManga | null {
     coverUrl: string(data.coverUrl),
     description: string(data.description),
     anilistId: typeof data.anilistId === 'number' ? data.anilistId : undefined,
+    ...optionalList('genres', data.genres),
+    ...optionalList('authors', data.authors),
   };
 }
 

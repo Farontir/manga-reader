@@ -1,3 +1,5 @@
+import { cleanDescription, type MangaDetails } from './mangaDetails';
+
 export type AniListManga = {
   id: number;
   title: string;
@@ -48,6 +50,62 @@ async function request(body: object): Promise<Media[]> {
   const json = (await response.json()) as Response;
   if (json.errors?.length) throw new Error(json.errors[0]?.message ?? 'Erreur AniList.');
   return json.data?.Page?.media ?? [];
+}
+
+const detailsQuery = `query ($id: Int) {
+  Media(id: $id, type: MANGA) {
+    description(asHtml: false) genres status format countryOfOrigin chapters averageScore
+    startDate { year }
+    staff(perPage: 6, sort: RELEVANCE) { edges { role node { name { full } } } }
+  }
+}`;
+
+type DetailsMedia = {
+  description: string | null;
+  genres: string[] | null;
+  status: string | null;
+  format: string | null;
+  countryOfOrigin: string | null;
+  chapters: number | null;
+  averageScore: number | null;
+  startDate: { year: number | null } | null;
+  staff: { edges: { role: string; node: { name: { full: string | null } } }[] } | null;
+};
+
+/** Synopsis and details of one AniList manga (authors = story and art staff). */
+export async function fetchAniListDetails(id: number): Promise<{
+  description: string | null;
+  details: Omit<MangaDetails, 'fetchedAt'>;
+}> {
+  const wait = Math.max(0, 700 - (Date.now() - lastRequest));
+  if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastRequest = Date.now();
+  const response = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ query: detailsQuery, variables: { id } }),
+  });
+  if (!response.ok) throw new Error(`AniList indisponible (HTTP ${response.status}).`);
+  const json = (await response.json()) as { data?: { Media?: DetailsMedia } };
+  const media = json.data?.Media;
+  if (!media) throw new Error('Manga introuvable sur AniList.');
+  const authors = (media.staff?.edges ?? [])
+    .filter((edge) => /story|art|original/i.test(edge.role))
+    .map((edge) => edge.node.name.full)
+    .filter((name, index, all): name is string => !!name && all.indexOf(name) === index);
+  return {
+    description: cleanDescription(media.description),
+    details: {
+      genres: media.genres ?? [],
+      authors,
+      status: media.status,
+      format: media.format,
+      country: media.countryOfOrigin,
+      year: media.startDate?.year ?? null,
+      score: media.averageScore,
+      chapters: media.chapters,
+    },
+  };
 }
 
 /** Ordered titles (see pickTitles) for up to 50 AniList ids. */
