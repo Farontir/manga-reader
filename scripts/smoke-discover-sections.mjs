@@ -8,7 +8,21 @@ const hosts = {
   mangakakalot: ['www.mangakakalot.gg', 'www.mangabats.com'],
   flamecomics: ['flamecomics.xyz'],
   mangakatana: ['mangakatana.com'],
+  mangadex: ['api.mangadex.org'],
+  'komga-demo': ['demo.komga.org'],
 };
+
+const minimumGenres = {
+  asurascans: 30,
+  mangabats: 200,
+  mangakakalot: 200,
+  flamecomics: 40,
+  mangakatana: 40,
+  mangadex: 70,
+  peppercarrot: 1,
+  'komga-demo': 1,
+};
+const adultSources = new Set(['mangabats', 'mangakakalot', 'mangakatana', 'mangadex']);
 
 for (const [name, allowed] of Object.entries(hosts)) {
   const bundle = await readFile(
@@ -17,6 +31,8 @@ for (const [name, allowed] of Object.entries(hosts)) {
   );
   const sandbox = {
     URL,
+    URLSearchParams,
+    btoa,
     encodeURIComponent,
     app: {
       fetch: async (url, options) => {
@@ -51,8 +67,8 @@ for (const [name, allowed] of Object.entries(hosts)) {
   for (const genre of discovery.genres ?? []) {
     if (!genre.id || !genre.title) throw new Error(`${name}: genre invalide`);
   }
-  if (name !== 'peppercarrot' && !discovery.genres?.length) {
-    throw new Error(`${name}: aucun genre navigable`);
+  if ((discovery.genres?.length ?? 0) < minimumGenres[name]) {
+    throw new Error(`${name}: catégories incomplètes (${discovery.genres?.length ?? 0})`);
   }
   if (discovery.genres?.length) {
     const genre = discovery.genres[0];
@@ -62,6 +78,18 @@ for (const [name, allowed] of Object.entries(hosts)) {
       const second = await source.catalog(2, genre.id);
       if (!second.items?.length || second.items[0].id === listing.items[0].id) {
         throw new Error(`${name}: pagination du genre « ${genre.title} » invalide`);
+      }
+    }
+  }
+  if (adultSources.has(name)) {
+    const adult = discovery.genres.find((genre) => genre.title === 'Adult');
+    if (!adult) throw new Error(`${name}: catégorie Adult absente`);
+    const first = await source.catalog(1, adult.id);
+    if (!first.items?.length) throw new Error(`${name}: catégorie Adult vide`);
+    if (first.hasMore) {
+      const second = await source.catalog(2, adult.id);
+      if (!second.items?.length || first.items[0].id === second.items[0].id) {
+        throw new Error(`${name}: pagination Adult invalide`);
       }
     }
   }

@@ -26,8 +26,9 @@ const result = (await source.search('Eminence in Shadow')).find(
   (item) => item.title === 'The Eminence in Shadow',
 );
 if (!result?.coverUrl) throw new Error('La recherche ou la couverture est absente.');
-if ((await source.search('Marriage Gray')).some((item) => item.title === 'Marriage Gray')) {
-  throw new Error('Un titre étiqueté Ecchi ne doit pas apparaître dans cette source sûre.');
+const adult = (await source.discover()).genres.find((genre) => genre.title === 'Adult');
+if (!adult || !(await source.catalog(1, adult.id)).items.length) {
+  throw new Error('La catégorie Adult doit ouvrir des titres MangaKatana.');
 }
 const manga = await source.manga(result.id);
 if (manga.title !== result.title || !manga.description) throw new Error('Fiche manga invalide.');
