@@ -31,6 +31,8 @@ async function series() {
     title: 'Pepper&Carrot',
     altTitles: ['Pepper and Carrot'],
     description,
+    genres: ['Fantasy'],
+    authors: ['David Revoy'],
     coverUrl: cover ? new URL(cover, base).toString() : undefined,
   };
 }

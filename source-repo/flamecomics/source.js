@@ -199,7 +199,26 @@ globalThis.source = {
       .text()
       .trim()
       .slice(0, 4000);
-    return { ...item(row), description: description || undefined };
+    const genres = [
+      ...new Set(
+        (row.tags ?? row.categories ?? [])
+          .filter((tag) => typeof tag === 'string' && !adultTags.has(tag.toLowerCase()))
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, 30);
+    const authors = [
+      ...new Set(
+        [
+          ...(Array.isArray(row.author) ? row.author : []),
+          ...(Array.isArray(row.artist) ? row.artist : []),
+        ]
+          .filter((name) => typeof name === 'string')
+          .map((name) => name.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, 20);
+    return { ...item(row), description: description || undefined, genres, authors };
   },
 
   async chapters(id) {

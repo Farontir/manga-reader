@@ -132,6 +132,13 @@ function assertSafe($) {
   if (hasAdultGenre(genres)) throw new Error('Ce titre n’est pas disponible dans la source sûre.');
 }
 
+function detailValue($, label) {
+  return $('.d-cell-small.label')
+    .filter((_, element) => $(element).text().trim() === label)
+    .first()
+    .next('.value');
+}
+
 globalThis.source = {
   async search(query) {
     const term = String(query ?? '').trim();
@@ -181,11 +188,32 @@ globalThis.source = {
     const title = $('h1.heading').first().text().trim();
     if (!title) throw new Error('Fiche MangaKatana indisponible.');
     const description = $('.summary p').first().text().trim().slice(0, 4000);
+    const genres = [
+      ...new Set(
+        detailValue($, 'Genres:')
+          .find('.genres a')
+          .map((_, link) => $(link).text().trim())
+          .get(),
+      ),
+    ]
+      .filter(Boolean)
+      .slice(0, 30);
+    const authors = [
+      ...new Set(
+        detailValue($, 'Author(s) / Artist(s):')
+          .text()
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, 20);
     return {
       id: path,
       title,
       coverUrl: coverUrl($('img[alt="[Cover]"]').first().attr('src')),
       description: description || undefined,
+      genres,
+      authors,
     };
   },
 

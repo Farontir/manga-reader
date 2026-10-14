@@ -21,10 +21,12 @@
   }
 
   function toManga(series) {
+    const genres = (series.metadata && series.metadata.genres) || [];
     return {
       id: series.id,
       title: (series.metadata && series.metadata.title) || series.name || series.id,
       description: (series.metadata && series.metadata.summary) || undefined,
+      genres: genres.filter((genre) => typeof genre === 'string' && genre.trim()).slice(0, 30),
     };
   }
 
@@ -80,7 +82,18 @@
     },
     async manga(id) {
       const json = await request('/api/v1/series/' + encodeURIComponent(id));
-      return toManga(json);
+      let authors = [];
+      try {
+        const books = await request('/api/v1/series/' + encodeURIComponent(id) + '/books?size=1');
+        const credits = (books.content && books.content[0] && books.content[0].metadata.authors) || [];
+        authors = credits
+          .map((credit) => credit && credit.name)
+          .filter((name, index, all) => typeof name === 'string' && name.trim() && all.indexOf(name) === index)
+          .slice(0, 20);
+      } catch {
+        // A missing book list must not hide the series details.
+      }
+      return { ...toManga(json), authors };
     },
 
     async chapters(id) {
