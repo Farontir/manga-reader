@@ -80,6 +80,18 @@ function browseGenres($) {
   }
 }
 
+function creditedName($, label) {
+  return $('span')
+    .filter((_, element) => $(element).text().trim() === label)
+    .first()
+    .parent()
+    .parent()
+    .find('a')
+    .first()
+    .text()
+    .trim();
+}
+
 globalThis.source = {
   async search(query) {
     const term = String(query ?? '').trim();
@@ -149,12 +161,22 @@ globalThis.source = {
       .filter(Boolean)
       .slice(0, 30);
     const description = $('#description-text').text().trim();
+    const genres = $('a[href^="/browse?genres="]')
+      .map((_, link) => $(link).text().trim())
+      .get()
+      .filter(Boolean)
+      .slice(0, 30);
+    const authors = [
+      ...new Set([creditedName($, 'Author'), creditedName($, 'Artist')].filter(Boolean)),
+    ];
     return {
       id: path,
       title,
       altTitles,
       coverUrl: coverUrl ?? undefined,
       description: description || undefined,
+      genres,
+      authors,
     };
   },
 

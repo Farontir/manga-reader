@@ -118,6 +118,29 @@ function genresFrom($) {
     .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
 }
 
+function mangaCredits($) {
+  const author = $('p')
+    .filter((_, element) => /^Author\(s\):?$/i.test($(element).text().trim()))
+    .first()
+    .parent()
+    .clone()
+    .children('p')
+    .remove()
+    .end()
+    .text()
+    .trim();
+  const genres = [
+    ...new Set(
+      $('.genre-list a')
+        .map((_, link) => $(link).text().trim())
+        .get(),
+    ),
+  ]
+    .filter(Boolean)
+    .slice(0, 30);
+  return { genres, authors: author ? [author] : [] };
+}
+
 function hasNextPage($, path, page) {
   return $('a[href]')
     .toArray()
@@ -254,6 +277,7 @@ globalThis.source = {
       title,
       coverUrl: coverUrl ?? undefined,
       description: description || undefined,
+      ...mangaCredits($),
     };
   },
 

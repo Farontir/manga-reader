@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.mangabats.en",
   "name": "MangaBats",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "language": "en",
   "contentRating": "safe",
   "allowedHosts": ["www.mangabats.com"],
   "bundle": "./bundle.js",
-  "sha256": "639146a1a53ab23af1ab6b452191e2c0b052ddc36942adae8431140d06f136ed"
+  "sha256": "6f8a38f783e67ec977797869afca363d6699ed7612fc3afa11abc77eaf8a2d2f"
 }
