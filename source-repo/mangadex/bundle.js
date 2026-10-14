@@ -34,6 +34,21 @@
     return english ? english.en : localized(title);
   }
 
+  // Genre names, and author/artist names when the request included those relationships.
+  function genresOf(attributes) {
+    return (attributes.tags || [])
+      .filter((tag) => tag.attributes && tag.attributes.group === 'genre')
+      .map((tag) => localized(tag.attributes.name))
+      .filter(Boolean);
+  }
+
+  function authorsOf(manga) {
+    return (manga.relationships || [])
+      .filter((item) => (item.type === 'author' || item.type === 'artist') && item.attributes)
+      .map((item) => item.attributes.name)
+      .filter((name, index, all) => name && all.indexOf(name) === index);
+  }
+
   function toManga(manga) {
     const attributes = manga.attributes || {};
     const title = displayTitle(attributes);
@@ -45,6 +60,8 @@
     return {
       id: manga.id,
       title: title || manga.id,
+      genres: genresOf(attributes),
+      authors: authorsOf(manga),
       altTitles: altTitles,
       coverUrl: coverOf(manga),
       description: localized(attributes.description),
@@ -184,7 +201,11 @@
     },
 
     async manga(id) {
-      const json = await request('/manga/' + encodeURIComponent(id) + '?includes[]=cover_art');
+      const json = await request(
+        '/manga/' +
+          encodeURIComponent(id) +
+          '?includes[]=cover_art&includes[]=author&includes[]=artist',
+      );
       return toManga(json.data);
     },
 
