@@ -26,6 +26,7 @@ export default function SourcesScreen() {
   const [sources, setSources] = useState<InstalledSource[]>([]);
   const [checking, setChecking] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [updatingAll, setUpdatingAll] = useState<string | null>(null);
   const reload = useCallback(() => {
     void listInstalledSources().then(setSources);
   }, []);
@@ -48,13 +49,44 @@ export default function SourcesScreen() {
     }
   }
 
+  // Reinstalls from the repository, checks health and links library manga.
+  async function reinstall(source: InstalledSource) {
+    const installed = await installSource(source.repoUrl);
+    const status = await inspectSourceHealth(installed);
+    await setSourceHealth(installed.id, status);
+    const matched = status === 'down' ? 0 : await matchSourceToLibrary(installed);
+    return { installed, matched };
+  }
+
+  async function updateAll() {
+    const lines: string[] = [];
+    try {
+      for (const [index, source] of sources.entries()) {
+        setUpdatingAll(`${index + 1}/${sources.length}`);
+        try {
+          const { installed } = await reinstall(source);
+          lines.push(
+            installed.version === source.version
+              ? `${installed.name} · v${installed.version}`
+              : `${installed.name} · v${source.version} → v${installed.version}`,
+          );
+        } catch (reason) {
+          lines.push(
+            `${source.name} · échec : ${reason instanceof Error ? reason.message : String(reason)}`,
+          );
+        }
+      }
+    } finally {
+      setUpdatingAll(null);
+      reload();
+    }
+    Alert.alert('Sources mises à jour', lines.join('\n'));
+  }
+
   async function update(source: InstalledSource) {
     setUpdating(source.id);
     try {
-      const installed = await installSource(source.repoUrl);
-      const status = await inspectSourceHealth(installed);
-      await setSourceHealth(installed.id, status);
-      const matched = status === 'down' ? 0 : await matchSourceToLibrary(installed);
+      const { installed, matched } = await reinstall(source);
       reload();
       Alert.alert('Source mise à jour', `${installed.name} · ${matched} manga(s) relié(s).`);
     } catch (reason) {
@@ -66,6 +98,8 @@ export default function SourcesScreen() {
       setUpdating(null);
     }
   }
+
+  const busy = checking || updating !== null || updatingAll !== null;
 
   function confirmRemove(source: InstalledSource) {
     Alert.alert(
@@ -103,20 +137,38 @@ export default function SourcesScreen() {
           />
         </View>
         {sources.length ? (
-          <Pressable
-            onPress={() => {
-              void checkAll();
-            }}
-            disabled={checking}
-            style={styles.check}
-          >
-            {checking ? (
-              <ActivityIndicator color={theme.accent} />
-            ) : (
-              <Ionicons name="pulse-outline" size={18} color={theme.accent} />
-            )}
-            <Text style={{ color: theme.accent, fontWeight: '700' }}>Vérifier les sources</Text>
-          </Pressable>
+          <View style={styles.tools}>
+            <Pressable
+              onPress={() => {
+                void updateAll();
+              }}
+              disabled={busy}
+              style={styles.check}
+            >
+              {updatingAll ? (
+                <ActivityIndicator color={theme.accent} />
+              ) : (
+                <Ionicons name="cloud-download-outline" size={18} color={theme.accent} />
+              )}
+              <Text style={{ color: theme.accent, fontWeight: '700' }}>
+                {updatingAll ? `Mise à jour… ${updatingAll}` : 'Tout mettre à jour'}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                void checkAll();
+              }}
+              disabled={busy}
+              style={styles.check}
+            >
+              {checking ? (
+                <ActivityIndicator color={theme.accent} />
+              ) : (
+                <Ionicons name="pulse-outline" size={18} color={theme.accent} />
+              )}
+              <Text style={{ color: theme.accent, fontWeight: '700' }}>Vérifier les sources</Text>
+            </Pressable>
+          </View>
         ) : null}
       </View>
       <FlatList
@@ -164,7 +216,7 @@ export default function SourcesScreen() {
                 onPress={() => {
                   void update(item);
                 }}
-                disabled={updating !== null}
+                disabled={busy}
                 style={{ paddingTop: 12, paddingBottom: 3 }}
               >
                 <Text style={{ color: theme.accent, fontWeight: '700' }}>
@@ -189,7 +241,8 @@ export default function SourcesScreen() {
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 16 },
   subtitle: { fontSize: 14, lineHeight: 21 },
-  check: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 17, padding: 5 },
+  tools: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, marginTop: 17 },
+  check: { alignItems: 'center', flexDirection: 'row', gap: 7, padding: 5 },
   list: { gap: 10, padding: 20 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
   row: {
