@@ -173,7 +173,8 @@
       params.set('title', query);
       params.set('limit', '20');
       params.append('includes[]', 'cover_art');
-      params.append('contentRating[]', 'safe');
+      // A search names a title: find it whatever its rating (the source is marked adult).
+      for (const rating of allRatings) params.append('contentRating[]', rating);
       for (const id of excludedTagIds) params.append('excludedTags[]', id);
       const json = await request('/manga?' + params.toString());
       return (json.data || []).map(toManga);
@@ -258,6 +259,8 @@
         params.set('offset', String(offset));
         params.append('translatedLanguage[]', 'en');
         params.set('order[chapter]', 'desc');
+        // The feed hides pornographic chapters unless every rating is requested.
+        for (const rating of allRatings) params.append('contentRating[]', rating);
         const json = await request(
           '/manga/' + encodeURIComponent(id) + '/feed?' + params.toString(),
         );
