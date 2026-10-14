@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { initialMigration } from '../migrations/001_initial';
 import { libraryBookmarkMigration } from '../migrations/007_library_bookmark';
+import { preferredSourcesMigration } from '../migrations/008_preferred_sources';
 import { UNREAD_COUNTS_SQL } from './unreadSql';
 
 describe('unread chapter counts', () => {
@@ -19,6 +20,7 @@ describe('unread chapter counts', () => {
       } as unknown as SQLiteDatabase;
       await initialMigration(db);
       await libraryBookmarkMigration(db);
+      await preferredSourcesMigration(db);
       sqlite.exec(`
         INSERT INTO library_entries(id, canonical_title, added_at, in_library) VALUES
           ('a', 'Suivi', '2026-10-01', 1),
@@ -39,6 +41,36 @@ describe('unread chapter counts', () => {
           ('done', 1, 9, '2026-10-02', 1);
       `);
       expect(sqlite.prepare(UNREAD_COUNTS_SQL).all()).toEqual([{ id: 'a', unread: 2 }]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('counts only preferred sources when some are preferred', async () => {
+    const sqlite = new DatabaseSync(':memory:');
+    try {
+      const db = {
+        execAsync: async (sql: string) => {
+          sqlite.exec(sql);
+        },
+        getAllAsync: async (sql: string) => sqlite.prepare(sql).all(),
+      } as unknown as SQLiteDatabase;
+      await initialMigration(db);
+      await libraryBookmarkMigration(db);
+      await preferredSourcesMigration(db);
+      sqlite.exec(`
+        INSERT INTO library_entries(id, canonical_title, added_at, in_library)
+          VALUES ('m', 'Manga', '2026-10-01', 1);
+        INSERT INTO source_bindings(id, library_entry_id, source_id, manga_id, preferred) VALUES
+          ('b1', 'm', 'fast', 'f', 1),
+          ('b2', 'm', 'slow', 's', 0);
+        INSERT INTO known_chapters(library_entry_id, source_id, chapter_id, chapter_number, fetched_at) VALUES
+          ('m', 'fast', 'f1', 1, '2026-10-01'),
+          ('m', 'fast', 'f2', 2, '2026-10-01'),
+          ('m', 'slow', 's1', 1, '2026-10-01'),
+          ('m', 'slow', 's9', 9, '2026-10-01');
+      `);
+      expect(sqlite.prepare(UNREAD_COUNTS_SQL).all()).toEqual([{ id: 'm', unread: 2 }]);
     } finally {
       sqlite.close();
     }

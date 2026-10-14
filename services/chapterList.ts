@@ -5,7 +5,7 @@ type RemoteChapterInput = {
   sourceId: string;
   chapterId: string;
 };
-type BindingInput = { sourceId: string; priority: number };
+type BindingInput = { sourceId: string; priority: number; preferred?: boolean };
 
 export type ChapterItem = {
   number: number;
@@ -16,8 +16,9 @@ export type ChapterItem = {
 };
 
 /**
- * One entry per chapter number, newest first. Local files win over sources; among sources
- * the highest-priority binding provides the chapter.
+ * One entry per chapter number, newest first. Local files win over sources. When some
+ * sources are preferred, only their chapters are listed; among the listed sources the
+ * highest-priority binding provides each chapter.
  */
 export function mergeChapters(
   local: LocalChapterInput[],
@@ -30,7 +31,13 @@ export function mergeChapters(
     local: true,
   }));
   const priorities = new Map(bindings.map((binding) => [binding.sourceId, binding.priority]));
-  for (const chapter of [...remote].sort(
+  const preferred = new Set(
+    bindings.filter((binding) => binding.preferred).map((binding) => binding.sourceId),
+  );
+  const listed = preferred.size
+    ? remote.filter((chapter) => preferred.has(chapter.sourceId))
+    : remote;
+  for (const chapter of [...listed].sort(
     (a, b) => (priorities.get(b.sourceId) ?? 0) - (priorities.get(a.sourceId) ?? 0),
   )) {
     if (!items.some((item) => item.number === chapter.number)) {

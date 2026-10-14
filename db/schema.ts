@@ -18,6 +18,8 @@ export type SourceBinding = {
   sourceId: string;
   mangaId: string;
   priority: number;
+  /** Chosen by the user; with any preferred source, only those sources' chapters show. */
+  preferred: boolean;
   lastSeenOk: string | null;
   lastError: string | null;
 };

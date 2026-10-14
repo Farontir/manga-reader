@@ -14,7 +14,8 @@ import {
   listKnownChapters,
   listLocalChapters,
   listProgress,
-  setBindingPriority,
+  setBindingPreferred,
+  countChaptersBySource,
   setInLibrary,
   setSetting,
   type InstalledSource,
@@ -54,6 +55,7 @@ export default function EntryScreen() {
   const [downloadProgress, setDownloadProgress] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [ascending, setAscending] = useState(false);
+  const [chapterCounts, setChapterCounts] = useState<Record<string, number>>({});
 
   const reload = useCallback(() => {
     if (!id) return;
@@ -67,6 +69,7 @@ export default function EntryScreen() {
       listDownloadedChapters(id),
       listDownloadJobs(id),
       getSetting(CHAPTER_ORDER_KEY),
+      countChaptersBySource(id),
     ]).then(
       ([
         nextEntry,
@@ -78,8 +81,10 @@ export default function EntryScreen() {
         downloads,
         jobs,
         order,
+        counts,
       ]) => {
         setEntry(nextEntry);
+        setChapterCounts(counts);
         setAscending(order === 'asc');
         setBindings(nextBindings);
         setChapters(mergeChapters(local, remote, nextBindings));
@@ -133,8 +138,10 @@ export default function EntryScreen() {
     return item ? labelOf(item) : `Chapitre ${number}`;
   }
 
-  async function preferSource(binding: SourceBinding) {
-    await setBindingPriority(binding.id, Math.max(...bindings.map((item) => item.priority), 0) + 1);
+  // Several sources can be preferred; with any, only their chapters are listed.
+  async function togglePreferred(binding: SourceBinding) {
+    selectionFeedback();
+    await setBindingPreferred(binding.id, !binding.preferred);
     reload();
   }
 
@@ -277,39 +284,64 @@ export default function EntryScreen() {
             {bindings.length ? (
               <View style={{ marginTop: 24 }}>
                 <Text style={[styles.section, { color: theme.foreground, marginTop: 0 }]}>
-                  Sources liées
+                  Sources
+                </Text>
+                <Text style={[styles.sourcesHint, { color: theme.secondary }]}>
+                  {bindings.some((binding) => binding.preferred)
+                    ? 'Seuls les chapitres des sources préférées sont affichés.'
+                    : 'Touche une ou plusieurs sources pour n’afficher que leurs chapitres.'}
                 </Text>
                 {bindings.map((binding) => {
                   const installed = sources.find((source) => source.id === binding.sourceId);
+                  const count = chapterCounts[binding.sourceId] ?? 0;
                   return (
                     <Pressable
                       key={binding.id}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: binding.preferred }}
                       onPress={() => {
-                        void preferSource(binding);
+                        void togglePreferred(binding);
                       }}
                       style={[
                         styles.binding,
-                        { backgroundColor: theme.surface, borderColor: theme.border },
+                        binding.preferred
+                          ? { backgroundColor: theme.accent, borderColor: theme.accent }
+                          : { backgroundColor: theme.surface, borderColor: theme.border },
                       ]}
                     >
+                      <Ionicons
+                        name={binding.preferred ? 'star' : 'star-outline'}
+                        size={20}
+                        color={binding.preferred ? theme.accentText : theme.secondary}
+                      />
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.foreground, fontWeight: '700' }}>
-                          {installed?.name ?? binding.sourceId}{' '}
-                          {binding === bindings[0] ? '· préférée' : ''}
+                        <Text
+                          style={{
+                            color: binding.preferred ? theme.accentText : theme.foreground,
+                            fontWeight: '700',
+                          }}
+                        >
+                          {installed?.name ?? binding.sourceId}
                         </Text>
                         <Text
                           style={{
-                            color: binding.lastError ? theme.danger : theme.secondary,
+                            color: binding.preferred
+                              ? theme.accentText
+                              : binding.lastError
+                                ? theme.danger
+                                : theme.secondary,
                             marginTop: 3,
                           }}
                         >
-                          {!installed
-                            ? 'Désinstallée'
-                            : binding.lastError
-                              ? 'En erreur'
-                              : 'Toucher pour privilégier'}
+                          {count} chapitre{count > 1 ? 's' : ''}
+                          {!installed ? ' · désinstallée' : binding.lastError ? ' · en erreur' : ''}
                         </Text>
                       </View>
+                      {binding.preferred ? (
+                        <Text style={{ color: theme.accentText, fontWeight: '800', fontSize: 12 }}>
+                          PRÉFÉRÉE
+                        </Text>
+                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -439,5 +471,14 @@ const styles = StyleSheet.create({
   },
   chapterTitle: { fontSize: 15, fontWeight: '700' },
   delete: { marginTop: 35, padding: 16 },
-  binding: { borderRadius: 10, borderWidth: 1, flexDirection: 'row', marginBottom: 7, padding: 12 },
+  binding: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+    padding: 12,
+  },
+  sourcesHint: { fontSize: 13, lineHeight: 18, marginBottom: 10, marginTop: -6 },
 });

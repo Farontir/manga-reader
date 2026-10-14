@@ -34,4 +34,27 @@ describe('chapter list', () => {
   it('labels local chapters by title and source chapters by number', () => {
     expect(merged.map(chapterLabel)).toEqual(['Chapitre 2.5', 'Chapitre 2', 'Tome 1 · Chapitre 1']);
   });
+
+  it('lists only the chapters of preferred sources, plus local files', () => {
+    const preferredOnly = mergeChapters(
+      [{ chapterNumber: 0.5, title: 'Bonus local' }],
+      [
+        { number: 1, title: null, sourceId: 'a', chapterId: 'a-1' },
+        { number: 1, title: null, sourceId: 'b', chapterId: 'b-1' },
+        { number: 2, title: null, sourceId: 'b', chapterId: 'b-2' },
+        { number: 3, title: null, sourceId: 'c', chapterId: 'c-3' },
+      ],
+      [
+        { sourceId: 'a', priority: 9, preferred: false },
+        { sourceId: 'b', priority: 0, preferred: true },
+        { sourceId: 'c', priority: 0, preferred: true },
+      ],
+    );
+    expect(preferredOnly.map((item) => [item.number, item.chapterId ?? 'local'])).toEqual([
+      [3, 'c-3'],
+      [2, 'b-2'],
+      [1, 'b-1'],
+      [0.5, 'local'],
+    ]);
+  });
 });

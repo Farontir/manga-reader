@@ -7,6 +7,7 @@ import { repairSchemaMigration } from './migrations/004_repair_schema';
 import { importedArchivesMigration } from './migrations/005_imported_archives';
 import { upgradeLegacyTablesMigration } from './migrations/006_upgrade_legacy_tables';
 import { libraryBookmarkMigration } from './migrations/007_library_bookmark';
+import { preferredSourcesMigration } from './migrations/008_preferred_sources';
 
 // Writers wait for a lock instead of failing at once with "database is locked".
 const BUSY_TIMEOUT_MS = 5000;
@@ -47,6 +48,7 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     { version: 5, name: '005_imported_archives', run: importedArchivesMigration },
     { version: 6, name: '006_upgrade_legacy_tables', run: upgradeLegacyTablesMigration },
     { version: 7, name: '007_library_bookmark', run: libraryBookmarkMigration },
+    { version: 8, name: '008_preferred_sources', run: preferredSourcesMigration },
   ];
   for (const migration of migrations) {
     if (migration.version <= (version?.version ?? 0)) continue;

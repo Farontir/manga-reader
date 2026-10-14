@@ -263,3 +263,14 @@ export async function countUnreadChapters(): Promise<Record<string, number>> {
   const rows = await db.getAllAsync<{ id: string; unread: number }>(UNREAD_COUNTS_SQL);
   return Object.fromEntries(rows.map((row) => [row.id, row.unread]));
 }
+
+/** Number of known chapters per source for one manga. */
+export async function countChaptersBySource(entryId: string): Promise<Record<string, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ source_id: string; count: number }>(
+    `SELECT source_id, COUNT(DISTINCT chapter_number) AS count FROM known_chapters
+     WHERE library_entry_id = ? GROUP BY source_id`,
+    entryId,
+  );
+  return Object.fromEntries(rows.map((row) => [row.source_id, row.count]));
+}

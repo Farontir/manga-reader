@@ -57,9 +57,14 @@ export async function resolveChapterPages(
       fetchedAt: new Date().toISOString(),
     });
   }
+  // The source the chapter was opened from, then the user's preferred sources, then
+  // priority (raised automatically on failover).
+  const preferred = new Set(bindings.filter((item) => item.preferred).map((item) => item.sourceId));
   candidates.sort((a, b) => {
     if (a.sourceId === preferredSourceId && b.sourceId !== preferredSourceId) return -1;
     if (b.sourceId === preferredSourceId && a.sourceId !== preferredSourceId) return 1;
+    const preference = Number(preferred.has(b.sourceId)) - Number(preferred.has(a.sourceId));
+    if (preference) return preference;
     return (
       (bindings.find((item) => item.sourceId === b.sourceId)?.priority ?? 0) -
       (bindings.find((item) => item.sourceId === a.sourceId)?.priority ?? 0)

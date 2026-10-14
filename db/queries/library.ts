@@ -22,6 +22,7 @@ type BindingRow = {
   source_id: string;
   manga_id: string;
   priority: number;
+  preferred: number;
   last_seen_ok: string | null;
   last_error: string | null;
 };
@@ -55,6 +56,7 @@ function bindingFromRow(row: BindingRow): SourceBinding {
     sourceId: row.source_id,
     mangaId: row.manga_id,
     priority: row.priority,
+    preferred: row.preferred === 1,
     lastSeenOk: row.last_seen_ok,
     lastError: row.last_error,
   };
@@ -166,7 +168,7 @@ export async function deleteLibraryEntry(id: string): Promise<void> {
 }
 
 export async function upsertBinding(
-  input: Omit<SourceBinding, 'id' | 'lastSeenOk' | 'lastError'>,
+  input: Omit<SourceBinding, 'id' | 'lastSeenOk' | 'lastError' | 'preferred'>,
 ): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
@@ -185,7 +187,7 @@ export async function upsertBinding(
 export async function listBindings(entryId: string): Promise<SourceBinding[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<BindingRow>(
-    'SELECT * FROM source_bindings WHERE library_entry_id = ? ORDER BY priority DESC',
+    'SELECT * FROM source_bindings WHERE library_entry_id = ? ORDER BY preferred DESC, priority DESC',
     entryId,
   );
   return rows.map(bindingFromRow);
@@ -199,6 +201,11 @@ export async function markBindingHealth(id: string, error: string | null): Promi
     error,
     id,
   );
+}
+
+export async function setBindingPreferred(id: string, preferred: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE source_bindings SET preferred = ? WHERE id = ?', preferred ? 1 : 0, id);
 }
 
 export async function setBindingPriority(id: string, priority: number): Promise<void> {
