@@ -15,16 +15,14 @@ import {
 import { listInstalledSources, type InstalledSource } from '../../db';
 import { searchAniList, type AniListManga } from '../../services/anilist';
 import { coverImageSource } from '../../services/coverImage';
-import { openAniListManga, openSourceManga } from '../../services/librarySources';
+import { openSearchGroup } from '../../services/librarySources';
+import { groupSearchResults, type SearchGroup, type SearchHit } from '../../services/searchGroups';
 import { searchSource } from '../../sources/api';
-import type { SourceManga } from '../../sources/types';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
 
-type Result =
-  | { key: string; kind: 'anilist'; manga: AniListManga }
-  | { key: string; kind: 'source'; manga: SourceManga; source: InstalledSource };
+type Result = SearchGroup<InstalledSource>;
 
 export default function SearchScreen() {
   const theme = useTheme();
@@ -54,29 +52,17 @@ export default function SearchScreen() {
       Promise.all(sources.map((source) => searchSource(source, term).catch(() => null))),
     ]);
     if (token !== searchToken.current) return;
-    const found: Result[] = [];
-    if (anilist) {
-      found.push(
-        ...anilist.map((manga) => ({
-          key: `anilist:${manga.id}`,
-          kind: 'anilist' as const,
-          manga,
-        })),
-      );
-    }
+    // One result per manga, whatever the number of sources offering it.
+    const hits: SearchHit<InstalledSource>[] = (anilist ?? []).map((manga: AniListManga) => ({
+      kind: 'anilist' as const,
+      manga,
+    }));
     sources.forEach((source, index) => {
-      const result = sourceResults[index];
-      if (result) {
-        found.push(
-          ...result.map((manga) => ({
-            key: `${source.id}:${manga.id}`,
-            kind: 'source' as const,
-            manga,
-            source,
-          })),
-        );
+      for (const manga of sourceResults[index] ?? []) {
+        hits.push({ kind: 'source', manga, source });
       }
     });
+    const found = groupSearchResults(hits);
     if (!anilist && sourceResults.every((result) => result === null)) {
       setError('Recherche indisponible. Réessaie plus tard.');
     }
@@ -88,10 +74,7 @@ export default function SearchScreen() {
     setAdding(result.key);
     setError(null);
     try {
-      const entry =
-        result.kind === 'anilist'
-          ? await openAniListManga(result.manga)
-          : await openSourceManga(result.source.id, result.manga);
+      const entry = await openSearchGroup(result);
       router.push({ pathname: '/entry/[id]', params: { id: entry.id } });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -159,9 +142,9 @@ export default function SearchScreen() {
               disabled={Boolean(adding)}
               style={[styles.result, { backgroundColor: theme.surface, borderColor: theme.border }]}
             >
-              {item.manga.coverUrl ? (
+              {item.coverUrl ? (
                 <Image
-                  source={coverImageSource(item.manga.coverUrl)}
+                  source={coverImageSource(item.coverUrl)}
                   style={styles.cover}
                   contentFit="cover"
                 />
@@ -170,10 +153,16 @@ export default function SearchScreen() {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={[styles.resultTitle, { color: theme.foreground }]} numberOfLines={2}>
-                  {item.manga.title}
+                  {item.title}
                 </Text>
-                <Text style={{ color: theme.secondary, marginTop: 5, fontSize: 12 }}>
-                  {item.kind === 'anilist' ? 'AniList · identité stable' : item.source.name}
+                <Text
+                  numberOfLines={1}
+                  style={{ color: theme.secondary, marginTop: 5, fontSize: 12 }}
+                >
+                  {[
+                    ...(item.anilist ? ['AniList'] : []),
+                    ...item.sources.map((entry) => entry.source.name),
+                  ].join(' · ')}
                 </Text>
               </View>
               {adding === item.key ? (

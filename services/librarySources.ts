@@ -130,6 +130,50 @@ export async function openSourceManga(sourceId: string, manga: SourceManga): Pro
   return entry;
 }
 
+/** Binds one source's manga to an entry and loads its chapter list (best effort). */
+async function bindSourceManga(entryId: string, sourceId: string, mangaId: string): Promise<void> {
+  await upsertBinding({ libraryEntryId: entryId, sourceId, mangaId, priority: 0 });
+  try {
+    await refreshSourceChapters(entryId, sourceId, mangaId);
+  } catch {
+    /* The binding remains, so the user can refresh later. */
+  }
+}
+
+/**
+ * Entry to open for a grouped search result: the AniList identity when known, and every
+ * source that offered the manga bound at once (no second search). Not bookmarked when new.
+ */
+export async function openSearchGroup(group: {
+  anilist: AniListManga | null;
+  sources: { source: { id: string }; manga: SourceManga }[];
+}): Promise<LibraryEntry> {
+  if (group.anilist) {
+    if (!group.sources.length) return openAniListManga(group.anilist);
+    const manga = group.anilist;
+    const entry =
+      (await findEntryByAniListId(manga.id)) ??
+      (await createLibraryEntry({
+        canonicalTitle: manga.title,
+        altTitles: manga.altTitles,
+        coverUrl: manga.coverUrl,
+        anilistId: manga.id,
+        description: manga.description,
+        status: manga.status,
+        inLibrary: false,
+      }));
+    for (const { source, manga: found } of group.sources) {
+      await bindSourceManga(entry.id, source.id, found.id);
+    }
+    return entry;
+  }
+  const [first, ...others] = group.sources;
+  if (!first) throw new Error('Résultat vide.');
+  const entry = await openSourceManga(first.source.id, first.manga);
+  for (const { source, manga } of others) await bindSourceManga(entry.id, source.id, manga.id);
+  return entry;
+}
+
 async function refreshSourceChapters(
   entryId: string,
   sourceId: string,
