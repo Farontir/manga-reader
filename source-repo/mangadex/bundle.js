@@ -3,6 +3,11 @@
 // The sandbox supplies app.fetch and expects globalThis.source.
 (function () {
   const api = 'https://api.mangadex.org';
+  const excludedTagIds = [
+    '2d1f5d56-a1e5-4d0d-a961-2193588b08ec',
+    'ddefd648-5140-4e5f-ba18-4eca4071d19b',
+  ];
+  const allRatings = ['safe', 'suggestive', 'erotica', 'pornographic'];
 
   async function request(path) {
     const response = await app.fetch(api + path, { headers: { Accept: 'application/json' } });
@@ -34,12 +39,17 @@
     return english ? english.en : localized(title);
   }
 
-  // Genre names, and author/artist names when the request included those relationships.
+  // MangaDex groups its tags as genre, theme, format and content. Keep every group
+  // on the title page so the metadata matches the categories available in Discover.
   function genresOf(attributes) {
-    return (attributes.tags || [])
-      .filter((tag) => tag.attributes && tag.attributes.group === 'genre')
+    const rating = attributes.contentRating;
+    const labels = rating === 'pornographic' || rating === 'erotica'
+      ? ['Adult', rating === 'pornographic' ? 'Pornographique' : 'Érotique']
+      : rating === 'suggestive' ? ['Suggestif'] : [];
+    return labels.concat((attributes.tags || [])
+      .filter((tag) => tag.attributes && !excludedTagIds.includes(tag.id))
       .map((tag) => localized(tag.attributes.name))
-      .filter(Boolean);
+      .filter(Boolean));
   }
 
   function authorsOf(manga) {
@@ -77,6 +87,7 @@
     value.append('availableTranslatedLanguage[]', 'en');
     value.append('includes[]', 'cover_art');
     value.append('contentRating[]', 'safe');
+    for (const id of excludedTagIds) value.append('excludedTags[]', id);
     return value;
   }
 
@@ -102,8 +113,16 @@
     { id: 'new', title: 'Nouveautés', order: 'order[createdAt]', direction: 'desc' },
     { id: 'az', title: 'A–Z', order: 'order[title]', direction: 'asc' },
   ];
+  const CONTENT_CATEGORIES = [
+    { id: 'rating:safe', title: 'Tout public', ratings: ['safe'] },
+    { id: 'rating:suggestive', title: 'Suggestif', ratings: ['suggestive'] },
+    { id: 'rating:erotica', title: 'Érotique', ratings: ['erotica'] },
+    { id: 'rating:pornographic', title: 'Pornographique', ratings: ['pornographic'] },
+    { id: 'rating:adult', title: 'Adult', ratings: ['erotica', 'pornographic'] },
+  ];
 
-  // Listing ids understood by catalog(): a sort above, 'trending', or 'tag:<MangaDex tag id>'.
+  // Listing ids understood by catalog(): a sort above, 'trending', a MangaDex tag,
+  // or an explicit content category. General lists remain safe.
   function listingParams(listing) {
     if (listing === 'trending') {
       const params = trendingParams();
@@ -111,27 +130,41 @@
       return params;
     }
     const tag = typeof listing === 'string' && listing.startsWith('tag:') ? listing.slice(4) : '';
+    if (tag && (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(tag) ||
+        excludedTagIds.includes(tag))) throw new Error('Catégorie MangaDex inconnue.');
+    const rating = CONTENT_CATEGORIES.find((item) => item.id === listing);
+    if (typeof listing === 'string' && listing.startsWith('rating:') && !rating) {
+      throw new Error('Classification MangaDex inconnue.');
+    }
     const choice = CATALOG_SORTS.find((item) => item.id === listing) || CATALOG_SORTS[0];
     const params = listParams(tag ? 'order[followedCount]' : choice.order);
     params.delete('limit');
     if (!tag) params.set(choice.order, choice.direction);
     if (tag) params.append('includedTags[]', tag);
+    if (tag || rating) {
+      params.delete('contentRating[]');
+      for (const value of rating ? rating.ratings : allRatings) {
+        params.append('contentRating[]', value);
+      }
+    }
     return params;
   }
 
-  let genres = null;
+  let categories = null;
 
-  // MangaDex genre tags, fetched once per sandbox session.
-  async function genreList() {
-    if (!genres) {
+  // Every tag group plus explicit content ratings, fetched once per sandbox session.
+  async function categoryList() {
+    if (!categories) {
       const json = await request('/manga/tag');
-      genres = (json.data || [])
-        .filter((tag) => tag.attributes && tag.attributes.group === 'genre')
+      const tags = (json.data || [])
+        .filter((tag) => tag.attributes && tag.attributes.name &&
+          !excludedTagIds.includes(tag.id))
         .map((tag) => ({ id: 'tag:' + tag.id, title: localized(tag.attributes.name) }))
         .filter((tag) => tag.title)
         .sort((a, b) => a.title.localeCompare(b.title));
+      categories = CONTENT_CATEGORIES.map(({ id, title }) => ({ id, title })).concat(tags);
     }
-    return genres;
+    return categories;
   }
 
   globalThis.source = {
@@ -141,6 +174,7 @@
       params.set('limit', '20');
       params.append('includes[]', 'cover_art');
       params.append('contentRating[]', 'safe');
+      for (const id of excludedTagIds) params.append('excludedTags[]', id);
       const json = await request('/manga?' + params.toString());
       return (json.data || []).map(toManga);
     },
@@ -177,17 +211,21 @@
           // Skip this section.
         }
       }
-      let tags = [];
+      let categories = [];
       try {
-        tags = await genreList();
+        categories = await categoryList();
       } catch {
-        // Genres are optional.
+        // Categories are optional.
       }
-      return { sections: result, genres: tags };
+      return { sections: result, genres: categories };
     },
 
     // Full catalogue, 30 readable titles (English chapters) per page.
     async catalog(page, sort) {
+      if (typeof sort === 'string' && sort.startsWith('tag:') &&
+          !(await categoryList()).some((category) => category.id === sort)) {
+        throw new Error('Catégorie MangaDex inconnue.');
+      }
       const sorts = CATALOG_SORTS.map((item) => ({ id: item.id, title: item.title }));
       const offset = (Math.max(1, Number(page) || 1) - 1) * CATALOG_PAGE;
       if (offset + CATALOG_PAGE > CATALOG_MAX) return { items: [], hasMore: false, sorts: sorts };
@@ -206,6 +244,9 @@
           encodeURIComponent(id) +
           '?includes[]=cover_art&includes[]=author&includes[]=artist',
       );
+      if ((json.data?.attributes?.tags || []).some((tag) => excludedTagIds.includes(tag.id))) {
+        throw new Error('Titre indisponible dans cette source.');
+      }
       return toManga(json.data);
     },
 

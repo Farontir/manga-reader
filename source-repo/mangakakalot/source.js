@@ -6,18 +6,7 @@ const base = 'https://www.mangakakalot.gg';
 // public HTML routes can return a Cloudflare challenge to native HTTP clients.
 const mirror = 'https://www.mangabats.com';
 const referer = `${base}/`;
-const genreNames = {
-  action: 'Action',
-  adventure: 'Aventure',
-  comedy: 'Comédie',
-  drama: 'Drame',
-  fantasy: 'Fantasy',
-  romance: 'Romance',
-  'sci-fi': 'Science-fiction',
-  'school-life': 'Vie scolaire',
-  'slice-of-life': 'Tranche de vie',
-  supernatural: 'Surnaturel',
-};
+const excludedGenres = new Set(['loli', 'shota', 'lolicon', 'shotacon']);
 
 // Keep stable path IDs so the primary and mirror can serve the same manga.
 function mangaPath(value) {
@@ -106,16 +95,21 @@ function cardItems($) {
 }
 
 function genresFrom($) {
-  const available = new Set();
-  $('a[href*="/genre/"]').each((_, link) => {
+  const genres = [];
+  const seen = new Set();
+  // The current site is sometimes challenged, in which case this list comes
+  // from its public MangaBats mirror. Both use the same genre URL scheme.
+  $('ul.tag-name a[rel="tag"][href]').each((_, link) => {
     const url = new URL($(link).attr('href'), mirror);
-    if ([base, mirror].includes(url.origin)) {
-      available.add(url.pathname.slice('/genre/'.length).replace(/\/$/, ''));
-    }
+    if (![base, mirror].includes(url.origin) || !/^\/genre\/[a-z0-9$-]+\/?$/i.test(url.pathname))
+      return;
+    const slug = url.pathname.slice('/genre/'.length).replace(/\/$/, '');
+    const title = $(link).text().replace(/\s+/g, ' ').trim();
+    if (!title || excludedGenres.has(slug.toLowerCase()) || seen.has(slug)) return;
+    seen.add(slug);
+    genres.push({ id: `genre:${slug}`, title });
   });
-  return Object.entries(genreNames)
-    .filter(([slug]) => available.has(slug))
-    .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
+  return genres;
 }
 
 function mangaCredits($) {
@@ -248,7 +242,10 @@ globalThis.source = {
     ];
     const genre =
       typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-    if (genre && !Object.prototype.hasOwnProperty.call(genreNames, genre)) {
+    if (
+      genre !== null &&
+      (!/^[a-z0-9$-]{1,80}$/i.test(genre) || excludedGenres.has(genre.toLowerCase()))
+    ) {
       throw new Error('Genre MangaKakalot inconnu.');
     }
     const path = genre

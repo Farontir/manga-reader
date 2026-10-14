@@ -30,6 +30,21 @@
     };
   }
 
+  async function availableGenres() {
+    let values;
+    try {
+      const page = await request('/api/v2/genres?unpaged=true');
+      values = page.content;
+    } catch {
+      // Older Komga servers expose the complete list at the v1 endpoint.
+      values = await request('/api/v1/genres');
+    }
+    if (!Array.isArray(values)) return [];
+    return [...new Set(values.filter((value) => typeof value === 'string' && value.trim()))].map(
+      (value) => ({ id: 'genre:' + value, title: value }),
+    );
+  }
+
   globalThis.source = {
     async search(query) {
       const json = await request('/api/v1/series/list?size=30', { fullTextSearch: query });
@@ -59,7 +74,13 @@
           // Skip this section.
         }
       }
-      return { sections: result };
+      let genres = [];
+      try {
+        genres = await availableGenres();
+      } catch {
+        // Keep the sections available when the referential endpoint is unavailable.
+      }
+      return { sections: result, genres };
     },
     // Full catalogue, 30 series per page.
     async catalog(page, sort) {
@@ -69,10 +90,15 @@
         { id: 'updated', title: 'Mis à jour', sort: 'lastModifiedDate,desc' },
       ];
       const choice = sorts.find((item) => item.id === sort) || sorts[0];
+      const genre =
+        typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
+      if (genre !== null && (!genre || genre.length > 190 || /[\x00-\x1f\x7f]/.test(genre))) {
+        throw new Error('Genre Komga inconnu.');
+      }
       const index = Math.max(0, (Number(page) || 1) - 1);
       const json = await request(
         '/api/v1/series/list?size=30&page=' + index + '&sort=' + encodeURIComponent(choice.sort),
-        {},
+        genre === null ? {} : { condition: { genre: { operator: 'is', value: genre } } },
       );
       return {
         items: (json.content || []).map(toManga),

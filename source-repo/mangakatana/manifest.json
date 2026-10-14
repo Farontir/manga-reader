@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.mangakatana.en",
   "name": "MangaKatana",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "language": "en",
-  "contentRating": "safe",
+  "contentRating": "adult",
   "allowedHosts": ["mangakatana.com"],
   "bundle": "./bundle.js",
-  "sha256": "f018126e0f68346985e78e2c38be70cc5189bd71a858dea7ea1356636b8f5363"
+  "sha256": "240daeed90ac460f979460a4744e0fa216584011a1eb4e9cb59e6867e0e64e48"
 }

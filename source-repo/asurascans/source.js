@@ -3,7 +3,6 @@ import { load } from 'cheerio';
 
 const base = 'https://asurascans.com';
 const imageHost = 'cdn.asurascans.com';
-const hiddenGenres = new Set(['adult', 'ecchi', 'erotica', 'hentai', 'mature', 'smut']);
 
 // HTML contract: browse cover cards identify series, numeric chapter links identify
 // chapters, and chapter-page images identify freely readable pages. Never build a
@@ -62,19 +61,14 @@ function browseItems($) {
 function browseGenres($) {
   try {
     const props = JSON.parse($('astro-island[props*="availableGenres"]').first().attr('props'));
-    return (props.availableGenres?.[1] ?? [])
-      .flatMap((entry) => {
-        const genre = entry?.[1];
-        const slug = genre?.slug?.[1];
-        const title = genre?.name?.[1];
-        return typeof slug === 'string' &&
-          /^[a-z0-9-]+$/.test(slug) &&
-          typeof title === 'string' &&
-          !hiddenGenres.has(slug)
-          ? [{ id: `genre:${slug}`, title }]
-          : [];
-      })
-      .slice(0, 60);
+    return (props.availableGenres?.[1] ?? []).flatMap((entry) => {
+      const genre = entry?.[1];
+      const slug = genre?.slug?.[1];
+      const title = genre?.name?.[1];
+      return typeof slug === 'string' && /^[a-z0-9-]+$/.test(slug) && typeof title === 'string'
+        ? [{ id: `genre:${slug}`, title }]
+        : [];
+    });
   } catch {
     return [];
   }
@@ -128,7 +122,7 @@ globalThis.source = {
     const popular = sort === 'popular';
     const genre =
       typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-    if (genre && (!/^[a-z0-9-]+$/.test(genre) || hiddenGenres.has(genre))) {
+    if (genre !== null && !/^[a-z0-9-]+$/.test(genre)) {
       throw new Error('Genre Asura Scans inconnu.');
     }
     const query = [

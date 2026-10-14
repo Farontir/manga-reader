@@ -49,10 +49,16 @@ globalThis.source = {
   },
 
   async discover() {
-    return { sections: [{ title: 'À découvrir', items: [await series()], more: 'all' }] };
+    return {
+      sections: [{ title: 'À découvrir', items: [await series()], more: 'all' }],
+      genres: [{ id: 'genre:fantasy', title: 'Fantasy' }],
+    };
   },
 
-  async catalog(page) {
+  async catalog(page, listing) {
+    if (listing && listing !== 'all' && listing !== 'genre:fantasy') {
+      throw new Error('Catégorie Pepper&Carrot inconnue.');
+    }
     return { items: page > 1 ? [] : [await series()], hasMore: false, sorts: [] };
   },
 

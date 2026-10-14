@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "org.peppercarrot.en",
   "name": "Pepper&Carrot",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "language": "en",
   "contentRating": "safe",
   "allowedHosts": ["www.peppercarrot.com"],
   "bundle": "./bundle.js",
-  "sha256": "7617a38e732ca8b7357d82e3a5e2036b5bd6781d81d0ed70249c5350eef67fe1"
+  "sha256": "151b705e7e3a168b6920e4f0b031ea96c15f147f79b9e03db58063afbbf9808e"
 }

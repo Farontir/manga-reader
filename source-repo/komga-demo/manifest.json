@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "org.komga.demo",
   "name": "Komga Demo",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "language": "en",
   "contentRating": "safe",
   "allowedHosts": ["demo.komga.org"],
   "bundle": "./bundle.js",
-  "sha256": "1b2c56692ab928e60380520ad30710ceb5befb3337469b55b0ebfc6c66574fca"
+  "sha256": "b2e53e038137c3b5ef5f900b5026f4e2f1c5b042c450ebbd5dd7319d9ab9dc9e"
 }

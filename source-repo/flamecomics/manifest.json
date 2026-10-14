@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "xyz.flamecomics.en",
   "name": "Flame Comics",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "language": "en",
-  "contentRating": "safe",
+  "contentRating": "adult",
   "allowedHosts": ["flamecomics.xyz"],
   "bundle": "./bundle.js",
-  "sha256": "c0cd5812d9e2fe65682fbef572cad66e223f26f8af62f1a94d66d4bdae71a02d"
+  "sha256": "d40c1cc03ad682deb7a094c08141b121bdab357e9aaa4c933aa5afd59e4a7d5c"
 }

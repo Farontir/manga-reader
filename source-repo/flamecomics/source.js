@@ -3,7 +3,6 @@ import { load } from 'cheerio';
 
 const base = 'https://flamecomics.xyz';
 const cdn = 'https://cdn.flamecomics.xyz/uploads/images/series';
-const adultTags = new Set(['adult', 'erotica', 'hentai', 'mature', 'pornographic', 'smut']);
 let buildId;
 
 function seriesId(value) {
@@ -25,9 +24,7 @@ function isComic(row) {
     typeof row.title === 'string' &&
     row.title.trim().length > 0 &&
     typeof row.type === 'string' &&
-    !/novel/i.test(row.type) &&
-    !row.categories?.some((tag) => adultTags.has(String(tag).toLowerCase())) &&
-    !row.tags?.some((tag) => adultTags.has(String(tag).toLowerCase()))
+    !/novel/i.test(row.type)
   );
 }
 
@@ -105,7 +102,7 @@ function genreList(rows) {
   for (const row of rows) {
     for (const title of row.categories ?? []) {
       const slug = genreSlug(title);
-      if (!slug || adultTags.has(slug)) continue;
+      if (!slug) continue;
       const entry = counts.get(slug) ?? { id: `genre:${slug}`, title: String(title), count: 0 };
       entry.count += 1;
       counts.set(slug, entry);
@@ -113,7 +110,6 @@ function genreList(rows) {
   }
   return [...counts.values()]
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
-    .slice(0, 30)
     .map(({ id, title }) => ({ id, title }));
 }
 
@@ -202,7 +198,7 @@ globalThis.source = {
     const genres = [
       ...new Set(
         (row.tags ?? row.categories ?? [])
-          .filter((tag) => typeof tag === 'string' && !adultTags.has(tag.toLowerCase()))
+          .filter((tag) => typeof tag === 'string')
           .map((tag) => tag.trim())
           .filter(Boolean),
       ),

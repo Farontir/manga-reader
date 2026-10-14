@@ -3,21 +3,7 @@ import { load } from 'cheerio';
 
 const base = 'https://mangakatana.com';
 const referer = `${base}/`;
-const adultGenres = new Set(['adult', 'ecchi', 'erotica', 'loli', 'sexual violence', 'shota']);
-const genreNames = {
-  action: 'Action',
-  adventure: 'Aventure',
-  comedy: 'Comédie',
-  drama: 'Drame',
-  fantasy: 'Fantasy',
-  mystery: 'Mystère',
-  romance: 'Romance',
-  'school-life': 'Vie scolaire',
-  'sci-fi': 'Science-fiction',
-  'slice-of-life': 'Tranche de vie',
-  sports: 'Sport',
-  supernatural: 'Surnaturel',
-};
+const excludedGenres = new Set(['loli', 'shota', 'lolicon', 'shotacon']);
 
 function mangaPath(value) {
   if (typeof value !== 'string') return null;
@@ -77,10 +63,6 @@ async function document(path) {
   return load(response.body);
 }
 
-function hasAdultGenre(genres) {
-  return genres.some((genre) => adultGenres.has(genre.toLowerCase()));
-}
-
 function cardItems($, genre) {
   const seen = new Set();
   const items = [];
@@ -93,7 +75,13 @@ function cardItems($, genre) {
       .find('.genres a')
       .map((__, genre) => $(genre).text().trim())
       .get();
-    if (!id || !title || seen.has(id) || hasAdultGenre(genres)) return;
+    if (
+      !id ||
+      !title ||
+      seen.has(id) ||
+      genres.some((value) => excludedGenres.has(value.toLowerCase()))
+    )
+      return;
     if (genre && !genres.some((value) => genre.includes(value.toLowerCase()))) return;
     seen.add(id);
     items.push({
@@ -106,14 +94,17 @@ function cardItems($, genre) {
 }
 
 function genresFrom($) {
-  const available = new Set();
+  const genres = new Map();
   $('a[href*="/genre/"]').each((_, link) => {
-    const url = new URL($(link).attr('href'), base);
-    if (url.origin === base) available.add(url.pathname.slice('/genre/'.length).replace(/\/$/, ''));
+    const href = $(link).attr('href');
+    if (!href) return;
+    const url = new URL(href, base);
+    const match = url.origin === base && /^\/genre\/([a-z0-9-]+)\/?$/.exec(url.pathname);
+    const title = $(link).text().trim();
+    if (match && title && !excludedGenres.has(match[1]) && !genres.has(match[1]))
+      genres.set(match[1], title);
   });
-  return Object.entries(genreNames)
-    .filter(([slug]) => available.has(slug))
-    .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
+  return [...genres].map(([slug, title]) => ({ id: `genre:${slug}`, title }));
 }
 
 function hasNextPage($, page, prefix = '') {
@@ -125,18 +116,21 @@ function hasNextPage($, page, prefix = '') {
     });
 }
 
-function assertSafe($) {
-  const genres = $('div.genres a')
-    .map((_, genre) => $(genre).text().trim())
-    .get();
-  if (hasAdultGenre(genres)) throw new Error('Ce titre n’est pas disponible dans la source sûre.');
-}
-
 function detailValue($, label) {
   return $('.d-cell-small.label')
     .filter((_, element) => $(element).text().trim() === label)
     .first()
     .next('.value');
+}
+
+function assertAllowed($) {
+  const genres = detailValue($, 'Genres:')
+    .find('.genres a')
+    .map((_, link) => $(link).text().trim().toLowerCase())
+    .get();
+  if (genres.some((genre) => excludedGenres.has(genre))) {
+    throw new Error('Ce titre n’est pas disponible dans cette source.');
+  }
 }
 
 globalThis.source = {
@@ -167,7 +161,7 @@ globalThis.source = {
     const current = Number.isSafeInteger(page) && page > 0 ? page : 1;
     const genre =
       typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-    if (genre && !Object.prototype.hasOwnProperty.call(genreNames, genre)) {
+    if (genre !== null && (!/^[a-z0-9-]{1,80}$/.test(genre) || excludedGenres.has(genre))) {
       throw new Error('Genre MangaKatana inconnu.');
     }
     const prefix = genre ? `/genre/${genre}` : '';
@@ -184,7 +178,7 @@ globalThis.source = {
     const path = mangaPath(id);
     if (!path) throw new Error('Manga MangaKatana inconnu.');
     const $ = await document(path);
-    assertSafe($);
+    assertAllowed($);
     const title = $('h1.heading').first().text().trim();
     if (!title) throw new Error('Fiche MangaKatana indisponible.');
     const description = $('.summary p').first().text().trim().slice(0, 4000);
@@ -221,7 +215,7 @@ globalThis.source = {
     const path = mangaPath(id);
     if (!path) throw new Error('Manga MangaKatana inconnu.');
     const $ = await document(path);
-    assertSafe($);
+    assertAllowed($);
     const chapters = [];
     $('.chapters tr').each((_, row) => {
       const link = $(row).find('.chapter a[href]').first();

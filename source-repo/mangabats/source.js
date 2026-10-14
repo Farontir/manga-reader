@@ -3,18 +3,7 @@ import { load } from 'cheerio';
 
 const base = 'https://www.mangabats.com';
 const referer = `${base}/`;
-const genreNames = {
-  action: 'Action',
-  adventure: 'Aventure',
-  comedy: 'Comédie',
-  drama: 'Drame',
-  fantasy: 'Fantasy',
-  romance: 'Romance',
-  'sci-fi': 'Science-fiction',
-  'school-life': 'Vie scolaire',
-  'slice-of-life': 'Tranche de vie',
-  supernatural: 'Surnaturel',
-};
+const excludedGenres = new Set(['loli', 'shota', 'lolicon', 'shotacon']);
 
 // Public HTML supplies manga details and reader images; the site's chapter
 // endpoint supplies the chapter list. Search can be challenged by Cloudflare,
@@ -95,14 +84,20 @@ function cardItems($) {
 }
 
 function genresFrom($) {
-  const available = new Set();
-  $('a[href*="/genre/"]').each((_, link) => {
+  const genres = [];
+  const seen = new Set();
+  // The filter menu contains every category, including Adult. Other genre
+  // links on this page include the "All" breadcrumb, which is not a category.
+  $('ul.tag-name a[rel="tag"][href]').each((_, link) => {
     const url = new URL($(link).attr('href'), base);
-    if (url.origin === base) available.add(url.pathname.slice('/genre/'.length).replace(/\/$/, ''));
+    if (url.origin !== base || !/^\/genre\/[a-z0-9$-]+\/?$/i.test(url.pathname)) return;
+    const slug = url.pathname.slice('/genre/'.length).replace(/\/$/, '');
+    const title = $(link).text().replace(/\s+/g, ' ').trim();
+    if (!title || excludedGenres.has(slug.toLowerCase()) || seen.has(slug)) return;
+    seen.add(slug);
+    genres.push({ id: `genre:${slug}`, title });
   });
-  return Object.entries(genreNames)
-    .filter(([slug]) => available.has(slug))
-    .map(([slug, title]) => ({ id: `genre:${slug}`, title }));
+  return genres;
 }
 
 function mangaCredits($) {
@@ -235,7 +230,10 @@ globalThis.source = {
     ];
     const genre =
       typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-    if (genre && !Object.prototype.hasOwnProperty.call(genreNames, genre)) {
+    if (
+      genre !== null &&
+      (!/^[a-z0-9$-]{1,80}$/i.test(genre) || excludedGenres.has(genre.toLowerCase()))
+    ) {
       throw new Error('Genre MangaBats inconnu.');
     }
     const path = genre
