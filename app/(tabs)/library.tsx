@@ -112,47 +112,48 @@ export default function LibraryScreen() {
             detail="Ajoute un manga depuis Découvrir ou Recherche. Ta progression restera ici, même si une source disparaît."
           />
         }
+        numColumns={3}
         renderItem={({ item }) => (
+          // Cover-only grid: the title is read by VoiceOver.
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              unread[item.id]
+                ? `${item.canonicalTitle}, ${unread[item.id]} chapitre(s) non lu(s)`
+                : item.canonicalTitle
+            }
             onPress={() => router.push({ pathname: '/entry/[id]', params: { id: item.id } })}
-            style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={styles.cell}
           >
-            <View>
-              {item.coverUrl ? (
-                <Image
-                  source={libraryCoverSource(item.coverUrl)}
-                  style={styles.cover}
-                  contentFit="cover"
-                  cachePolicy="disk"
-                />
-              ) : (
-                <View style={[styles.cover, { backgroundColor: theme.border }]}>
-                  <Text style={{ color: theme.secondary, fontSize: 25 }}>✦</Text>
-                </View>
-              )}
-              {unread[item.id] ? (
-                <View
-                  accessibilityLabel={`${unread[item.id]} chapitre(s) non lu(s)`}
-                  style={[
-                    styles.badge,
-                    { backgroundColor: theme.badge, borderColor: theme.surface },
-                  ]}
+            {item.coverUrl ? (
+              <Image
+                source={libraryCoverSource(item.coverUrl)}
+                style={[styles.cover, { backgroundColor: theme.surface }]}
+                contentFit="cover"
+                cachePolicy="disk"
+              />
+            ) : (
+              <View style={[styles.cover, styles.placeholder, { backgroundColor: theme.surface }]}>
+                <Text
+                  numberOfLines={4}
+                  style={[styles.placeholderText, { color: theme.secondary }]}
                 >
-                  <Text style={styles.badgeText}>
-                    {(unread[item.id] ?? 0) > 999 ? '999+' : unread[item.id]}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.foreground }]}>
-                {item.canonicalTitle}
-              </Text>
-              <Text style={{ color: theme.secondary, marginTop: 5 }}>
-                {item.lastReadAt ? 'Lecture en cours' : 'Pas encore lu'}
-              </Text>
-            </View>
-            <Text style={{ color: theme.accent, fontSize: 22 }}>›</Text>
+                  {item.canonicalTitle}
+                </Text>
+              </View>
+            )}
+            {unread[item.id] ? (
+              <View
+                style={[
+                  styles.badge,
+                  { backgroundColor: theme.badge, borderColor: theme.background },
+                ]}
+              >
+                <Text style={styles.badgeText}>
+                  {(unread[item.id] ?? 0) > 999 ? '999+' : unread[item.id]}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         )}
       />
@@ -184,18 +185,12 @@ const styles = StyleSheet.create({
   },
   syncText: { flex: 1, fontSize: 13, lineHeight: 18 },
   syncAction: { alignItems: 'center', justifyContent: 'center', minHeight: 32, minWidth: 32 },
-  list: { gap: 10, padding: 20 },
+  list: { paddingBottom: 24, paddingHorizontal: 14, paddingTop: 14 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
-  row: {
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 15,
-    minHeight: 100,
-    padding: 11,
-  },
-  cover: { alignItems: 'center', borderRadius: 9, height: 78, justifyContent: 'center', width: 55 },
+  cell: { padding: 6 },
+  cover: { aspectRatio: 1 / 1.43, borderRadius: 10, width: '100%' },
+  placeholder: { alignItems: 'center', justifyContent: 'center', padding: 8 },
+  placeholderText: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
   refreshing: { fontSize: 12, paddingHorizontal: 20, paddingTop: 6 },
   badge: {
     alignItems: 'center',
@@ -206,9 +201,8 @@ const styles = StyleSheet.create({
     minWidth: 24,
     paddingHorizontal: 5,
     position: 'absolute',
-    right: -9,
-    top: -8,
+    right: 0,
+    top: 0,
   },
   badgeText: { color: '#FFFFFF', fontSize: 12, fontVariant: ['tabular-nums'], fontWeight: '800' },
-  rowTitle: { fontSize: 16, fontWeight: '700' },
 });
