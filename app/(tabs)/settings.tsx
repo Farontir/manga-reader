@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -15,12 +16,14 @@ import { getSetting } from '../../db';
 import { restoreBackup, shareBackup } from '../../services/backup';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
+import { setHideSensitive, usePrivacy } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const hideSensitive = usePrivacy((state) => state.hideSensitive);
   const [repos, setRepos] = useState<string[]>([]);
   const loadRepos = useCallback(async () => {
     const value = await getSetting('restoredSourceRepos');
@@ -150,6 +153,23 @@ export default function SettingsScreen() {
           </View>
         ) : null}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Ionicons name="lock-closed-outline" size={25} color={theme.accent} />
+          <Text style={[styles.cardTitle, { color: theme.foreground }]}>Confidentialité</Text>
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchLabel, { color: theme.foreground }]}>
+              Masquer le contenu sensible
+            </Text>
+            {/* Turning it off asks for Face ID; the switch only moves once it succeeds. */}
+            <Switch
+              value={hideSensitive}
+              onValueChange={(value) => {
+                void setHideSensitive(value);
+              }}
+              trackColor={{ true: theme.accent }}
+            />
+          </View>
+        </View>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="moon-outline" size={25} color={theme.accent} />
           <Text style={[styles.cardTitle, { color: theme.foreground }]}>Apparence</Text>
           <Text style={[styles.body, { color: theme.secondary }]}>
@@ -176,4 +196,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: '800', marginTop: 12 },
   body: { fontSize: 14, lineHeight: 21, marginTop: 7 },
   footer: { fontSize: 12, marginTop: 18, textAlign: 'center' },
+  switchRow: { alignItems: 'center', flexDirection: 'row', gap: 12, marginTop: 12 },
+  switchLabel: { flex: 1, fontSize: 15 },
 });
