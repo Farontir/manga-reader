@@ -1,9 +1,10 @@
 import '../global.css';
 
+import { Image } from 'expo-image';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { getDatabase, pruneBrowsedEntries } from '../db';
@@ -13,6 +14,7 @@ import { classifyLibrary } from '../services/sensitiveBackfill';
 import { preferEnglishTitles } from '../services/titleFix';
 import { useFolderSyncOnForeground } from '../ui/folderSync';
 import { useLibraryRefreshOnForeground } from '../ui/libraryRefresh';
+import { loadPrivacySettings, usePrivacyCover } from '../ui/privacy';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -22,6 +24,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     getDatabase()
+      .then(() => loadPrivacySettings())
       .then(() => {
         setReady(true);
         void resumeQueuedDownloads().catch(() => undefined);
@@ -39,6 +42,7 @@ export default function RootLayout() {
   }, []);
   useFolderSyncOnForeground(ready);
   useLibraryRefreshOnForeground(ready);
+  const covered = usePrivacyCover();
 
   if (!ready) {
     return (
@@ -87,6 +91,21 @@ export default function RootLayout() {
         <Stack.Screen name="genres/[sourceId]" options={{ title: 'Catégories' }} />
         <Stack.Screen name="add-source" options={{ title: 'Installer une source' }} />
       </Stack>
+      {covered ? (
+        // Neutral screen while inactive, so the app switcher preview shows nothing.
+        <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: '#121820' }]}>
+          <Image
+            source={require('../assets/splash-icon.png')}
+            style={styles.coverIcon}
+            contentFit="contain"
+          />
+        </View>
+      ) : null}
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  cover: { alignItems: 'center', justifyContent: 'center' },
+  coverIcon: { height: 120, width: 120 },
+});

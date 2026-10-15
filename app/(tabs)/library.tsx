@@ -9,6 +9,7 @@ import { libraryCoverSource } from '../../services/appFiles';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
 import { refreshLibrary, useLibraryRefresh } from '../../ui/libraryRefresh';
+import { toggleSensitiveLock, usePrivacy, useShowSensitive } from '../../ui/privacy';
 import { Screen } from '../../ui/components/Screen';
 import { useTheme } from '../../ui/useTheme';
 
@@ -20,15 +21,17 @@ export default function LibraryScreen() {
   const sync = useFolderSync();
   const refresh = useLibraryRefresh();
   const [pulling, setPulling] = useState(false);
+  const showSensitive = useShowSensitive();
+  const unlocked = usePrivacy((state) => state.unlocked);
   const reload = useCallback(() => {
     void Promise.all([
-      listLibraryEntries({ includeSensitive: true }),
-      countUnreadChapters({ includeSensitive: true }),
+      listLibraryEntries({ includeSensitive: showSensitive }),
+      countUnreadChapters({ includeSensitive: showSensitive }),
     ]).then(([list, counts]) => {
       setEntries(list);
       setUnread(counts);
     });
-  }, []);
+  }, [showSensitive]);
   useFocusEffect(
     useCallback(() => {
       reload();
@@ -54,7 +57,19 @@ export default function LibraryScreen() {
       <View style={styles.header}>
         <View>
           <Text style={[styles.eyebrow, { color: theme.accent }]}>MANGA READER</Text>
-          <Text style={[styles.title, { color: theme.foreground }]}>Bibliothèque</Text>
+          {/* Long press (1 s): show or hide sensitive content. Deliberately unlabelled. */}
+          <Pressable
+            delayLongPress={1000}
+            onLongPress={() => {
+              void toggleSensitiveLock();
+            }}
+            style={styles.titleRow}
+          >
+            <Text accessibilityRole="header" style={[styles.title, { color: theme.foreground }]}>
+              Bibliothèque
+            </Text>
+            {unlocked ? <View style={[styles.dot, { backgroundColor: theme.accent }]} /> : null}
+          </Pressable>
         </View>
         <Text style={{ color: theme.secondary }}>{entries.length} mangas</Text>
       </View>
@@ -174,6 +189,8 @@ const styles = StyleSheet.create({
   },
   eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 5 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1 },
+  titleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  dot: { borderRadius: 3, height: 6, width: 6 },
   listContainer: { flex: 1 },
   syncBanner: {
     alignItems: 'center',

@@ -38,6 +38,12 @@
       "expo-sqlite",
       "expo-status-bar",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Kumo Reader utilise Face ID pour protéger tes réglages de confidentialité."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
