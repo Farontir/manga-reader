@@ -13,10 +13,12 @@ import {
 
 import { getInstalledSource, type InstalledSource } from '../../db';
 import { openSourceManga } from '../../services/librarySources';
+import { isSensitiveSourceManga } from '../../services/sensitive';
 import { getSourceCatalog } from '../../sources/api';
 import type { SourceManga, SourceSort } from '../../sources/types';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { MangaCover } from '../../ui/components/MangaCarousel';
+import { useShowSensitive } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 const COLUMNS = 3;
@@ -32,12 +34,19 @@ function message(reason: unknown): string {
  * or genre) or, without it, the whole catalogue in the orders the source offers.
  */
 export default function CatalogScreen() {
-  const { sourceId, listing, title } = useLocalSearchParams<{
+  const { sourceId, listing, title, sensitive } = useLocalSearchParams<{
     sourceId: string;
     listing?: string;
     title?: string;
+    sensitive?: string;
   }>();
   const router = useRouter();
+  const showSensitive = useShowSensitive();
+  // A sensitive category closes when sensitive content is hidden again.
+  const hiddenListing = sensitive === '1' && !showSensitive;
+  useEffect(() => {
+    if (hiddenListing && router.canGoBack()) router.back();
+  }, [hiddenListing, router]);
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [source, setSource] = useState<InstalledSource | null>(null);
@@ -130,7 +139,9 @@ export default function CatalogScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <Stack.Screen options={{ title: title ?? source?.name ?? 'Catalogue' }} />
+      <Stack.Screen
+        options={{ title: hiddenListing ? '' : (title ?? source?.name ?? 'Catalogue') }}
+      />
       {unsupported ? (
         <EmptyState
           icon="albums-outline"
@@ -139,7 +150,7 @@ export default function CatalogScreen() {
         />
       ) : (
         <FlatList
-          data={items}
+          data={showSensitive ? items : items.filter((item) => !isSensitiveSourceManga(item))}
           keyExtractor={(item) => item.id}
           numColumns={COLUMNS}
           columnWrapperStyle={styles.row}

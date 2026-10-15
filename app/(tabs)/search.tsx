@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,14 +12,16 @@ import {
   View,
 } from 'react-native';
 
-import { listInstalledSources, type InstalledSource } from '../../db';
+import { listInstalledSources, listSensitiveAniListIds, type InstalledSource } from '../../db';
 import { searchAniList, type AniListManga } from '../../services/anilist';
 import { coverImageSource } from '../../services/coverImage';
 import { openSearchGroup } from '../../services/librarySources';
 import { groupSearchResults, type SearchGroup, type SearchHit } from '../../services/searchGroups';
+import { isSensitiveSourceManga } from '../../services/sensitive';
 import { searchSource } from '../../sources/api';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { Screen } from '../../ui/components/Screen';
+import { useShowSensitive } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 type Result = SearchGroup<InstalledSource>;
@@ -34,10 +36,26 @@ export default function SearchScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const searchToken = useRef(0);
+  const showSensitive = useShowSensitive();
+  const [sensitiveIds, setSensitiveIds] = useState<Set<number>>(new Set());
   useFocusEffect(
     useCallback(() => {
       void listInstalledSources().then(setSources);
+      void listSensitiveAniListIds().then(setSensitiveIds);
     }, []),
+  );
+  // While sensitive content is hidden, so are results rated sensitive by a source or
+  // matching a sensitive manga of the library (AniList itself returns no adult title).
+  const shown = useMemo(
+    () =>
+      showSensitive
+        ? results
+        : results.filter(
+            (result) =>
+              !(result.anilist && sensitiveIds.has(result.anilist.id)) &&
+              !result.sources.some(({ manga }) => isSensitiveSourceManga(manga)),
+          ),
+    [results, sensitiveIds, showSensitive],
   );
 
   async function search() {
@@ -120,9 +138,9 @@ export default function SearchScreen() {
         <ActivityIndicator color={theme.accent} style={{ marginTop: 32 }} />
       ) : (
         <FlatList
-          data={results}
+          data={shown}
           keyExtractor={(item) => item.key}
-          contentContainerStyle={results.length ? styles.list : styles.emptyList}
+          contentContainerStyle={shown.length ? styles.list : styles.emptyList}
           ListEmptyComponent={
             <EmptyState
               icon="search-outline"

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSensitive, sourceMangaRating, strictestRating } from './sensitive';
+import {
+  isSensitive,
+  isSensitiveSourceManga,
+  sourceMangaRating,
+  strictestRating,
+} from './sensitive';
 
 describe('sensitive content', () => {
   it('follows the user override first, then the rating and AniList', () => {
@@ -37,5 +42,12 @@ describe('sensitive content', () => {
     expect(sourceMangaRating({ genres: ['hentai'] })).toBe('erotica');
     expect(sourceMangaRating({ genres: ['Ecchi', 'Mature', 'Adulthood'] })).toBeNull();
     expect(sourceMangaRating({})).toBeNull();
+  });
+
+  it('hides source titles rated erotica or pornographic, or with a sensitive genre', () => {
+    expect(isSensitiveSourceManga({ contentRating: 'pornographic' })).toBe(true);
+    expect(isSensitiveSourceManga({ contentRating: 'suggestive', genres: ['Ecchi'] })).toBe(false);
+    expect(isSensitiveSourceManga({ genres: ['Adult'] })).toBe(true);
+    expect(isSensitiveSourceManga({ genres: ['Action'] })).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from '../connection';
 import type { LibraryEntry, SourceBinding } from '../schema';
 import { PRUNE_BROWSED_ENTRIES_SQL } from './pruneSql';
-import { listEntriesSql } from './sensitiveSql';
+import { listEntriesSql, sensitiveSql } from './sensitiveSql';
 
 type EntryRow = {
   id: string;
@@ -157,6 +157,16 @@ export async function listLibraryEntries(options: {
     listEntriesSql(options.scope ?? 'library', options.includeSensitive),
   );
   return rows.map(entryFromRow);
+}
+
+/** AniList ids of sensitive entries: their search results are hidden with them. */
+export async function listSensitiveAniListIds(): Promise<Set<number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ anilist_id: number }>(
+    `SELECT anilist_id FROM library_entries
+     WHERE anilist_id IS NOT NULL AND ${sensitiveSql()} = 1`,
+  );
+  return new Set(rows.map((row) => row.anilist_id));
 }
 
 /** The user's choice for one manga: sensitive, all audiences, or null for automatic. */

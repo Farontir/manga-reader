@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,12 +14,14 @@ import {
 
 import { getSetting, listInstalledSources, setSetting, type InstalledSource } from '../../db';
 import { openSourceManga } from '../../services/librarySources';
+import { isSensitiveSourceManga } from '../../services/sensitive';
 import { getSourceDiscover, searchSource } from '../../sources/api';
 import type { SourceGenre, SourceManga, SourceSection } from '../../sources/types';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
 import { MangaCarousel, MangaCover } from '../../ui/components/MangaCarousel';
 import { Screen } from '../../ui/components/Screen';
+import { useShowSensitive } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 const SELECTED_SOURCE_KEY = 'discover.source';
@@ -85,7 +87,29 @@ export default function DiscoverScreen() {
   );
 
   const selected = sources.find((source) => source.id === selectedId) ?? null;
-  const page = selected ? pages[selected.id] : undefined;
+  const showSensitive = useShowSensitive();
+  // Sensitive titles and categories stay out of sight while sensitive content is hidden.
+  const page = useMemo((): DiscoverState | undefined => {
+    const loaded = selected ? pages[selected.id] : undefined;
+    if (showSensitive || loaded?.status !== 'ready') return loaded;
+    return {
+      ...loaded,
+      sections: loaded.sections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => !isSensitiveSourceManga(item)),
+        }))
+        .filter((section) => section.items.length > 0),
+      genres: loaded.genres.filter((genre) => !genre.sensitive),
+    };
+  }, [pages, selected, showSensitive]);
+  const shownResults = useMemo(
+    () =>
+      showSensitive || !results
+        ? results
+        : results.filter((manga) => !isSensitiveSourceManga(manga)),
+    [results, showSensitive],
+  );
 
   function select(source: InstalledSource) {
     if (source.id === selectedId) return;
@@ -138,11 +162,11 @@ export default function DiscoverScreen() {
   }
 
   // Opens one category (a section's full list or a genre) as an endless grid.
-  function openListing(listing: string, title: string) {
+  function openListing(listing: string, title: string, sensitive = false) {
     if (!selected) return;
     router.push({
       pathname: '/catalog/[sourceId]',
-      params: { sourceId: selected.id, listing, title },
+      params: { sourceId: selected.id, listing, title, ...(sensitive ? { sensitive: '1' } : {}) },
     });
   }
 
@@ -266,10 +290,10 @@ export default function DiscoverScreen() {
             {error ? <Text style={[styles.note, { color: theme.danger }]}>{error}</Text> : null}
             {searching ? (
               <ActivityIndicator color={theme.accent} style={styles.spinner} />
-            ) : results ? (
-              results.length ? (
+            ) : shownResults ? (
+              shownResults.length ? (
                 <View style={styles.grid}>
-                  {results.map((manga) => (
+                  {shownResults.map((manga) => (
                     <MangaCover
                       key={manga.id}
                       manga={manga}
@@ -330,7 +354,7 @@ export default function DiscoverScreen() {
                           key={genre.id}
                           accessibilityRole="button"
                           accessibilityLabel={`Genre ${genre.title}`}
-                          onPress={() => openListing(genre.id, genre.title)}
+                          onPress={() => openListing(genre.id, genre.title, genre.sensitive)}
                           // Static style only: NativeWind drops Pressable style callbacks
                           // on device (same bug as ActionButton).
                           style={[styles.genre, { backgroundColor: theme.accent }]}

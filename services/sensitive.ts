@@ -56,7 +56,11 @@ const SENSITIVE_GENRES = new Set([
 ]);
 
 function normalizeGenre(genre: string): string {
-  return genre.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+  return genre
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLowerCase();
 }
 
 export function isSensitiveGenre(genre: string): boolean {
@@ -73,4 +77,16 @@ export function sourceMangaRating(manga: {
 }): ContentRating | null {
   if (isContentRating(manga.contentRating)) return manga.contentRating;
   return manga.genres?.some(isSensitiveGenre) ? 'erotica' : null;
+}
+
+/** A title found on a source that must stay hidden while sensitive content is. */
+export function isSensitiveSourceManga(manga: {
+  contentRating?: string;
+  genres?: string[];
+}): boolean {
+  return isSensitive({
+    contentRating: sourceMangaRating(manga),
+    anilistAdult: null,
+    sensitiveOverride: null,
+  });
 }

@@ -14,6 +14,7 @@ import {
 import { getInstalledSource, type InstalledSource } from '../../db';
 import { getSourceDiscover } from '../../sources/api';
 import type { SourceGenre } from '../../sources/types';
+import { useShowSensitive } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 export default function SourceGenresScreen() {
@@ -48,12 +49,14 @@ export default function SourceGenresScreen() {
     };
   }, [sourceId, retry]);
 
+  const showSensitive = useShowSensitive();
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
+    const allowed = showSensitive ? genres : genres.filter((genre) => !genre.sensitive);
     return needle
-      ? genres.filter((genre) => genre.title.toLocaleLowerCase().includes(needle))
-      : genres;
-  }, [genres, query]);
+      ? allowed.filter((genre) => genre.title.toLocaleLowerCase().includes(needle))
+      : allowed;
+  }, [genres, query, showSensitive]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
@@ -104,7 +107,12 @@ export default function SourceGenresScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/catalog/[sourceId]',
-                  params: { sourceId, listing: item.id, title: item.title },
+                  params: {
+                    sourceId,
+                    listing: item.id,
+                    title: item.title,
+                    ...(item.sensitive ? { sensitive: '1' } : {}),
+                  },
                 })
               }
               style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
