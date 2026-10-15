@@ -8,6 +8,7 @@ import {
   listLibraryEntries,
   markBindingHealth,
   replaceKnownChapters,
+  setEntryClassification,
   upsertBinding,
   type InstalledSource,
   type LibraryEntry,
@@ -17,6 +18,19 @@ import type { SourceManga } from '../sources/types';
 import type { AniListManga } from './anilist';
 import { searchAniList } from './anilist';
 import { titlesMatch } from './matching';
+import { sourceMangaRating, strictestRating } from './sensitive';
+
+/** Keeps the strictest rating given by the sources bound to an entry. */
+export async function rateEntryFromSource(entryId: string, manga: SourceManga): Promise<void> {
+  const rating = sourceMangaRating(manga);
+  if (!rating) return;
+  const entry = await getLibraryEntry(entryId);
+  if (!entry) return;
+  const strictest = strictestRating(entry.contentRating, rating);
+  if (strictest !== entry.contentRating) {
+    await setEntryClassification(entryId, { contentRating: strictest });
+  }
+}
 
 export async function bindMatchingSources(entry: LibraryEntry): Promise<void> {
   const sources = await listInstalledSources();
@@ -35,6 +49,7 @@ export async function bindMatchingSources(entry: LibraryEntry): Promise<void> {
         mangaId: match.id,
         priority: 0,
       });
+      await rateEntryFromSource(entry.id, match);
       await refreshSourceChapters(entry.id, source.id, match.id);
     } catch {
       /* One broken source does not block the library entry. */
@@ -67,6 +82,7 @@ export async function matchSourceToLibrary(source: InstalledSource): Promise<num
         mangaId: match.id,
         priority: 0,
       });
+      await rateEntryFromSource(entry.id, match);
       await refreshSourceChapters(entry.id, source.id, match.id);
       count += 1;
     } catch {
@@ -91,6 +107,8 @@ export async function openAniListManga(manga: AniListManga): Promise<LibraryEntr
     description: manga.description,
     status: manga.status,
     inLibrary: false,
+    // AniList search leaves adult titles out (isAdult: false).
+    anilistAdult: false,
   });
   await bindMatchingSources(entry);
   return entry;
@@ -120,8 +138,11 @@ export async function openSourceManga(sourceId: string, manga: SourceManga): Pro
       description: matched?.description ?? manga.description,
       anilistId: matched?.id ?? null,
       inLibrary: false,
+      anilistAdult: matched ? false : null,
+      contentRating: sourceMangaRating(manga),
     }));
   await upsertBinding({ libraryEntryId: entry.id, sourceId, mangaId: manga.id, priority: 1 });
+  if (existing) await rateEntryFromSource(entry.id, manga);
   try {
     await refreshSourceChapters(entry.id, sourceId, manga.id);
   } catch {
@@ -131,10 +152,15 @@ export async function openSourceManga(sourceId: string, manga: SourceManga): Pro
 }
 
 /** Binds one source's manga to an entry and loads its chapter list (best effort). */
-async function bindSourceManga(entryId: string, sourceId: string, mangaId: string): Promise<void> {
-  await upsertBinding({ libraryEntryId: entryId, sourceId, mangaId, priority: 0 });
+async function bindSourceManga(
+  entryId: string,
+  sourceId: string,
+  manga: SourceManga,
+): Promise<void> {
+  await upsertBinding({ libraryEntryId: entryId, sourceId, mangaId: manga.id, priority: 0 });
+  await rateEntryFromSource(entryId, manga);
   try {
-    await refreshSourceChapters(entryId, sourceId, mangaId);
+    await refreshSourceChapters(entryId, sourceId, manga.id);
   } catch {
     /* The binding remains, so the user can refresh later. */
   }
@@ -161,16 +187,17 @@ export async function openSearchGroup(group: {
         description: manga.description,
         status: manga.status,
         inLibrary: false,
+        anilistAdult: false,
       }));
     for (const { source, manga: found } of group.sources) {
-      await bindSourceManga(entry.id, source.id, found.id);
+      await bindSourceManga(entry.id, source.id, found);
     }
     return entry;
   }
   const [first, ...others] = group.sources;
   if (!first) throw new Error('Résultat vide.');
   const entry = await openSourceManga(first.source.id, first.manga);
-  for (const { source, manga } of others) await bindSourceManga(entry.id, source.id, manga.id);
+  for (const { source, manga } of others) await bindSourceManga(entry.id, source.id, manga);
   return entry;
 }
 

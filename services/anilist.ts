@@ -15,6 +15,7 @@ type Media = {
   coverImage: { large: string | null } | null;
   description: string | null;
   status: string | null;
+  isAdult?: boolean | null;
 };
 type Response = { data?: { Page?: { media?: Media[] } }; errors?: { message: string }[] };
 
@@ -52,9 +53,23 @@ async function request(body: object): Promise<Media[]> {
   return json.data?.Page?.media ?? [];
 }
 
+const adultQuery = `query ($ids: [Int]) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: MANGA) { id title { romaji english native } isAdult }
+  }
+}`;
+
+/** AniList's adult flag for up to 50 ids; ids AniList does not return are absent. */
+export async function fetchAniListAdult(ids: number[]): Promise<Map<number, boolean>> {
+  if (!ids.length) return new Map();
+  const media = await request({ query: adultQuery, variables: { ids: ids.slice(0, 50) } });
+  return new Map(media.map((item) => [item.id, item.isAdult === true]));
+}
+
 const detailsQuery = `query ($id: Int) {
   Media(id: $id, type: MANGA) {
     description(asHtml: false) genres status format countryOfOrigin chapters averageScore
+    isAdult
     startDate { year }
     staff(perPage: 6, sort: RELEVANCE) { edges { role node { name { full } } } }
   }
@@ -69,6 +84,7 @@ type DetailsMedia = {
   chapters: number | null;
   averageScore: number | null;
   startDate: { year: number | null } | null;
+  isAdult: boolean | null;
   staff: { edges: { role: string; node: { name: { full: string | null } } }[] } | null;
 };
 
@@ -76,6 +92,7 @@ type DetailsMedia = {
 export async function fetchAniListDetails(id: number): Promise<{
   description: string | null;
   details: Omit<MangaDetails, 'fetchedAt'>;
+  adult: boolean;
 }> {
   const wait = Math.max(0, 700 - (Date.now() - lastRequest));
   if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
@@ -105,6 +122,7 @@ export async function fetchAniListDetails(id: number): Promise<{
       score: media.averageScore,
       chapters: media.chapters,
     },
+    adult: media.isAdult === true,
   };
 }
 

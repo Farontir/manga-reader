@@ -100,6 +100,7 @@ export type NewEntry = Pick<LibraryEntry, 'canonicalTitle'> &
       | 'status'
       | 'inLibrary'
       | 'contentRating'
+      | 'anilistAdult'
     >
   >;
 
@@ -118,14 +119,14 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     inLibrary: input.inLibrary ?? true,
     details: null,
     contentRating: input.contentRating ?? null,
-    anilistAdult: null,
+    anilistAdult: input.anilistAdult ?? null,
     sensitiveOverride: null,
   };
   if (!entry.canonicalTitle) throw new Error('Le titre est obligatoire.');
   await db.runAsync(
     `INSERT INTO library_entries(id, canonical_title, alt_titles_json, cover_url, anilist_id,
-      description, status, added_at, last_read_at, in_library, content_rating)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      description, status, added_at, last_read_at, in_library, content_rating, anilist_adult)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     entry.id,
     entry.canonicalTitle,
     JSON.stringify(entry.altTitles),
@@ -137,6 +138,7 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     null,
     entry.inLibrary ? 1 : 0,
     entry.contentRating,
+    flagValue(entry.anilistAdult),
   );
   return entry;
 }

@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDatabase, pruneBrowsedEntries } from '../db';
 import { SourceHost } from '../native-bridge/SourceHost';
 import { resumeQueuedDownloads } from '../services/downloads';
+import { classifyLibrary } from '../services/sensitiveBackfill';
 import { preferEnglishTitles } from '../services/titleFix';
 import { useFolderSyncOnForeground } from '../ui/folderSync';
 import { useLibraryRefreshOnForeground } from '../ui/libraryRefresh';
@@ -26,7 +27,11 @@ export default function RootLayout() {
         void resumeQueuedDownloads().catch(() => undefined);
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         void pruneBrowsedEntries(weekAgo).catch(() => undefined);
-        void preferEnglishTitles().catch(() => undefined);
+        // Both use AniList: one after the other to share its rate limit calmly.
+        void preferEnglishTitles()
+          .catch(() => undefined)
+          .then(classifyLibrary)
+          .catch(() => undefined);
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : String(reason));

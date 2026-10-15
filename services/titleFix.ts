@@ -10,7 +10,9 @@ const DONE_KEY = 'titles.english.v1';
  */
 export async function preferEnglishTitles(): Promise<void> {
   if (await getSetting(DONE_KEY)) return;
-  const entries = (await listLibraryEntries({ scope: 'all', includeSensitive: true })).filter((entry) => entry.anilistId !== null);
+  const entries = (await listLibraryEntries({ scope: 'all', includeSensitive: true })).filter(
+    (entry) => entry.anilistId !== null,
+  );
   for (let start = 0; start < entries.length; start += 50) {
     const batch = entries.slice(start, start + 50);
     const titles = await fetchAniListTitles(batch.map((entry) => entry.anilistId as number));
