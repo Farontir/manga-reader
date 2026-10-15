@@ -7,7 +7,7 @@ import { findEntryByAniListId, getLibraryEntry, listBindings, listLibraryEntries
 import { listInstalledSources } from './sources';
 
 export async function exportBackup(): Promise<BackupSnapshot> {
-  const entries = await listLibraryEntries();
+  const entries = await listLibraryEntries({ includeSensitive: true });
   const [bindings, progress, chapters, sources] = await Promise.all([
     Promise.all(entries.map((entry) => listBindings(entry.id))),
     Promise.all(entries.map((entry) => listProgress(entry.id))),

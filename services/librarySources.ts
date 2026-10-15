@@ -43,7 +43,7 @@ export async function bindMatchingSources(entry: LibraryEntry): Promise<void> {
 }
 
 export async function matchSourceToLibrary(source: InstalledSource): Promise<number> {
-  const entries = await listLibraryEntries();
+  const entries = await listLibraryEntries({ includeSensitive: true });
   let count = 0;
   for (const entry of entries) {
     try {

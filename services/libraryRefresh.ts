@@ -3,7 +3,7 @@ import { refreshEntryChapters } from './librarySources';
 
 /** Bookmarked manga linked to at least one source, i.e. whose chapter lists can change. */
 export async function listRefreshableEntries(): Promise<string[]> {
-  const entries = await listLibraryEntries();
+  const entries = await listLibraryEntries({ includeSensitive: true });
   const linked = await Promise.all(
     entries.map(async (entry) => ((await listBindings(entry.id)).length ? entry.id : null)),
   );

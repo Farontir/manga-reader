@@ -1,6 +1,6 @@
 import { getDatabase, withWriteTransaction } from '../connection';
 import type { Chapter, DownloadedChapter, LocalChapter, Progress } from '../schema';
-import { UNREAD_COUNTS_SQL } from './unreadSql';
+import { unreadCountsSql } from './unreadSql';
 
 type ChapterRow = {
   library_entry_id: string;
@@ -258,9 +258,13 @@ export async function listDownloadedChapters(entryId: string): Promise<Downloade
 }
 
 /** Unread chapter count per bookmarked manga id; manga with none are absent. */
-export async function countUnreadChapters(): Promise<Record<string, number>> {
+export async function countUnreadChapters(options: {
+  includeSensitive: boolean;
+}): Promise<Record<string, number>> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<{ id: string; unread: number }>(UNREAD_COUNTS_SQL);
+  const rows = await db.getAllAsync<{ id: string; unread: number }>(
+    unreadCountsSql(options.includeSensitive),
+  );
   return Object.fromEntries(rows.map((row) => [row.id, row.unread]));
 }
 

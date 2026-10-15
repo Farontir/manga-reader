@@ -134,7 +134,7 @@ export async function importLocalChapter(input: ImportInput): Promise<LocalImpor
     let entryId = input.entryId;
     if (!entryId && input.skipExisting) {
       const normalized = title.normalize('NFKC').trim().toLocaleLowerCase();
-      entryId = (await listLibraryEntries('all')).find(
+      entryId = (await listLibraryEntries({ scope: 'all', includeSensitive: true })).find(
         (entry) => entry.canonicalTitle.normalize('NFKC').trim().toLocaleLowerCase() === normalized,
       )?.id;
     }

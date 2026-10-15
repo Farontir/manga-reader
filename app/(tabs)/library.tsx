@@ -21,7 +21,10 @@ export default function LibraryScreen() {
   const refresh = useLibraryRefresh();
   const [pulling, setPulling] = useState(false);
   const reload = useCallback(() => {
-    void Promise.all([listLibraryEntries(), countUnreadChapters()]).then(([list, counts]) => {
+    void Promise.all([
+      listLibraryEntries({ includeSensitive: true }),
+      countUnreadChapters({ includeSensitive: true }),
+    ]).then(([list, counts]) => {
       setEntries(list);
       setUnread(counts);
     });

@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { initialMigration } from '../migrations/001_initial';
 import { libraryBookmarkMigration } from '../migrations/007_library_bookmark';
 import { preferredSourcesMigration } from '../migrations/008_preferred_sources';
-import { UNREAD_COUNTS_SQL } from './unreadSql';
+import { sensitiveContentMigration } from '../migrations/010_sensitive_content';
+import { unreadCountsSql } from './unreadSql';
 
 describe('unread chapter counts', () => {
   it('counts each known chapter once, minus completed ones, for bookmarked manga', async () => {
@@ -40,7 +41,7 @@ describe('unread chapter counts', () => {
           ('a', 2, 4, '2026-10-02', 0),
           ('done', 1, 9, '2026-10-02', 1);
       `);
-      expect(sqlite.prepare(UNREAD_COUNTS_SQL).all()).toEqual([{ id: 'a', unread: 2 }]);
+      expect(sqlite.prepare(unreadCountsSql(true)).all()).toEqual([{ id: 'a', unread: 2 }]);
     } finally {
       sqlite.close();
     }
@@ -70,7 +71,35 @@ describe('unread chapter counts', () => {
           ('m', 'slow', 's1', 1, '2026-10-01'),
           ('m', 'slow', 's9', 9, '2026-10-01');
       `);
-      expect(sqlite.prepare(UNREAD_COUNTS_SQL).all()).toEqual([{ id: 'm', unread: 2 }]);
+      expect(sqlite.prepare(unreadCountsSql(true)).all()).toEqual([{ id: 'm', unread: 2 }]);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('leaves sensitive manga out of the counts unless included', async () => {
+    const sqlite = new DatabaseSync(':memory:');
+    try {
+      const db = {
+        execAsync: async (sql: string) => {
+          sqlite.exec(sql);
+        },
+        getAllAsync: async (sql: string) => sqlite.prepare(sql).all(),
+      } as unknown as SQLiteDatabase;
+      await initialMigration(db);
+      await libraryBookmarkMigration(db);
+      await preferredSourcesMigration(db);
+      await sensitiveContentMigration(db);
+      sqlite.exec(`
+        INSERT INTO library_entries(id, canonical_title, added_at, in_library, content_rating)
+          VALUES ('safe', 'Tout public', '2026-10-01', 1, 'safe'),
+            ('adult', 'Sensible', '2026-10-01', 1, 'pornographic');
+        INSERT INTO local_chapters(library_entry_id, chapter_number, title, page_uris_json, imported_at)
+          VALUES ('safe', 1, 'Chapitre 1', '[]', '2026-10-01'),
+            ('adult', 1, 'Chapitre 1', '[]', '2026-10-01');
+      `);
+      expect(sqlite.prepare(unreadCountsSql(false)).all()).toEqual([{ id: 'safe', unread: 1 }]);
+      expect(sqlite.prepare(unreadCountsSql(true)).all()).toHaveLength(2);
     } finally {
       sqlite.close();
     }

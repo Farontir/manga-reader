@@ -14,6 +14,12 @@ export type LibraryEntry = {
   inLibrary: boolean;
   /** Genres, authors, format… fetched from AniList or the source; null until fetched. */
   details: MangaDetails | null;
+  /** Strictest rating given by its sources (safe…pornographic); null when unknown. */
+  contentRating: string | null;
+  /** AniList's adult flag; null until fetched. */
+  anilistAdult: boolean | null;
+  /** The user's choice: true = sensitive, false = all audiences, null = automatic. */
+  sensitiveOverride: boolean | null;
 };
 
 export type SourceBinding = {

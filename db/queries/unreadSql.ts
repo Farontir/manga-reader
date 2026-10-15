@@ -1,8 +1,12 @@
+import { visibleSql } from './sensitiveSql';
+
 // Unread chapters per bookmarked manga: every known chapter number (local files and the
 // chapter lists of its preferred sources, or of all its sources when none is preferred;
-// each number once) without completed progress. Kept apart from chapters.ts so tests can
-// run it against node:sqlite.
-export const UNREAD_COUNTS_SQL = `SELECT chapters.library_entry_id AS id, COUNT(*) AS unread
+// each number once) without completed progress. Sensitive manga only when included.
+// Kept apart from chapters.ts so tests can run it against node:sqlite.
+export const unreadCountsSql = (
+  includeSensitive: boolean,
+): string => `SELECT chapters.library_entry_id AS id, COUNT(*) AS unread
   FROM (
     SELECT library_entry_id, chapter_number FROM local_chapters
     UNION
@@ -19,6 +23,7 @@ export const UNREAD_COUNTS_SQL = `SELECT chapters.library_entry_id AS id, COUNT(
   ) AS chapters
   JOIN library_entries AS entries
     ON entries.id = chapters.library_entry_id AND entries.in_library = 1
+    ${includeSensitive ? '' : `AND ${visibleSql('entries')}`}
   WHERE NOT EXISTS (
     SELECT 1 FROM read_progress AS progress
     WHERE progress.library_entry_id = chapters.library_entry_id

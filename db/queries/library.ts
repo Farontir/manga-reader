@@ -3,6 +3,7 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from '../connection';
 import type { LibraryEntry, SourceBinding } from '../schema';
 import { PRUNE_BROWSED_ENTRIES_SQL } from './pruneSql';
+import { listEntriesSql } from './sensitiveSql';
 
 type EntryRow = {
   id: string;
@@ -16,6 +17,9 @@ type EntryRow = {
   last_read_at: string | null;
   in_library: number;
   details_json: string | null;
+  content_rating: string | null;
+  anilist_adult: number | null;
+  user_sensitive_override: number | null;
 };
 type BindingRow = {
   id: string;
@@ -48,7 +52,18 @@ function entryFromRow(row: EntryRow): LibraryEntry {
     lastReadAt: row.last_read_at,
     inLibrary: row.in_library !== 0,
     details: parseDetails(row.details_json),
+    contentRating: row.content_rating ?? null,
+    anilistAdult: flag(row.anilist_adult),
+    sensitiveOverride: flag(row.user_sensitive_override),
   };
+}
+
+function flag(value: number | null | undefined): boolean | null {
+  return value === null || value === undefined ? null : value === 1;
+}
+
+function flagValue(value: boolean | null): number | null {
+  return value === null ? null : value ? 1 : 0;
 }
 
 function parseDetails(value: string | null): LibraryEntry['details'] {
@@ -78,7 +93,13 @@ export type NewEntry = Pick<LibraryEntry, 'canonicalTitle'> &
   Partial<
     Pick<
       LibraryEntry,
-      'altTitles' | 'coverUrl' | 'anilistId' | 'description' | 'status' | 'inLibrary'
+      | 'altTitles'
+      | 'coverUrl'
+      | 'anilistId'
+      | 'description'
+      | 'status'
+      | 'inLibrary'
+      | 'contentRating'
     >
   >;
 
@@ -96,12 +117,15 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     lastReadAt: null,
     inLibrary: input.inLibrary ?? true,
     details: null,
+    contentRating: input.contentRating ?? null,
+    anilistAdult: null,
+    sensitiveOverride: null,
   };
   if (!entry.canonicalTitle) throw new Error('Le titre est obligatoire.');
   await db.runAsync(
     `INSERT INTO library_entries(id, canonical_title, alt_titles_json, cover_url, anilist_id,
-      description, status, added_at, last_read_at, in_library)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      description, status, added_at, last_read_at, in_library, content_rating)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     entry.id,
     entry.canonicalTitle,
     JSON.stringify(entry.altTitles),
@@ -112,20 +136,57 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
     entry.addedAt,
     null,
     entry.inLibrary ? 1 : 0,
+    entry.contentRating,
   );
   return entry;
 }
 
-/** Bookmarked entries by default; `all` also returns manga only opened from a source. */
-export async function listLibraryEntries(
-  scope: 'library' | 'all' = 'library',
-): Promise<LibraryEntry[]> {
+/**
+ * Bookmarked entries by default; `all` also returns manga only opened from a source.
+ * Sensitive manga only when included: screens pass the privacy lock state, background
+ * work and backups always include them.
+ */
+export async function listLibraryEntries(options: {
+  scope?: 'library' | 'all';
+  includeSensitive: boolean;
+}): Promise<LibraryEntry[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<EntryRow>(
-    `SELECT * FROM library_entries ${scope === 'library' ? 'WHERE in_library = 1' : ''}
-     ORDER BY last_read_at DESC, added_at DESC`,
+    listEntriesSql(options.scope ?? 'library', options.includeSensitive),
   );
   return rows.map(entryFromRow);
+}
+
+/** The user's choice for one manga: sensitive, all audiences, or null for automatic. */
+export async function setSensitiveOverride(id: string, value: boolean | null): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE library_entries SET user_sensitive_override = ? WHERE id = ?',
+    flagValue(value),
+    id,
+  );
+}
+
+/** Stores the classification found on AniList and/or the sources (undefined = unchanged). */
+export async function setEntryClassification(
+  id: string,
+  input: { contentRating?: string | null; anilistAdult?: boolean | null },
+): Promise<void> {
+  const db = await getDatabase();
+  if (input.contentRating !== undefined) {
+    await db.runAsync(
+      'UPDATE library_entries SET content_rating = ? WHERE id = ?',
+      input.contentRating,
+      id,
+    );
+  }
+  if (input.anilistAdult !== undefined) {
+    await db.runAsync(
+      'UPDATE library_entries SET anilist_adult = ? WHERE id = ?',
+      flagValue(input.anilistAdult),
+      id,
+    );
+  }
 }
 
 /** Stores fetched details, and the synopsis when one was found. */
