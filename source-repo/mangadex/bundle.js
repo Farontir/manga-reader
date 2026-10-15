@@ -76,6 +76,9 @@
       coverUrl: coverOf(manga),
       description: localized(attributes.description),
       anilistId: Number.isInteger(anilistId) ? anilistId : undefined,
+      contentRating: allRatings.includes(attributes.contentRating)
+        ? attributes.contentRating
+        : undefined,
     };
   }
 
@@ -116,9 +119,14 @@
   const CONTENT_CATEGORIES = [
     { id: 'rating:safe', title: 'Tout public', ratings: ['safe'] },
     { id: 'rating:suggestive', title: 'Suggestif', ratings: ['suggestive'] },
-    { id: 'rating:erotica', title: 'Érotique', ratings: ['erotica'] },
-    { id: 'rating:pornographic', title: 'Pornographique', ratings: ['pornographic'] },
-    { id: 'rating:adult', title: 'Adult', ratings: ['erotica', 'pornographic'] },
+    { id: 'rating:erotica', title: 'Érotique', ratings: ['erotica'], sensitive: true },
+    {
+      id: 'rating:pornographic',
+      title: 'Pornographique',
+      ratings: ['pornographic'],
+      sensitive: true,
+    },
+    { id: 'rating:adult', title: 'Adult', ratings: ['erotica', 'pornographic'], sensitive: true },
   ];
 
   // Listing ids understood by catalog(): a sort above, 'trending', a MangaDex tag,
@@ -162,7 +170,8 @@
         .map((tag) => ({ id: 'tag:' + tag.id, title: localized(tag.attributes.name) }))
         .filter((tag) => tag.title)
         .sort((a, b) => a.title.localeCompare(b.title));
-      categories = CONTENT_CATEGORIES.map(({ id, title }) => ({ id, title })).concat(tags);
+      categories = CONTENT_CATEGORIES.map(({ id, title, sensitive }) =>
+        sensitive ? { id, title, sensitive } : { id, title }).concat(tags);
     }
     return categories;
   }

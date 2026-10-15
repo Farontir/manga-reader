@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "org.mangadex.en",
   "name": "MangaDex English",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["api.mangadex.org"],
   "bundle": "./bundle.js",
-  "sha256": "57ca2693ba3fca68e3b92438ecb26b0ae5f4e22e7fae0369025d90beabfd8d95"
+  "sha256": "269ea57a25b39f839f3e8a22f2b2ef5ba19c92be1ebc2423beddf23a39ebbea6"
 }
