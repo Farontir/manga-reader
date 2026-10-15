@@ -15,6 +15,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  getLibraryEntry,
   getLocalChapter,
   listBindings,
   listKnownChapters,
@@ -22,6 +23,7 @@ import {
   listProgress,
   markBindingHealth,
   saveProgress,
+  type LibraryEntry,
 } from '../../db';
 import {
   chapterLabel,
@@ -44,6 +46,7 @@ import { ChapterTransition, type TransitionState } from '../../ui/components/Cha
 import { WebtoonReader } from '../../ui/components/WebtoonReader';
 import { ZoomablePage, type EdgeDirection } from '../../ui/components/ZoomablePage';
 import { selectionFeedback, successFeedback } from '../../ui/haptics';
+import { useSensitiveGuard } from '../../ui/privacy';
 import { useReaderState } from '../../ui/store';
 import { useTheme } from '../../ui/useTheme';
 
@@ -63,6 +66,13 @@ export default function ReaderScreen() {
     sourceId?: string;
     chapterId?: string;
   }>();
+  const [entry, setEntry] = useState<LibraryEntry | null>(null);
+  useEffect(() => {
+    void getLibraryEntry(params.id).then(setEntry);
+  }, [params.id]);
+  // A sensitive manga hidden again (app locked in the background): back to the library.
+  const hidden = useSensitiveGuard(entry);
+  if (hidden) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
   return (
     <ReaderContent
       key={JSON.stringify([params.id, params.chapter, params.sourceId, params.chapterId])}

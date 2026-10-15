@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActionSheetIOS, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   getLibraryEntry,
@@ -17,6 +17,7 @@ import {
   setBindingPreferred,
   countChaptersBySource,
   setInLibrary,
+  setSensitiveOverride,
   setSetting,
   type InstalledSource,
   type LibraryEntry,
@@ -35,9 +36,11 @@ import { refreshEntryChapters } from '../../services/librarySources';
 import { refreshEntryDetails } from '../../services/entryDetails';
 import { detailsLine } from '../../services/mangaDetails';
 import { resumeTarget } from '../../services/resume';
+import { isSensitive } from '../../services/sensitive';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
 import { selectionFeedback, successFeedback } from '../../ui/haptics';
+import { useSensitiveGuard } from '../../ui/privacy';
 import { useTheme } from '../../ui/useTheme';
 
 const CHAPTER_ORDER_KEY = 'chapters.order';
@@ -114,6 +117,9 @@ export default function EntryScreen() {
       .catch(() => undefined);
   }, [entry, reload]);
 
+  // Hidden again (locked in the background, or just marked sensitive): back to the library.
+  const hidden = useSensitiveGuard(entry);
+
   async function refresh() {
     setRefreshing(true);
     try {
@@ -179,6 +185,25 @@ export default function EntryScreen() {
     }
   }
 
+  // "⋯" menu: the user's own classification, which overrides the automatic one.
+  function showActions() {
+    if (!entry) return;
+    const sensitive = isSensitive(entry);
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [sensitive ? 'Marquer comme tout public' : 'Marquer comme sensible', 'Annuler'],
+        cancelButtonIndex: 1,
+      },
+      (index) => {
+        if (index !== 0) return;
+        void setSensitiveOverride(entry.id, !sensitive).then(() => {
+          selectionFeedback();
+          reload();
+        });
+      },
+    );
+  }
+
   async function toggleBookmark() {
     if (!entry) return;
     const next = !entry.inLibrary;
@@ -212,10 +237,10 @@ export default function EntryScreen() {
   );
   const shownChapters = ascending ? [...chapters].reverse() : chapters;
 
-  if (!entry)
+  if (!entry || hidden)
     return (
       <Screen>
-        <Text style={{ color: theme.secondary, padding: 24 }}>Chargement…</Text>
+        {hidden ? null : <Text style={{ color: theme.secondary, padding: 24 }}>Chargement…</Text>}
       </Screen>
     );
   return (
@@ -223,23 +248,33 @@ export default function EntryScreen() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                entry.inLibrary ? 'Retirer de la bibliothèque' : 'Ajouter à la bibliothèque'
-              }
-              accessibilityState={{ selected: entry.inLibrary }}
-              hitSlop={10}
-              onPress={() => {
-                void toggleBookmark();
-              }}
-            >
-              <Ionicons
-                name={entry.inLibrary ? 'bookmark' : 'bookmark-outline'}
-                size={24}
-                color={theme.accent}
-              />
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Plus d’actions"
+                hitSlop={10}
+                onPress={showActions}
+              >
+                <Ionicons name="ellipsis-horizontal-circle" size={25} color={theme.accent} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  entry.inLibrary ? 'Retirer de la bibliothèque' : 'Ajouter à la bibliothèque'
+                }
+                accessibilityState={{ selected: entry.inLibrary }}
+                hitSlop={10}
+                onPress={() => {
+                  void toggleBookmark();
+                }}
+              >
+                <Ionicons
+                  name={entry.inLibrary ? 'bookmark' : 'bookmark-outline'}
+                  size={24}
+                  color={theme.accent}
+                />
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -503,6 +538,7 @@ export default function EntryScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { alignItems: 'center', flexDirection: 'row', gap: 18 },
   list: { padding: 20, paddingBottom: 50 },
   hero: { flexDirection: 'row', gap: 18, marginBottom: 20 },
   cover: { borderRadius: 12, height: 150, width: 106 },
