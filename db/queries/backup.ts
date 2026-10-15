@@ -28,6 +28,10 @@ export async function exportBackup(): Promise<BackupSnapshot> {
   };
 }
 
+function flagValue(value: boolean | null | undefined): number | null {
+  return typeof value === 'boolean' ? (value ? 1 : 0) : null;
+}
+
 export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
   const mappedIds = new Map<string, string>();
   for (const entry of snapshot.entries) {
@@ -42,11 +46,16 @@ export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
       if (!id) continue;
       await tx.runAsync(
         `INSERT INTO library_entries(id, canonical_title, alt_titles_json, cover_url, anilist_id,
-          description, status, added_at, last_read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          description, status, added_at, last_read_at, content_rating, anilist_adult,
+          user_sensitive_override) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET last_read_at = CASE
            WHEN library_entries.last_read_at IS NULL OR
              excluded.last_read_at > library_entries.last_read_at THEN excluded.last_read_at
-           ELSE library_entries.last_read_at END`,
+           ELSE library_entries.last_read_at END,
+           content_rating = COALESCE(library_entries.content_rating, excluded.content_rating),
+           anilist_adult = COALESCE(library_entries.anilist_adult, excluded.anilist_adult),
+           user_sensitive_override = COALESCE(library_entries.user_sensitive_override,
+             excluded.user_sensitive_override)`,
         id,
         entry.canonicalTitle,
         JSON.stringify(entry.altTitles),
@@ -56,6 +65,10 @@ export async function importBackup(snapshot: BackupSnapshot): Promise<number> {
         entry.status,
         entry.addedAt,
         entry.lastReadAt,
+        // Backups made before the classification have none of these three fields.
+        typeof entry.contentRating === 'string' ? entry.contentRating : null,
+        flagValue(entry.anilistAdult),
+        flagValue(entry.sensitiveOverride),
       );
     }
     for (const binding of snapshot.bindings) {
