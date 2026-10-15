@@ -1,3 +1,4 @@
+import { isContentRating, isSensitiveGenre } from '../services/sensitive';
 import type {
   SourceCatalogPage,
   SourceDiscover,
@@ -49,6 +50,7 @@ export function parseManga(value: unknown): SourceManga | null {
     anilistId: typeof data.anilistId === 'number' ? data.anilistId : undefined,
     ...optionalList('genres', data.genres),
     ...optionalList('authors', data.authors),
+    ...(isContentRating(data.contentRating) ? { contentRating: data.contentRating } : {}),
   };
 }
 
@@ -99,8 +101,21 @@ export function parseDiscover(value: unknown): SourceDiscover {
       .map((section) => parseSection(section))
       .filter((section): section is SourceSection => !!section && section.items.length > 0)
       .slice(0, MAX_SECTIONS),
-    genres: parseOptions(data.genres, MAX_GENRES) as SourceGenre[],
+    genres: parseGenres(data.genres),
   };
+}
+
+/** Genres with their sensitive flag: declared by the source, or found from the name. */
+function parseGenres(value: unknown): SourceGenre[] {
+  const declared = new Set(
+    (Array.isArray(value) ? value : [])
+      .map(record)
+      .filter((genre) => genre?.sensitive === true)
+      .map((genre) => string(genre?.id)),
+  );
+  return parseOptions(value, MAX_GENRES).map((genre) =>
+    declared.has(genre.id) || isSensitiveGenre(genre.title) ? { ...genre, sensitive: true } : genre,
+  );
 }
 
 const MAX_PAGE_ITEMS = 100;

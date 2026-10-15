@@ -7,6 +7,8 @@ export type SourceManga = {
   anilistId?: number;
   genres?: string[];
   authors?: string[];
+  /** Per-title rating (MangaDex values); without it, sensitive genres decide. */
+  contentRating?: 'safe' | 'suggestive' | 'erotica' | 'pornographic';
 };
 
 export type SourceChapter = {
@@ -40,8 +42,11 @@ export type SourceSection = { title: string; items: SourceManga[]; more?: string
 /** A way to order a source's full catalogue, offered by the source itself. */
 export type SourceSort = { id: string; title: string };
 
-/** A genre listed on a source's Discover page; `id` is a listing id for `catalog()`. */
-export type SourceGenre = { id: string; title: string };
+/**
+ * A genre listed on a source's Discover page; `id` is a listing id for `catalog()`.
+ * `sensitive` categories are hidden while sensitive content is.
+ */
+export type SourceGenre = { id: string; title: string; sensitive?: boolean };
 
 /** Everything a source's Discover page shows. */
 export type SourceDiscover = { sections: SourceSection[]; genres: SourceGenre[] };

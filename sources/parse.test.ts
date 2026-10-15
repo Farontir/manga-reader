@@ -98,6 +98,29 @@ describe('source result parsing', () => {
     });
   });
 
+  it('keeps title ratings and flags sensitive categories', () => {
+    expect(parseManga({ id: '1', title: 'A', contentRating: 'erotica' })?.contentRating).toBe(
+      'erotica',
+    );
+    expect(parseManga({ id: '1', title: 'A', contentRating: 'adult' })).not.toHaveProperty(
+      'contentRating',
+    );
+    expect(
+      parseDiscover({
+        sections: [],
+        genres: [
+          { id: 'rating:x', title: 'Classé X', sensitive: true },
+          { id: 'genre:smut', title: 'Smut' },
+          { id: 'genre:romance', title: 'Romance', sensitive: 'yes' },
+        ],
+      }).genres,
+    ).toEqual([
+      { id: 'rating:x', title: 'Classé X', sensitive: true },
+      { id: 'genre:smut', title: 'Smut', sensitive: true },
+      { id: 'genre:romance', title: 'Romance' },
+    ]);
+  });
+
   it('keeps large source category lists including Adult', () => {
     const genres = Array.from({ length: 284 }, (_, index) => ({
       id: index === 1 ? 'genre:adult' : `genre:category-${index}`,
@@ -105,6 +128,6 @@ describe('source result parsing', () => {
     }));
     const parsed = parseDiscover({ sections: [], genres });
     expect(parsed.genres).toHaveLength(284);
-    expect(parsed.genres[1]).toEqual({ id: 'genre:adult', title: 'Adult' });
+    expect(parsed.genres[1]).toEqual({ id: 'genre:adult', title: 'Adult', sensitive: true });
   });
 });
