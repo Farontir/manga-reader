@@ -248,7 +248,7 @@ fichier hors `db/` n'importe `expo-sqlite` ni n'écrit du SQL.
 - Catégories/tags utilisateur → v2
 - Sync entre appareils via serveur perso → v2
 - Mode incognito → v2
-- Sources NSFW → v2 avec gating
+- Sources NSFW → ~~v2 avec gating~~ gating livré en 1.0.8, voir le journal (§9)
 
 ## 8. Risques identifiés
 
@@ -256,3 +256,31 @@ fichier hors `db/` n'importe `expo-sqlite` ni n'écrit du SQL.
 - **Performance reader** : tester tôt sur des chapitres de 200+ pages, anticiper OOM
 - **Cloudflare** : prévoir une solution pour les sites protégés (header tweaks d'abord, WebView fallback ensuite)
 - **AniList rate limit** : 90 req/min, prévoir cache local des matches
+
+## 9. Journal des décisions
+
+### 2026-10-15 — Masquage du contenu sensible
+
+- **Décision** : le contenu sensible est masqué par défaut partout (bibliothèque, compteurs,
+  recherche, Découvrir, catalogue, catégories). Déverrouillage pour la session par appui long
+  (~1 s) sur le titre « Bibliothèque » + Face ID (repli sur le code de l'iPhone), reverrouillage
+  par un nouvel appui long ou dès le passage en arrière-plan. Réglage « Masquer le contenu
+  sensible » (Réglages → Confidentialité), activé par défaut ; le désactiver exige Face ID.
+- **Classification** (règle unique `isSensitive`, doublée en SQL dans `db/queries/sensitiveSql.ts`
+  et testée contre elle) : choix de l'utilisateur s'il existe, sinon sensible si une source
+  classe le titre `erotica`/`pornographic` ou si AniList le marque `isAdult`. Une source sans
+  classification par titre est jugée sur ses genres (Adult, Hentai, Smut, Érotique,
+  Pornographique ; pas Ecchi ni Mature).
+- **Données** : migration 010 additive (`content_rating`, `anilist_adult`,
+  `user_sensitive_override` sur `library_entries`). Le filtre est en SQL dans `db/`
+  (`includeSensitive`) pour la bibliothèque et les compteurs ; les résultats en direct des
+  sources sont filtrés dans l'UI avec la même règle. Sauvegarde, progression et
+  téléchargements ne sont jamais filtrés.
+- **Verrou** : état `unlocked` en mémoire (Zustand) uniquement, jamais persisté. Écran neutre
+  par-dessus l'app quand elle est `inactive` (aperçu du sélecteur d'apps).
+- **Écarts assumés** : pas d'historique ni de notifications dans l'app à ce jour, rien à
+  filtrer de ce côté ; iPhone sans code configuré → le geste déverrouille sans
+  authentification (rien à vérifier). Seule dépendance ajoutée : `expo-local-authentication`
+  (module natif → nouveau build obligatoire, pas d'OTA).
+- **App Store (2.3.1)** : geste et réglage décrits dans `docs/store/review-notes.md`, à
+  coller dans les notes de review.
