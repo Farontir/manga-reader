@@ -80,6 +80,21 @@ export default function SettingsScreen() {
         <View style={[styles.menu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Pressable
             accessibilityRole="button"
+            onPress={() => router.push('/profile')}
+            style={styles.menuRow}
+          >
+            <Ionicons name="ribbon-outline" size={22} color={theme.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuTitle, { color: theme.foreground }]}>Profil</Text>
+              <Text style={{ color: theme.secondary, fontSize: 13 }}>
+                Rang, temps de lecture et statistiques
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.secondary} />
+          </Pressable>
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <Pressable
+            accessibilityRole="button"
             onPress={() => router.push('/sources')}
             style={styles.menuRow}
           >
