@@ -139,6 +139,8 @@ export async function inspectSourceHealth(
     if (!response.ok) return 'ok'; // A custom repository need not publish status.json.
     const status = record((await response.json()) as unknown);
     if (!status || status.sourceId !== source.id) return 'degraded';
+    // The remote monitor may be denied while this device's health() just succeeded.
+    if (status.status === 'down' && status.httpStatus === 403) return 'ok';
     if (status.status !== 'ok') return 'degraded';
     const checkedAt = typeof status.checkedAt === 'string' ? Date.parse(status.checkedAt) : NaN;
     if (!Number.isFinite(checkedAt) || Date.now() - checkedAt > 24 * 60 * 60 * 1000) {

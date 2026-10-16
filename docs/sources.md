@@ -267,6 +267,8 @@ suite avec **Réglages → Sources → Tout mettre à jour**.
 "status": "ok" }`. Le workflow `.github/workflows/source-health.yml` le met à jour toutes
   les 6 heures à partir de `scripts/check-source-repo.mjs`. Une source dont le dernier
   contrôle date de plus de 24 h, ou n'est pas `ok`, est affichée « À surveiller ».
+  Si ce robot reçoit HTTP 403 mais que `health()` réussit directement sur l'appareil,
+  la source reste affichée « Opérationnelle » : le blocage concerne alors le robot.
 
 ## 8. Tester
 
