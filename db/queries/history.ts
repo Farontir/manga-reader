@@ -3,6 +3,7 @@ import { HIDE_FROM_HISTORY_SQL, historySql } from './historySql';
 
 export type HistoryItem = {
   entryId: string;
+  /** The chapter of this manga opened most recently. */
   chapterNumber: number;
   pageIndex: number;
   totalPages: number | null;
@@ -10,11 +11,13 @@ export type HistoryItem = {
   completed: boolean;
   title: string;
   coverUrl: string | null;
+  /** The next known chapter, to continue with once this one is finished. */
+  nextChapter: number | null;
 };
 
 type HistoryRow = Omit<HistoryItem, 'completed'> & { completed: number };
 
-/** Chapters opened most recently, newest first. */
+/** One line per manga, the most recently read first. */
 export async function listHistory(options: {
   includeSensitive: boolean;
   limit?: number;
@@ -22,12 +25,13 @@ export async function listHistory(options: {
   const db = await getDatabase();
   const rows = await db.getAllAsync<HistoryRow>(
     historySql(options.includeSensitive),
-    options.limit ?? 300,
+    options.limit ?? 200,
   );
   return rows.map((row) => ({ ...row, completed: row.completed === 1 }));
 }
 
-export async function hideFromHistory(entryId: string, chapterNumber: number): Promise<void> {
+/** Removes a manga from the history until it is read again. */
+export async function hideFromHistory(entryId: string): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync(HIDE_FROM_HISTORY_SQL, entryId, chapterNumber);
+  await db.runAsync(HIDE_FROM_HISTORY_SQL, new Date().toISOString(), entryId);
 }

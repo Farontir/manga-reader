@@ -15,7 +15,11 @@ import { useTheme } from '../../ui/useTheme';
 
 function chapterText(item: HistoryItem): string {
   const chapter = `Chapitre ${item.chapterNumber}`;
-  if (item.completed) return `${chapter} · terminé`;
+  if (item.completed) {
+    return item.nextChapter !== null
+      ? `${chapter} lu · suite : chapitre ${item.nextChapter}`
+      : `${chapter} lu · à jour`;
+  }
   return item.totalPages
     ? `${chapter} · page ${item.pageIndex + 1}/${item.totalPages}`
     : `${chapter} · page ${item.pageIndex + 1}`;
@@ -26,7 +30,7 @@ function timeText(value: string): string {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-/** Last chapters opened, grouped by day; a tap resumes reading. */
+/** One line per manga, the most recently read first, grouped by day; a tap resumes reading. */
 export default function HistoryScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -38,10 +42,24 @@ export default function HistoryScreen() {
   useFocusEffect(reload);
   const sections = useMemo(() => groupByDay(items), [items]);
 
+  // Back to the chapter in progress, on to the next one once it is finished, or to the
+  // manga page when there is nothing new to read.
+  function resume(item: HistoryItem) {
+    const chapter = item.completed ? item.nextChapter : item.chapterNumber;
+    if (chapter === null) {
+      router.push({ pathname: '/entry/[id]', params: { id: item.entryId } });
+      return;
+    }
+    router.push({
+      pathname: '/reader/[id]',
+      params: { id: item.entryId, chapter: String(chapter) },
+    });
+  }
+
   function showActions(item: HistoryItem) {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        title: `${item.title} · Chapitre ${item.chapterNumber}`,
+        title: item.title,
         options: ['Voir le manga', 'Retirer de l’historique', 'Annuler'],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 2,
@@ -49,7 +67,7 @@ export default function HistoryScreen() {
       (index) => {
         if (index === 0) router.push({ pathname: '/entry/[id]', params: { id: item.entryId } });
         if (index === 1) {
-          void hideFromHistory(item.entryId, item.chapterNumber).then(() => {
+          void hideFromHistory(item.entryId).then(() => {
             selectionFeedback();
             reload();
           });
@@ -65,14 +83,14 @@ export default function HistoryScreen() {
       </View>
       <SectionList
         sections={sections}
-        keyExtractor={(item) => `${item.entryId}:${item.chapterNumber}`}
+        keyExtractor={(item) => item.entryId}
         contentContainerStyle={sections.length ? styles.list : styles.emptyList}
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={
           <EmptyState
             icon="time-outline"
             title="Aucune lecture pour l’instant"
-            detail="Les chapitres que tu ouvres apparaîtront ici, du plus récent au plus ancien."
+            detail="Les mangas que tu lis apparaîtront ici, du plus récent au plus ancien."
           />
         }
         renderSectionHeader={({ section }) => (
@@ -82,12 +100,7 @@ export default function HistoryScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${item.title}, ${chapterText(item)}`}
-            onPress={() =>
-              router.push({
-                pathname: '/reader/[id]',
-                params: { id: item.entryId, chapter: String(item.chapterNumber) },
-              })
-            }
+            onPress={() => resume(item)}
             onLongPress={() => showActions(item)}
             style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
@@ -111,7 +124,13 @@ export default function HistoryScreen() {
             </View>
             <View style={styles.side}>
               <Text style={{ color: theme.secondary, fontSize: 12 }}>{timeText(item.readAt)}</Text>
-              <Ionicons name="play-circle" size={26} color={theme.accent} />
+              <Ionicons
+                name={
+                  item.completed && item.nextChapter === null ? 'chevron-forward' : 'play-circle'
+                }
+                size={26}
+                color={theme.accent}
+              />
             </View>
           </Pressable>
         )}
