@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "net.fanfox.en",
+  "name": "Fanfox",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "adult",
+  "allowedHosts": ["fanfox.net", "m.fanfox.net"],
+  "bundle": "./bundle.js"
+}

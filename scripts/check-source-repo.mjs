@@ -96,6 +96,30 @@ const checks = [
     valid: (body) => /_originals_title_a/.test(body),
     format: 'text',
   },
+  {
+    directory: 'fanfox',
+    sourceId: 'net.fanfox.en',
+    url: 'https://fanfox.net/directory/',
+    options: {},
+    valid: (body) => /manga-list-1-list/.test(body),
+    format: 'text',
+  },
+  {
+    directory: 'weebcentral',
+    sourceId: 'com.weebcentral.en',
+    url: 'https://weebcentral.com/search/data?limit=32&offset=0',
+    options: {},
+    valid: (body) => /\/series\/[0-9A-Z]{26}\//.test(body),
+    format: 'text',
+  },
+  {
+    directory: 'sushiscan',
+    sourceId: 'net.sushiscan.fr',
+    url: 'https://sushiscan.net/catalogue/',
+    options: {},
+    valid: (body) => /class="bsx"/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);

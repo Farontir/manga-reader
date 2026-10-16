@@ -13,6 +13,9 @@ for (const name of [
   'mangaread',
   'webtoon-en',
   'webtoon-fr',
+  'fanfox',
+  'weebcentral',
+  'sushiscan',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "net.sushiscan.fr",
+  "name": "SushiScan",
+  "version": "1.0.0",
+  "language": "fr",
+  "contentRating": "adult",
+  "allowedHosts": ["sushiscan.net"],
+  "bundle": "./bundle.js"
+}

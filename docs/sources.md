@@ -163,9 +163,10 @@ Renvoie tous les chapitres lisibles :
 Renvoie les images dans l'ordre de lecture, en HTTPS :
 
 ```js
-['https://cdn.example.com/1.jpg', 'https://cdn.example.com/2.jpg']
-// ou, quand l'hébergeur exige des en-têtes :
-[{ url: 'https://cdn.example.com/1.jpg', headers: { Referer: 'https://example.com/' } }]
+['https://cdn.example.com/1.jpg', 'https://cdn.example.com/2.jpg'][
+  // ou, quand l'hébergeur exige des en-têtes :
+  { url: 'https://cdn.example.com/1.jpg', headers: { Referer: 'https://example.com/' } }
+];
 ```
 
 En-têtes acceptés pour les images : `Referer`, `Accept`, `Authorization`, `X-API-Key`. Les
@@ -263,7 +264,7 @@ suite avec **Réglages → Sources → Tout mettre à jour**.
 - `health()` est appelée par **Réglages → Sources → Vérifier les sources** et après chaque
   installation ou mise à jour.
 - `status.json`, à côté du manifeste, est facultatif : `{ "sourceId", "checkedAt",
-  "status": "ok" }`. Le workflow `.github/workflows/source-health.yml` le met à jour toutes
+"status": "ok" }`. Le workflow `.github/workflows/source-health.yml` le met à jour toutes
   les 6 heures à partir de `scripts/check-source-repo.mjs`. Une source dont le dernier
   contrôle date de plus de 24 h, ou n'est pas `ok`, est affichée « À surveiller ».
 
@@ -294,7 +295,7 @@ dossier publié.
 | `catalog(page, listing)` | non          | `{ items, hasMore, sorts }`                         |
 | `recommendations()`      | non (ancien) | `{ title, items }`                                  |
 
-Les onze sources installables suivent ce contrat. MangaDex fournit sa classification par
+Les quatorze sources installables suivent ce contrat. MangaDex fournit sa classification par
 titre directement depuis l'API. MangaKatana, Flame Comics et Komga transmettent les genres
 de leurs listes ; MangaBats et MangaKakalot les extraient des résumés quand ils sont
 présents. Asura Scans ne publie les genres que sur les fiches, et Pepper&Carrot déclare
@@ -303,4 +304,16 @@ sont approximées à partir de ses libellés relatifs (« 3 hours ago »). Manga
 les genres des fiches et les catégories de son catalogue. WEBTOON English et Français
 exposent les Originals, leurs catégories et les épisodes librement consultables ; une
 liste de chapitres longue est limitée aux 24 premières pages du site pour respecter le
-délai d'exécution du bac à sable.
+délai d'exécution du bac à sable. Fanfox, WeebCentral et SushiScan exposent leurs
+catalogues, genres et chapitres publics. Fanfox lit toutes les images depuis le mode
+défilement de son site mobile en une seule réponse. Les listes très longues de WeebCentral peuvent atteindre 3 millions de
+caractères ; cette limite du bridge ne s'applique qu'à sa source. Les autres réponses
+restent limitées à 2 millions de caractères.
+
+Les autres domaines examinés pour ce lot ne sont pas proposés comme sources installables :
+`mangakiss.net` affiche un catalogue mais la fiche vérifiée n'expose aucun chapitre public ;
+`comick.dev` documente une API de catalogue, mais les points de détail et de chapitres
+retournent une page de vérification HTTP 403 dans le bridge ; MANGA Plus dispose d'un
+lecteur officiel, mais son interface actuelle n'a pas fourni de liste de pages HTTPS
+directement compatible avec `pages()`. Les ajouter sans lecture vérifiée créerait des
+sources trompeuses.

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.weebcentral.en",
+  "name": "WeebCentral",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "adult",
+  "allowedHosts": ["weebcentral.com"],
+  "bundle": "./bundle.js"
+}

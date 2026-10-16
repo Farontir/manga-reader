@@ -17,6 +17,9 @@ const descriptions = {
   mangaread: 'Catalogue, fiches et chapitres publics de MangaRead.',
   'webtoon-en': 'Épisodes publics WEBTOON Originals en anglais.',
   'webtoon-fr': 'Épisodes publics WEBTOON Originals en français.',
+  fanfox: 'Catalogue et chapitres publics de Fanfox.',
+  weebcentral: 'Catalogue et chapitres publics de WeebCentral.',
+  sushiscan: 'Catalogue et chapitres publics de SushiScan en français.',
   peppercarrot: 'Pepper&Carrot, le webcomic libre de David Revoy (CC BY 4.0).',
 };
 

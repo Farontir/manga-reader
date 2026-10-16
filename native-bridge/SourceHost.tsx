@@ -127,7 +127,8 @@ export function SourceHost() {
             signal: controller.signal,
           });
           const responseBody = await response.text();
-          if (responseBody.length > 2_000_000) throw new Error('Réponse trop volumineuse.');
+          const maxBodyLength = source.id === 'com.weebcentral.en' ? 3_000_000 : 2_000_000;
+          if (responseBody.length > maxBodyLength) throw new Error('Réponse trop volumineuse.');
           send({
             type: 'fetchResult',
             id,

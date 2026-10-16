@@ -16,6 +16,9 @@ for (const name of [
   'mangaread',
   'webtoon-en',
   'webtoon-fr',
+  'fanfox',
+  'weebcentral',
+  'sushiscan',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   if (
@@ -29,6 +32,9 @@ for (const name of [
       'mangaread',
       'webtoon-en',
       'webtoon-fr',
+      'fanfox',
+      'weebcentral',
+      'sushiscan',
     ].includes(name)
   ) {
     await build({
@@ -67,6 +73,9 @@ for (const name of [
       mangaread: 'MangaRead',
       'webtoon-en': 'WEBTOON English',
       'webtoon-fr': 'WEBTOON Français',
+      fanfox: 'Fanfox',
+      weebcentral: 'WeebCentral',
+      sushiscan: 'SushiScan',
     }[name];
     const notices = [`Third-party notices for the ${label} source bundle.`];
     for (const packagePath of packages) {
