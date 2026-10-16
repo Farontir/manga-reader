@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.mangakakalot.gg.en",
   "name": "MangaKakalot",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["www.mangakakalot.gg", "www.mangabats.com"],
   "bundle": "./bundle.js",
-  "sha256": "f0e888db1d8003fa2f47010fc8558bfae17087194a0f16d8682bcf24226fd340"
+  "sha256": "3c406ffa1d1340303d34f1b2083b13b863a8810524f14cc52197d043638a791a"
 }

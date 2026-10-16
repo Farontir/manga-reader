@@ -11,6 +11,7 @@ Pour écrire ou modifier une source, voir [docs/sources.md](../docs/sources.md) 
 4. Coller l'URL du dossier voulu dans l'onglet Sources de l'app.
 
 Le fichier `manifest.json` contient le SHA-256 du bundle. L'app vérifie cette empreinte avant installation. Les extensions n'ont pas accès à la base SQLite ; leurs requêtes passent par le bridge `app.fetch` limité aux domaines déclarés.
+Les sources transmettent les genres et la classification d'un titre lorsque le site les fournit. Les catégories explicitement adultes sont signalées comme sensibles ; « Ecchi » et « Mature » ne le sont pas à eux seuls, conformément à la règle de confidentialité de l'application. Les dates de chapitre viennent du site ; celles d'Asura Scans sont déduites de son temps relatif et sont donc approximatives.
 Les sources Pepper&Carrot, Asura Scans, MangaBats, MangaKakalot, Flame Comics et MangaKatana publient les notices de leurs dépendances HTML dans leurs fichiers `THIRD_PARTY_LICENSES.txt`.
 
 Ce dossier est publié sur GitHub Pages depuis [Farontir/manga-reader](https://github.com/Farontir/manga-reader). URLs à coller dans **Sources → Installer une source** :

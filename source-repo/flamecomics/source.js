@@ -1,5 +1,6 @@
 /* global app */
 import { load } from 'cheerio';
+import { category, ratingFromGenres } from '../../scripts/source-classification.js';
 
 const base = 'https://flamecomics.xyz';
 const cdn = 'https://cdn.flamecomics.xyz/uploads/images/series';
@@ -37,10 +38,21 @@ function coverUrl(row) {
 }
 
 function item(row) {
+  const genres = [
+    ...new Set(
+      [...(row.categories ?? []), ...(row.tags ?? [])]
+        .filter((value) => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, 30);
+  const rating = ratingFromGenres(genres);
   return {
     id: `/series/${row.series_id}`,
     title: row.title.trim(),
     coverUrl: coverUrl(row),
+    genres,
+    ...(rating ? { contentRating: rating } : {}),
   };
 }
 
@@ -110,7 +122,7 @@ function genreList(rows) {
   }
   return [...counts.values()]
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
-    .map(({ id, title }) => ({ id, title }));
+    .map(({ id, title }) => category(id, title));
 }
 
 globalThis.source = {
@@ -195,14 +207,7 @@ globalThis.source = {
       .text()
       .trim()
       .slice(0, 4000);
-    const genres = [
-      ...new Set(
-        (row.tags ?? row.categories ?? [])
-          .filter((tag) => typeof tag === 'string')
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-      ),
-    ].slice(0, 30);
+    const manga = item(row);
     const authors = [
       ...new Set(
         [
@@ -214,7 +219,7 @@ globalThis.source = {
           .filter(Boolean),
       ),
     ].slice(0, 20);
-    return { ...item(row), description: description || undefined, genres, authors };
+    return { ...manga, description: description || undefined, authors };
   },
 
   async chapters(id) {

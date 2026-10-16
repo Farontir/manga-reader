@@ -1,5 +1,6 @@
 /* global app */
 import { load } from 'cheerio';
+import { category, ratingFromGenres } from '../../scripts/source-classification.js';
 
 const base = 'https://asurascans.com';
 const imageHost = 'cdn.asurascans.com';
@@ -66,7 +67,7 @@ function browseGenres($) {
       const slug = genre?.slug?.[1];
       const title = genre?.name?.[1];
       return typeof slug === 'string' && /^[a-z0-9-]+$/.test(slug) && typeof title === 'string'
-        ? [{ id: `genre:${slug}`, title }]
+        ? [category(`genre:${slug}`, title)]
         : [];
     });
   } catch {
@@ -84,6 +85,28 @@ function creditedName($, label) {
     .first()
     .text()
     .trim();
+}
+
+function chapterDate(value) {
+  const label = value.trim().toLowerCase();
+  const match = /^(\d+)\s+(minute|hour|day|week|month|year)s? ago$/.exec(label);
+  if (match) {
+    const milliseconds = {
+      minute: 60_000,
+      hour: 3_600_000,
+      day: 86_400_000,
+      week: 604_800_000,
+      month: 2_592_000_000,
+      year: 31_536_000_000,
+    }[match[2]];
+    const time = Date.now() - Number(match[1]) * milliseconds;
+    return Number.isFinite(time) && Math.abs(time) < 8.64e15
+      ? new Date(time).toISOString()
+      : undefined;
+  }
+  if (label === 'just now') return new Date().toISOString();
+  const absolute = Date.parse(value);
+  return Number.isFinite(absolute) ? new Date(absolute).toISOString() : undefined;
 }
 
 globalThis.source = {
@@ -163,6 +186,7 @@ globalThis.source = {
     const authors = [
       ...new Set([creditedName($, 'Author'), creditedName($, 'Artist')].filter(Boolean)),
     ];
+    const rating = ratingFromGenres(genres);
     return {
       id: path,
       title,
@@ -171,6 +195,7 @@ globalThis.source = {
       description: description || undefined,
       genres,
       authors,
+      ...(rating ? { contentRating: rating } : {}),
     };
   },
 
@@ -187,11 +212,13 @@ globalThis.source = {
       if (!Number.isFinite(number)) return;
       seen.add(chapterId);
       const subtitle = $(link).find('span.block.truncate').first().text().trim();
+      const publishedAt = chapterDate($(link).find('span.text-sm').last().text());
       chapters.push({
         id: chapterId,
         number,
         title: subtitle ? `Chapitre ${number} · ${subtitle}` : `Chapitre ${number}`,
         language: 'en',
+        publishedAt,
       });
     });
     return chapters;

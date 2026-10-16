@@ -1,5 +1,6 @@
 /* global app */
 import { load } from 'cheerio';
+import { category, ratingFromGenres } from '../../scripts/source-classification.js';
 
 const base = 'https://mangakatana.com';
 const referer = `${base}/`;
@@ -84,10 +85,13 @@ function cardItems($, genre) {
       return;
     if (genre && !genres.some((value) => genre.includes(value.toLowerCase()))) return;
     seen.add(id);
+    const rating = ratingFromGenres(genres);
     items.push({
       id,
       title,
       coverUrl: coverUrl(card.find('.wrap_img img').first().attr('src')),
+      genres,
+      ...(rating ? { contentRating: rating } : {}),
     });
   });
   return items;
@@ -104,7 +108,7 @@ function genresFrom($) {
     if (match && title && !excludedGenres.has(match[1]) && !genres.has(match[1]))
       genres.set(match[1], title);
   });
-  return [...genres].map(([slug, title]) => ({ id: `genre:${slug}`, title }));
+  return [...genres].map(([slug, title]) => category(`genre:${slug}`, title));
 }
 
 function hasNextPage($, page, prefix = '') {
@@ -201,6 +205,7 @@ globalThis.source = {
           .filter(Boolean),
       ),
     ].slice(0, 20);
+    const rating = ratingFromGenres(genres);
     return {
       id: path,
       title,
@@ -208,6 +213,7 @@ globalThis.source = {
       description: description || undefined,
       genres,
       authors,
+      ...(rating ? { contentRating: rating } : {}),
     };
   },
 

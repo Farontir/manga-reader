@@ -33,6 +33,7 @@ async function series() {
     description,
     genres: ['Fantasy'],
     authors: ['David Revoy'],
+    contentRating: 'safe',
     coverUrl: cover ? new URL(cover, base).toString() : undefined,
   };
 }

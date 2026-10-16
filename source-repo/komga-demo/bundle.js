@@ -20,13 +20,41 @@
     return JSON.parse(response.body);
   }
 
+  // Mirror the explicit sensitive labels in services/sensitive.ts. Komga age
+  // ratings describe audience age, not MangaDex's sexual-content scale.
+  function ratingFromGenres(genres) {
+    let rating;
+    for (const value of genres) {
+      const genre = String(value)
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .trim()
+        .toLowerCase();
+      if (genre === 'hentai' || genre === 'pornographic' || genre === 'pornographique') {
+        return 'pornographic';
+      }
+      if (['adult', 'erotica', 'erotique', 'smut'].includes(genre)) rating = 'erotica';
+    }
+    return rating;
+  }
+
   function toManga(series) {
-    const genres = (series.metadata && series.metadata.genres) || [];
+    const metadata = series.metadata || {};
+    const genres = (metadata.genres || [])
+      .filter((genre) => typeof genre === 'string' && genre.trim())
+      .slice(0, 30);
+    const altTitles = (metadata.alternateTitles || [])
+      .map((entry) => entry && entry.title)
+      .filter((title) => typeof title === 'string' && title.trim())
+      .slice(0, 30);
+    const rating = ratingFromGenres(genres);
     return {
       id: series.id,
-      title: (series.metadata && series.metadata.title) || series.name || series.id,
-      description: (series.metadata && series.metadata.summary) || undefined,
-      genres: genres.filter((genre) => typeof genre === 'string' && genre.trim()).slice(0, 30),
+      title: metadata.title || series.name || series.id,
+      description: metadata.summary || undefined,
+      genres,
+      altTitles,
+      ...(rating ? { contentRating: rating } : {}),
     };
   }
 
@@ -41,7 +69,11 @@
     }
     if (!Array.isArray(values)) return [];
     return [...new Set(values.filter((value) => typeof value === 'string' && value.trim()))].map(
-      (value) => ({ id: 'genre:' + value, title: value }),
+      (value) => ({
+        id: 'genre:' + value,
+        title: value,
+        ...(ratingFromGenres([value]) ? { sensitive: true } : {}),
+      }),
     );
   }
 
@@ -135,6 +167,9 @@
             number: number,
             title: book.metadata.title || 'Livre ' + number,
             language: 'en',
+            publishedAt: /^\d{4}-\d{2}-\d{2}$/.test(book.metadata.releaseDate || '')
+              ? book.metadata.releaseDate
+              : undefined,
           },
         ];
       });

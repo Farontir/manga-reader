@@ -1,5 +1,6 @@
 /* global app */
 import { load } from 'cheerio';
+import { category, ratingFromGenres } from '../../scripts/source-classification.js';
 
 const base = 'https://www.mangabats.com';
 const referer = `${base}/`;
@@ -68,7 +69,7 @@ async function document(path) {
   return load(response.body);
 }
 
-function cardItems($) {
+function cardItems($, listingGenre) {
   const items = [];
   const seen = new Set();
   $('a.cover[href*="/manga/"] img').each((_, image) => {
@@ -78,7 +79,22 @@ function cardItems($) {
     if (!id || !title || seen.has(id)) return;
     seen.add(id);
     const coverUrl = imageUrl(cover.attr('data-src') || cover.attr('src'));
-    items.push({ id, title, coverUrl: coverUrl ?? undefined });
+    const summary = cover.closest('a').parent().find('p').first().text();
+    const genreText = /\bcovering in (.{1,250}?) genres?\b/i.exec(summary)?.[1];
+    const genres = genreText
+      ? genreText
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [];
+    const rating = ratingFromGenres([...genres, listingGenre]);
+    items.push({
+      id,
+      title,
+      coverUrl: coverUrl ?? undefined,
+      ...(genres.length ? { genres } : {}),
+      ...(rating ? { contentRating: rating } : {}),
+    });
   });
   return items;
 }
@@ -95,7 +111,7 @@ function genresFrom($) {
     const title = $(link).text().replace(/\s+/g, ' ').trim();
     if (!title || excludedGenres.has(slug.toLowerCase()) || seen.has(slug)) return;
     seen.add(slug);
-    genres.push({ id: `genre:${slug}`, title });
+    genres.push(category(`genre:${slug}`, title));
   });
   return genres;
 }
@@ -120,7 +136,8 @@ function mangaCredits($) {
   ]
     .filter(Boolean)
     .slice(0, 30);
-  return { genres, authors: author ? [author] : [] };
+  const rating = ratingFromGenres(genres);
+  return { genres, authors: author ? [author] : [], ...(rating ? { contentRating: rating } : {}) };
 }
 
 function hasNextPage($, path, page) {
@@ -145,7 +162,7 @@ async function exactTitle(query) {
   const title = $('h1').first().text().trim();
   if (!title || slugify(title) !== slug) return null;
   const coverUrl = imageUrl($('meta[property="og:image"]').attr('content'));
-  return { id: `/manga/${slug}`, title, coverUrl: coverUrl ?? undefined };
+  return { id: `/manga/${slug}`, title, coverUrl: coverUrl ?? undefined, ...mangaCredits($) };
 }
 
 globalThis.source = {
@@ -243,7 +260,7 @@ globalThis.source = {
         : '/manga-list/hot-manga';
     const $ = await document(`${path}${current > 1 ? `?page=${current}` : ''}`);
     return {
-      items: cardItems($).slice(0, 30),
+      items: cardItems($, genre).slice(0, 30),
       hasMore: hasNextPage($, path, current),
       sorts,
     };
