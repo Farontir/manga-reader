@@ -1,6 +1,10 @@
 /* global app */
 import { load } from 'cheerio';
-import { category, ratingFromGenres } from '../../scripts/source-classification.js';
+import {
+  category,
+  hasExcludedGenre,
+  ratingFromGenres,
+} from '../../scripts/source-classification.js';
 
 const base = 'https://www.mangakakalot.gg';
 // Both sites expose the same chapter API and chapter paths. MangaKakalot's
@@ -98,6 +102,7 @@ function cardItems($, listingGenre) {
           .map((value) => value.trim())
           .filter(Boolean)
       : [];
+    if (hasExcludedGenre(genres)) return;
     const rating = ratingFromGenres([...genres, listingGenre]);
     items.push({
       id,
@@ -174,7 +179,21 @@ async function exactTitle(query) {
   const title = $('h1').first().text().trim();
   if (!title || slugify(title) !== slug) return null;
   const coverUrl = imageUrl($('meta[property="og:image"]').attr('content'));
-  return { id: `/manga/${slug}`, title, coverUrl: coverUrl ?? undefined, ...mangaCredits($) };
+  const credits = mangaCredits($);
+  return hasExcludedGenre(credits.genres)
+    ? null
+    : { id: `/manga/${slug}`, title, coverUrl: coverUrl ?? undefined, ...credits };
+}
+
+async function classifiedSuggestion(item) {
+  try {
+    const credits = mangaCredits(await document(item.id));
+    return credits.genres.length && !hasExcludedGenre(credits.genres)
+      ? { ...item, ...credits }
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 globalThis.source = {
@@ -203,14 +222,16 @@ globalThis.source = {
       if (response.status === 200) {
         const suggestions = JSON.parse(response.body);
         if (Array.isArray(suggestions)) {
-          for (const suggestion of suggestions) {
+          const candidates = [];
+          for (const suggestion of suggestions.slice(0, 12)) {
             const id = mangaPath(suggestion.url);
             const title = typeof suggestion.name === 'string' ? suggestion.name.trim() : '';
             if (id && title) {
               const coverUrl = imageUrl(suggestion.thumb);
-              add({ id, title, coverUrl: coverUrl ?? undefined });
+              candidates.push({ id, title, coverUrl: coverUrl ?? undefined });
             }
           }
+          for (const item of await Promise.all(candidates.map(classifiedSuggestion))) add(item);
         }
       }
     } catch {
@@ -286,12 +307,14 @@ globalThis.source = {
     if (!title) throw new Error('Fiche MangaKakalot indisponible.');
     const coverUrl = imageUrl($('meta[property="og:image"]').attr('content'));
     const description = load($('#contentBox').text()).text().trim().slice(0, 4000);
+    const credits = mangaCredits($);
+    if (hasExcludedGenre(credits.genres)) throw new Error('Titre indisponible dans cette source.');
     return {
       id: path,
       title,
       coverUrl: coverUrl ?? undefined,
       description: description || undefined,
-      ...mangaCredits($),
+      ...credits,
     };
   },
 

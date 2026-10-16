@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "com.mangabats.en",
   "name": "MangaBats",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["www.mangabats.com"],

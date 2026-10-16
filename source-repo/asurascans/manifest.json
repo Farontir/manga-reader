@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.asurascans.en",
   "name": "Asura Scans",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "language": "en",
   "contentRating": "safe",
   "allowedHosts": ["asurascans.com", "cdn.asurascans.com"],
   "bundle": "./bundle.js",
-  "sha256": "d44b0fc0259918e0671a337618379338873d125875d5c7d930ba7f111edfeb49"
+  "sha256": "56c78312d8a503ad638e3e1c41b2d2fc105def702bccbf4ee67e6880c7ec4ff9"
 }

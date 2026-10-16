@@ -9,6 +9,7 @@ const ratings = new Map([
   ['pornographic', 'pornographic'],
   ['pornographique', 'pornographic'],
 ]);
+const excluded = new Set(['loli', 'shota', 'lolicon', 'shotacon']);
 
 function normalized(value) {
   return String(value)
@@ -26,6 +27,10 @@ export function ratingFromGenres(genres) {
     if (rating) result = rating;
   }
   return result;
+}
+
+export function hasExcludedGenre(genres) {
+  return genres.some((genre) => excluded.has(normalized(genre)));
 }
 
 export function category(id, title) {

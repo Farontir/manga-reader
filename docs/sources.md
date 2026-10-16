@@ -15,14 +15,14 @@ empaquetée).
 
 Chaque source a son dossier dans `source-repo/<nom>/` :
 
-| Fichier | Rôle |
-| --- | --- |
-| `manifest.base.json` | Le manifeste écrit à la main, sans empreinte. |
-| `manifest.json` | Généré : le manifeste avec le SHA-256 du bundle. Ne pas l'éditer. |
-| `bundle.js` | Le code exécuté par l'app : un seul script, sans `import`. |
-| `source.js` | Facultatif : le code source quand il utilise des dépendances npm (cheerio…), empaqueté en `bundle.js` par esbuild. |
-| `status.json` | Généré par le workflow de santé (voir §7). |
-| `THIRD_PARTY_LICENSES.txt` | Généré pour les sources empaquetées : licences des dépendances. |
+| Fichier                    | Rôle                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `manifest.base.json`       | Le manifeste écrit à la main, sans empreinte.                                                                      |
+| `manifest.json`            | Généré : le manifeste avec le SHA-256 du bundle. Ne pas l'éditer.                                                  |
+| `bundle.js`                | Le code exécuté par l'app : un seul script, sans `import`.                                                         |
+| `source.js`                | Facultatif : le code source quand il utilise des dépendances npm (cheerio…), empaqueté en `bundle.js` par esbuild. |
+| `status.json`              | Généré par le workflow de santé (voir §7).                                                                         |
+| `THIRD_PARTY_LICENSES.txt` | Généré pour les sources empaquetées : licences des dépendances.                                                    |
 
 ## 2. Le manifeste
 
@@ -39,17 +39,17 @@ Chaque source a son dossier dans `source-repo/<nom>/` :
 }
 ```
 
-| Champ | Règle |
-| --- | --- |
-| `schemaVersion` | Toujours `1`. |
-| `id` | Identifiant stable et unique, minuscules : `^[a-z0-9][a-z0-9.-]{2,63}$`. Le changer revient à créer une autre source (les mangas liés ne suivent pas). |
-| `name` | Nom affiché dans l'app. |
-| `version` | Texte libre, à changer à chaque publication : l'app installe toute version différente de la sienne. |
-| `language` | Code de langue : `en`, `fr`, `pt-BR`… |
-| `contentRating` | `safe` ou `adult`. `adult` dès que la source peut afficher des œuvres réservées aux adultes : l'app demande une confirmation avant de l'installer. |
-| `allowedHosts` | Les seuls domaines que `app.fetch` peut appeler, en HTTPS. Pas de `localhost` ni d'adresse IP. Les images des pages n'ont pas besoin d'y figurer. |
-| `bundle` | Chemin du bundle, relatif au manifeste. |
-| `sha256` | Ajouté par `node scripts/build-source-repo.mjs`. L'app refuse un bundle dont l'empreinte ne correspond pas. |
+| Champ           | Règle                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `schemaVersion` | Toujours `1`.                                                                                                                                          |
+| `id`            | Identifiant stable et unique, minuscules : `^[a-z0-9][a-z0-9.-]{2,63}$`. Le changer revient à créer une autre source (les mangas liés ne suivent pas). |
+| `name`          | Nom affiché dans l'app.                                                                                                                                |
+| `version`       | Texte libre, à changer à chaque publication : l'app installe toute version différente de la sienne.                                                    |
+| `language`      | Code de langue : `en`, `fr`, `pt-BR`…                                                                                                                  |
+| `contentRating` | `safe` ou `adult`. `adult` dès que la source peut afficher des œuvres réservées aux adultes : l'app demande une confirmation avant de l'installer.     |
+| `allowedHosts`  | Les seuls domaines que `app.fetch` peut appeler, en HTTPS. Pas de `localhost` ni d'adresse IP. Les images des pages n'ont pas besoin d'y figurer.      |
+| `bundle`        | Chemin du bundle, relatif au manifeste.                                                                                                                |
+| `sha256`        | Ajouté par `node scripts/build-source-repo.mjs`. L'app refuse un bundle dont l'empreinte ne correspond pas.                                            |
 
 Limites : manifeste de 64 Ko au plus, bundle de 2 Mo au plus.
 
@@ -118,6 +118,11 @@ Utilisé par `search`, `manga`, `discover` et `catalog`.
   Erotica, Érotique, Pornographic, Pornographique. **Renvoyer les genres ou la
   classification dès les listes** (recherche, Découvrir, catalogue), pas seulement dans
   `manga()` : sinon un titre adulte reste visible dans les listes jusqu'à son ouverture.
+- Les sources HTML empaquetées utilisent `scripts/source-classification.js` pour appliquer
+  les mêmes libellés explicites. Ne pas déduire `safe` de l'absence d'un genre : cela veut
+  dire que la classification est inconnue. Certaines cartes de sites ne fournissent aucun
+  genre ; la fiche est alors vérifiée séparément et les suggestions non classifiables
+  peuvent être omises.
 
 ### `search(query)` — obligatoire
 
@@ -139,13 +144,13 @@ Renvoie tous les chapitres lisibles :
 ```js
 [
   {
-    id: 'chapitre-201',       // obligatoire : passé à pages()
-    number: 201,              // obligatoire : nombre fini, les demi-chapitres (10.5) sont acceptés
+    id: 'chapitre-201', // obligatoire : passé à pages()
+    number: 201, // obligatoire : nombre fini, les demi-chapitres (10.5) sont acceptés
     title: 'Épilogue',
     language: 'en',
     publishedAt: '2024-01-14T00:00:00Z', // affiché « il y a 2 jours » dans la liste
   },
-]
+];
 ```
 
 - Le numéro sert de clé : un même numéro venant de plusieurs sources est un seul chapitre
@@ -196,7 +201,8 @@ Le contenu de l'onglet Découvrir pour cette source :
 - L'`id` d'un genre est aussi un identifiant de liste pour `catalog()`.
 - `sensitive: true` masque la catégorie tant que le contenu sensible l'est. Les noms
   listés plus haut (Adult, Hentai, Smut…) sont marqués d'office ; le préciser pour tout
-  autre libellé (« 18+ », « Mature »…).
+  autre libellé qui désigne explicitement du contenu adulte. « Ecchi » et « Mature » ne
+  sont pas sensibles à eux seuls (voir la décision dans `PROJECT.md`, §9).
 - Les sections vides sont ignorées.
 
 ### `recommendations()` — facultatif, ancien
@@ -277,13 +283,20 @@ dossier publié.
 
 ## Récapitulatif
 
-| Méthode | Obligatoire | Renvoie |
-| --- | --- | --- |
-| `search(query)` | oui | `Manga[]` (50 max) |
-| `manga(id)` | oui | `Manga` |
-| `chapters(id)` | oui | `{ id, number, title?, language?, publishedAt? }[]` |
-| `pages(chapterId)` | oui | `string[]` ou `{ url, headers? }[]`, en HTTPS |
-| `health()` | oui | `true` / `false` |
-| `discover()` | non | `{ sections, genres }` |
-| `catalog(page, listing)` | non | `{ items, hasMore, sorts }` |
-| `recommendations()` | non (ancien) | `{ title, items }` |
+| Méthode                  | Obligatoire  | Renvoie                                             |
+| ------------------------ | ------------ | --------------------------------------------------- |
+| `search(query)`          | oui          | `Manga[]` (50 max)                                  |
+| `manga(id)`              | oui          | `Manga`                                             |
+| `chapters(id)`           | oui          | `{ id, number, title?, language?, publishedAt? }[]` |
+| `pages(chapterId)`       | oui          | `string[]` ou `{ url, headers? }[]`, en HTTPS       |
+| `health()`               | oui          | `true` / `false`                                    |
+| `discover()`             | non          | `{ sections, genres }`                              |
+| `catalog(page, listing)` | non          | `{ items, hasMore, sorts }`                         |
+| `recommendations()`      | non (ancien) | `{ title, items }`                                  |
+
+Les huit sources installables suivent ce contrat. MangaDex fournit sa classification par
+titre directement depuis l'API. MangaKatana, Flame Comics et Komga transmettent les genres
+de leurs listes ; MangaBats et MangaKakalot les extraient des résumés quand ils sont
+présents. Asura Scans ne publie les genres que sur les fiches, et Pepper&Carrot déclare
+son unique série `safe`. Les dates de chapitre proviennent du site ; celles d'Asura Scans
+sont approximées à partir de ses libellés relatifs (« 3 hours ago »).

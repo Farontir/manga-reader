@@ -1,6 +1,10 @@
 /* global app */
 import { load } from 'cheerio';
-import { category, ratingFromGenres } from '../../scripts/source-classification.js';
+import {
+  category,
+  hasExcludedGenre,
+  ratingFromGenres,
+} from '../../scripts/source-classification.js';
 
 const base = 'https://asurascans.com';
 const imageHost = 'cdn.asurascans.com';
@@ -66,7 +70,10 @@ function browseGenres($) {
       const genre = entry?.[1];
       const slug = genre?.slug?.[1];
       const title = genre?.name?.[1];
-      return typeof slug === 'string' && /^[a-z0-9-]+$/.test(slug) && typeof title === 'string'
+      return typeof slug === 'string' &&
+        /^[a-z0-9-]+$/.test(slug) &&
+        typeof title === 'string' &&
+        !hasExcludedGenre([slug, title])
         ? [category(`genre:${slug}`, title)]
         : [];
     });
@@ -145,7 +152,7 @@ globalThis.source = {
     const popular = sort === 'popular';
     const genre =
       typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-    if (genre !== null && !/^[a-z0-9-]+$/.test(genre)) {
+    if (genre !== null && (!/^[a-z0-9-]+$/.test(genre) || hasExcludedGenre([genre]))) {
       throw new Error('Genre Asura Scans inconnu.');
     }
     const query = [
@@ -183,6 +190,7 @@ globalThis.source = {
       .get()
       .filter(Boolean)
       .slice(0, 30);
+    if (hasExcludedGenre(genres)) throw new Error('Titre indisponible dans cette source.');
     const authors = [
       ...new Set([creditedName($, 'Author'), creditedName($, 'Artist')].filter(Boolean)),
     ];

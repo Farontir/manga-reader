@@ -22,14 +22,22 @@
 
   // Mirror the explicit sensitive labels in services/sensitive.ts. Komga age
   // ratings describe audience age, not MangaDex's sexual-content scale.
+  function normalizedGenre(value) {
+    return String(value)
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function hasExcludedGenre(genres) {
+    return genres.some((value) => ['loli', 'shota', 'lolicon', 'shotacon'].includes(normalizedGenre(value)));
+  }
+
   function ratingFromGenres(genres) {
     let rating;
     for (const value of genres) {
-      const genre = String(value)
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .trim()
-        .toLowerCase();
+      const genre = normalizedGenre(value);
       if (genre === 'hentai' || genre === 'pornographic' || genre === 'pornographique') {
         return 'pornographic';
       }
@@ -43,6 +51,7 @@
     const genres = (metadata.genres || [])
       .filter((genre) => typeof genre === 'string' && genre.trim())
       .slice(0, 30);
+    if (hasExcludedGenre(genres)) return null;
     const altTitles = (metadata.alternateTitles || [])
       .map((entry) => entry && entry.title)
       .filter((title) => typeof title === 'string' && title.trim())
@@ -58,6 +67,10 @@
     };
   }
 
+  function visibleManga(rows) {
+    return rows.map(toManga).filter(Boolean);
+  }
+
   async function availableGenres() {
     let values;
     try {
@@ -68,7 +81,7 @@
       values = await request('/api/v1/genres');
     }
     if (!Array.isArray(values)) return [];
-    return [...new Set(values.filter((value) => typeof value === 'string' && value.trim()))].map(
+    return [...new Set(values.filter((value) => typeof value === 'string' && value.trim() && !hasExcludedGenre([value])))].map(
       (value) => ({
         id: 'genre:' + value,
         title: value,
@@ -80,13 +93,13 @@
   globalThis.source = {
     async search(query) {
       const json = await request('/api/v1/series/list?size=30', { fullTextSearch: query });
-      return (json.content || []).map(toManga);
+      return visibleManga(json.content || []);
     },
 
     // Komga has no popularity data: show the series most recently added to the server.
     async recommendations() {
       const json = await request('/api/v1/series/new?size=20');
-      return { title: 'Derniers ajouts', items: (json.content || []).map(toManga) };
+      return { title: 'Derniers ajouts', items: visibleManga(json.content || []) };
     },
     async discover() {
       const sections = [
@@ -99,7 +112,7 @@
           const json = await request(section.path);
           result.push({
             title: section.title,
-            items: (json.content || []).map(toManga),
+            items: visibleManga(json.content || []),
             more: section.more,
           });
         } catch {
@@ -124,7 +137,7 @@
       const choice = sorts.find((item) => item.id === sort) || sorts[0];
       const genre =
         typeof sort === 'string' && sort.startsWith('genre:') ? sort.slice('genre:'.length) : null;
-      if (genre !== null && (!genre || genre.length > 190 || /[\x00-\x1f\x7f]/.test(genre))) {
+      if (genre !== null && (!genre || genre.length > 190 || /[\x00-\x1f\x7f]/.test(genre) || hasExcludedGenre([genre]))) {
         throw new Error('Genre Komga inconnu.');
       }
       const index = Math.max(0, (Number(page) || 1) - 1);
@@ -133,7 +146,7 @@
         genre === null ? {} : { condition: { genre: { operator: 'is', value: genre } } },
       );
       return {
-        items: (json.content || []).map(toManga),
+        items: visibleManga(json.content || []),
         hasMore: json.last === false,
         sorts: sorts.map((item) => ({ id: item.id, title: item.title })),
       };
@@ -151,7 +164,9 @@
       } catch {
         // A missing book list must not hide the series details.
       }
-      return { ...toManga(json), authors };
+      const manga = toManga(json);
+      if (!manga) throw new Error('Titre indisponible dans cette source.');
+      return { ...manga, authors };
     },
 
     async chapters(id) {

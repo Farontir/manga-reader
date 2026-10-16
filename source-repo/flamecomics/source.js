@@ -1,6 +1,10 @@
 /* global app */
 import { load } from 'cheerio';
-import { category, ratingFromGenres } from '../../scripts/source-classification.js';
+import {
+  category,
+  hasExcludedGenre,
+  ratingFromGenres,
+} from '../../scripts/source-classification.js';
 
 const base = 'https://flamecomics.xyz';
 const cdn = 'https://cdn.flamecomics.xyz/uploads/images/series';
@@ -25,7 +29,8 @@ function isComic(row) {
     typeof row.title === 'string' &&
     row.title.trim().length > 0 &&
     typeof row.type === 'string' &&
-    !/novel/i.test(row.type)
+    !/novel/i.test(row.type) &&
+    !hasExcludedGenre([...(row.categories ?? []), ...(row.tags ?? [])])
   );
 }
 
