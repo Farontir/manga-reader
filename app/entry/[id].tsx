@@ -2,7 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import {
   getLibraryEntry,
@@ -536,38 +545,54 @@ export default function EntryScreen() {
                   {item.title}
                 </Text>
                 <Text style={{ color: theme.secondary, marginTop: 4 }}>
-                  {item.local ? 'Fichier local' : item.sourceId}
-                  {released ? ` · ${released}` : ''} ·{' '}
-                  {state?.completed ? 'Lu' : state ? `Page ${state.pageIndex + 1}` : 'Non lu'}
+                  {[
+                    released,
+                    state?.completed ? 'Lu' : state ? `Page ${state.pageIndex + 1}` : 'Non lu',
+                    downloading === item.number
+                      ? `Téléchargement ${downloadProgress}`
+                      : queued.has(item.number)
+                        ? `Téléchargement en pause · ${queued.get(item.number)}`
+                        : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
-                {!item.local && item.sourceId && item.chapterId ? (
-                  <Pressable
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      void download(item);
-                    }}
-                    disabled={downloading !== null || downloaded.has(item.number)}
-                    style={{ marginTop: 8 }}
-                  >
-                    <Text
-                      style={{
-                        color: downloaded.has(item.number) ? theme.success : theme.accent,
-                        fontSize: 12,
-                        fontWeight: '700',
-                      }}
-                    >
-                      {downloaded.has(item.number)
-                        ? 'Disponible hors ligne'
-                        : downloading === item.number
-                          ? `Téléchargement ${downloadProgress}`
-                          : queued.has(item.number)
-                            ? `Reprendre · ${queued.get(item.number)}`
-                            : 'Télécharger'}
-                    </Text>
-                  </Pressable>
-                ) : null}
               </View>
-              <Text style={{ color: theme.accent, fontSize: 22 }}>›</Text>
+              {/* Download button in place of the chevron; local files show a folder. */}
+              {item.local ? (
+                <View accessibilityLabel="Fichier local" style={styles.chapterAction}>
+                  <Ionicons name="folder-outline" size={22} color={theme.secondary} />
+                </View>
+              ) : downloaded.has(item.number) ? (
+                <View accessibilityLabel="Disponible hors ligne" style={styles.chapterAction}>
+                  <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+                </View>
+              ) : downloading === item.number ? (
+                <View style={styles.chapterAction}>
+                  <ActivityIndicator color={theme.accent} />
+                </View>
+              ) : item.sourceId && item.chapterId ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    queued.has(item.number) ? 'Reprendre le téléchargement' : 'Télécharger'
+                  }
+                  hitSlop={6}
+                  onPress={() => {
+                    void download(item);
+                  }}
+                  disabled={downloading !== null}
+                  style={styles.chapterAction}
+                >
+                  <Ionicons
+                    name={queued.has(item.number) ? 'cloud-download' : 'cloud-download-outline'}
+                    size={24}
+                    color={downloading !== null ? theme.secondary : theme.accent}
+                  />
+                </Pressable>
+              ) : (
+                <View style={styles.chapterAction} />
+              )}
             </Pressable>
           );
         }}
@@ -586,6 +611,7 @@ export default function EntryScreen() {
 const styles = StyleSheet.create({
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 18 },
   chapterRead: { opacity: 0.55 },
+  chapterAction: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   list: { padding: 20, paddingBottom: 50 },
   hero: { flexDirection: 'row', gap: 18, marginBottom: 20 },
   cover: { borderRadius: 12, height: 150, width: 106 },
@@ -616,6 +642,8 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     minHeight: 68,
     padding: 14,
+    // The download button brings its own spacing on the right.
+    paddingRight: 6,
   },
   chapterTitle: { fontSize: 15, fontWeight: '700' },
   delete: { marginTop: 35, padding: 16 },
