@@ -1,6 +1,6 @@
 {
   "sourceId": "net.sushiscan.fr",
-  "checkedAt": "2026-10-16T23:10:26.746Z",
-  "status": "ok",
-  "httpStatus": 200
+  "checkedAt": "2026-10-16T23:13:36.396Z",
+  "status": "down",
+  "httpStatus": 403
 }

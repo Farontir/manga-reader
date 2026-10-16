@@ -1,6 +1,6 @@
 {
   "sourceId": "com.weebcentral.en",
-  "checkedAt": "2026-10-16T23:10:27.265Z",
-  "status": "ok",
-  "httpStatus": 200
+  "checkedAt": "2026-10-16T23:13:36.296Z",
+  "status": "down",
+  "httpStatus": 403
 }
