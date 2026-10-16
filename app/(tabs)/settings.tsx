@@ -16,7 +16,9 @@ import { getSetting } from '../../db';
 import { restoreBackup, shareBackup } from '../../services/backup';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { Screen } from '../../ui/components/Screen';
+import { setAccent, setThemeMode, useAppearance } from '../../ui/appearance';
 import { setHideSensitive, usePrivacy } from '../../ui/privacy';
+import { accents, modes } from '../../ui/theme';
 import { useTheme } from '../../ui/useTheme';
 
 export default function SettingsScreen() {
@@ -24,6 +26,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const hideSensitive = usePrivacy((state) => state.hideSensitive);
+  const mode = useAppearance((state) => state.mode);
+  const accent = useAppearance((state) => state.accent);
   const [repos, setRepos] = useState<string[]>([]);
   const loadRepos = useCallback(async () => {
     const value = await getSetting('restoredSourceRepos');
@@ -173,8 +177,69 @@ export default function SettingsScreen() {
           <Ionicons name="moon-outline" size={25} color={theme.accent} />
           <Text style={[styles.cardTitle, { color: theme.foreground }]}>Apparence</Text>
           <Text style={[styles.body, { color: theme.secondary }]}>
-            Le thème clair ou sombre suit les réglages de ton iPhone.
+            « Système » suit le réglage de ton iPhone ; « Noir » économise la batterie des écrans
+            OLED.
           </Text>
+          <View style={[styles.segments, { backgroundColor: theme.background }]}>
+            {modes.map((item) => {
+              const selected = item.id === mode;
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    void setThemeMode(item.id);
+                  }}
+                  // Static style only: NativeWind drops Pressable style callbacks on device.
+                  style={[styles.segment, selected ? { backgroundColor: theme.accent } : null]}
+                >
+                  <Text
+                    style={{
+                      color: selected ? theme.accentText : theme.foreground,
+                      fontSize: 13,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.swatchesTitle, { color: theme.foreground }]}>Couleur</Text>
+          <View style={styles.swatches}>
+            {accents.map((item) => {
+              const selected = item.id === accent;
+              const color = theme.dark ? item.dark : item.light;
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.name}
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    void setAccent(item.id);
+                  }}
+                  style={styles.swatchCell}
+                >
+                  <View
+                    style={[
+                      styles.swatch,
+                      { backgroundColor: color, borderColor: selected ? theme.foreground : color },
+                    ]}
+                  >
+                    {selected ? (
+                      <Ionicons name="checkmark" size={18} color={theme.accentText} />
+                    ) : null}
+                  </View>
+                  <Text style={{ color: theme.secondary, fontSize: 11, marginTop: 4 }}>
+                    {item.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
         <Text style={[styles.footer, { color: theme.secondary }]}>
           Manga Reader 1.0 · Bibliothèque indépendante des sources
@@ -196,6 +261,19 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: '800', marginTop: 12 },
   body: { fontSize: 14, lineHeight: 21, marginTop: 7 },
   footer: { fontSize: 12, marginTop: 18, textAlign: 'center' },
+  segments: { borderRadius: 12, flexDirection: 'row', marginTop: 14, padding: 3 },
+  segment: { alignItems: 'center', borderRadius: 9, flex: 1, paddingVertical: 8 },
+  swatchesTitle: { fontSize: 15, fontWeight: '700', marginTop: 18 },
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  swatchCell: { alignItems: 'center', width: 52 },
+  swatch: {
+    alignItems: 'center',
+    borderRadius: 19,
+    borderWidth: 3,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
   switchRow: { alignItems: 'center', flexDirection: 'row', gap: 12, marginTop: 12 },
   switchLabel: { flex: 1, fontSize: 15 },
 });

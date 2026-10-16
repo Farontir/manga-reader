@@ -13,6 +13,7 @@ import { resumeQueuedDownloads } from '../services/downloads';
 import { classifyLibrary } from '../services/sensitiveBackfill';
 import { preferEnglishTitles } from '../services/titleFix';
 import { useFolderSyncOnForeground } from '../ui/folderSync';
+import { loadAppearance } from '../ui/appearance';
 import { useLibraryRefreshOnForeground } from '../ui/libraryRefresh';
 import { loadPrivacySettings, usePrivacyCover } from '../ui/privacy';
 import { useTheme } from '../ui/useTheme';
@@ -24,7 +25,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     getDatabase()
-      .then(() => loadPrivacySettings())
+      .then(() => Promise.all([loadPrivacySettings(), loadAppearance()]))
       .then(() => {
         setReady(true);
         void resumeQueuedDownloads().catch(() => undefined);
@@ -73,7 +74,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style={theme.background === '#111519' ? 'light' : 'dark'} />
+      <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <SourceHost />
       <Stack
         screenOptions={{
