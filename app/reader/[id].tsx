@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Dimensions,
   FlatList,
   Pressable,
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  addReadingTime,
   getLibraryEntry,
   getLocalChapter,
   listBindings,
@@ -33,6 +35,7 @@ import {
 } from '../../services/chapterList';
 import { prefetchImage } from '../../services/imageCache';
 import { createProgressSaver } from '../../services/progressSaver';
+import { createReadingTimer } from '../../services/readingTimer';
 import {
   buildFeed,
   feedIndexOf,
@@ -165,13 +168,35 @@ function ReaderContent({
   const title = chapterTitle ?? `Chapitre ${chapterNumber}`;
   const next = chapters ? nextChapter(chapters, chapterNumber) : null;
 
-  const saver = useMemo(
+  // Reading time for the profile: every position update is reading activity.
+  const timer = useMemo(
     () =>
-      createProgressSaver((number, page, total, completed) =>
-        saveProgress(id, number, page, total, completed),
-      ),
+      createReadingTimer((number, startedAt, seconds) => {
+        void addReadingTime(id, number, startedAt, seconds).catch(() => undefined);
+      }),
     [id],
   );
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') timer.pause();
+    });
+    return () => {
+      subscription.remove();
+      timer.flush();
+    };
+  }, [timer]);
+  const saver = useMemo(() => {
+    const progress = createProgressSaver((number, page, total, completed) =>
+      saveProgress(id, number, page, total, completed),
+    );
+    return {
+      ...progress,
+      record(number: number, page: number, total: number) {
+        timer.activity(number);
+        progress.record(number, page, total);
+      },
+    };
+  }, [id, timer]);
   useEffect(() => () => saver.flush(), [saver]);
 
   useEffect(() => {
