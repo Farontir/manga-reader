@@ -27,17 +27,18 @@ export default function TabsLayout() {
         name="discover"
         options={{
           title: 'Découvrir',
+          // Search lives at the top of Discover.
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass-outline" color={color} size={size} />
+            <Ionicons name="search-outline" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="history"
         options={{
-          title: 'Recherche',
+          title: 'Historique',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" color={color} size={size} />
+            <Ionicons name="time-outline" color={color} size={size} />
           ),
         }}
       />

@@ -15,13 +15,15 @@ import {
 import { getSetting, listInstalledSources, setSetting, type InstalledSource } from '../../db';
 import { openSourceManga } from '../../services/librarySources';
 import { isSensitiveSourceManga } from '../../services/sensitive';
-import { getSourceDiscover, searchSource } from '../../sources/api';
+import { getSourceDiscover } from '../../sources/api';
 import type { SourceGenre, SourceManga, SourceSection } from '../../sources/types';
 import { ActionButton } from '../../ui/components/ActionButton';
 import { EmptyState } from '../../ui/components/EmptyState';
-import { MangaCarousel, MangaCover } from '../../ui/components/MangaCarousel';
+import { MangaCarousel } from '../../ui/components/MangaCarousel';
+import { SearchResultRow } from '../../ui/components/SearchResultRow';
 import { Screen } from '../../ui/components/Screen';
 import { useShowSensitive } from '../../ui/privacy';
+import { useGlobalSearch } from '../../ui/useGlobalSearch';
 import { useTheme } from '../../ui/useTheme';
 
 const SELECTED_SOURCE_KEY = 'discover.source';
@@ -35,7 +37,10 @@ function message(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason);
 }
 
-/** One tab per installed source; each tab shows that source's Discover page and search. */
+/**
+ * Search across AniList and every source at the top; below, one tab per installed source
+ * with that source's Discover page.
+ */
 export default function DiscoverScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -43,15 +48,12 @@ export default function DiscoverScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pages, setPages] = useState<Record<string, DiscoverState>>({});
   const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SourceManga[] | null>(null);
-  const [searching, setSearching] = useState(false);
+  const global = useGlobalSearch();
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Version loaded per source: an updated source reloads its page.
   const loaded = useRef(new Map<string, string>());
   const selectedRef = useRef<string | null>(null);
-  const searchToken = useRef(0);
 
   const load = useCallback(async (source: InstalledSource, force: boolean) => {
     if (!force && loaded.current.get(source.id) === source.version) return;
@@ -103,52 +105,14 @@ export default function DiscoverScreen() {
       genres: loaded.genres.filter((genre) => !genre.sensitive),
     };
   }, [pages, selected, showSensitive]);
-  const shownResults = useMemo(
-    () =>
-      showSensitive || !results
-        ? results
-        : results.filter((manga) => !isSensitiveSourceManga(manga)),
-    [results, showSensitive],
-  );
 
   function select(source: InstalledSource) {
     if (source.id === selectedId) return;
     selectedRef.current = source.id;
-    searchToken.current += 1;
     setSelectedId(source.id);
-    setQuery('');
-    setResults(null);
-    setSearching(false);
     setError(null);
     void setSetting(SELECTED_SOURCE_KEY, source.id);
     void load(source, false);
-  }
-
-  async function search() {
-    const term = query.trim();
-    if (!selected || term.length < 2) return;
-    const token = ++searchToken.current;
-    setSearching(true);
-    setError(null);
-    try {
-      const found = await searchSource(selected, term);
-      if (token === searchToken.current) setResults(found);
-    } catch (reason) {
-      if (token === searchToken.current) {
-        setResults([]);
-        setError(`Recherche impossible : ${message(reason)}`);
-      }
-    } finally {
-      if (token === searchToken.current) setSearching(false);
-    }
-  }
-
-  function clearSearch() {
-    searchToken.current += 1;
-    setQuery('');
-    setResults(null);
-    setSearching(false);
-    setError(null);
   }
 
   async function refresh() {
@@ -202,7 +166,63 @@ export default function DiscoverScreen() {
           <Ionicons name="layers-outline" size={24} color={theme.accent} />
         </Pressable>
       </View>
-      {!sources.length ? (
+      <View
+        style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      >
+        <Ionicons name="search-outline" size={20} color={theme.secondary} />
+        <TextInput
+          value={global.query}
+          onChangeText={global.setQuery}
+          onSubmitEditing={() => {
+            void global.search();
+          }}
+          returnKeyType="search"
+          autoCorrect={false}
+          placeholder="Rechercher un manga"
+          placeholderTextColor={theme.secondary}
+          style={[styles.input, { color: theme.foreground }]}
+        />
+        {global.query || global.searched ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Effacer la recherche"
+            hitSlop={8}
+            onPress={global.clear}
+          >
+            <Ionicons name="close-circle" size={20} color={theme.secondary} />
+          </Pressable>
+        ) : null}
+      </View>
+      {global.searched ? (
+        <ScrollView contentContainerStyle={styles.results} keyboardShouldPersistTaps="handled">
+          {global.error ? <Text style={{ color: theme.danger }}>{global.error}</Text> : null}
+          {global.busy ? (
+            <ActivityIndicator color={theme.accent} style={styles.spinner} />
+          ) : global.results.length ? (
+            global.results.map((result) => (
+              <SearchResultRow
+                key={result.key}
+                result={result}
+                busy={global.adding === result.key}
+                disabled={Boolean(global.adding)}
+                onPress={() => {
+                  void global.open(result);
+                }}
+              />
+            ))
+          ) : (
+            <EmptyState
+              icon="search-outline"
+              title="Aucun résultat"
+              detail={
+                sources.length
+                  ? 'Essaie un autre titre : la recherche couvre AniList et tes sources.'
+                  : 'Installe une source pour accéder aux chapitres.'
+              }
+            />
+          )}
+        </ScrollView>
+      ) : !sources.length ? (
         <View style={styles.empty}>
           <EmptyState
             icon="compass-outline"
@@ -258,57 +278,8 @@ export default function DiscoverScreen() {
               />
             }
           >
-            <View
-              style={[
-                styles.searchBox,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-            >
-              <Ionicons name="search-outline" size={20} color={theme.secondary} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={() => {
-                  void search();
-                }}
-                returnKeyType="search"
-                autoCorrect={false}
-                placeholder={selected ? `Rechercher dans ${selected.name}` : 'Rechercher'}
-                placeholderTextColor={theme.secondary}
-                style={[styles.input, { color: theme.foreground }]}
-              />
-              {query || results ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Effacer la recherche"
-                  onPress={clearSearch}
-                >
-                  <Ionicons name="close-circle" size={20} color={theme.secondary} />
-                </Pressable>
-              ) : null}
-            </View>
             {error ? <Text style={[styles.note, { color: theme.danger }]}>{error}</Text> : null}
-            {searching ? (
-              <ActivityIndicator color={theme.accent} style={styles.spinner} />
-            ) : shownResults ? (
-              shownResults.length ? (
-                <View style={styles.grid}>
-                  {shownResults.map((manga) => (
-                    <MangaCover
-                      key={manga.id}
-                      manga={manga}
-                      busy={adding === manga.id}
-                      disabled={Boolean(adding)}
-                      onPress={() => {
-                        void add(manga);
-                      }}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={[styles.note, { color: theme.secondary }]}>Aucun résultat.</Text>
-              )
-            ) : !page || page.status === 'loading' ? (
+            {!page || page.status === 'loading' ? (
               <ActivityIndicator color={theme.accent} style={styles.spinner} />
             ) : page.status === 'error' ? (
               <View style={styles.note}>
@@ -439,13 +410,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginHorizontal: 20,
+    marginTop: 12,
     minHeight: 48,
     paddingHorizontal: 14,
   },
+  results: { flexGrow: 1, gap: 10, padding: 20 },
   input: { flex: 1, fontSize: 15, minWidth: 0 },
   spinner: { marginTop: 30 },
   note: { fontSize: 14, lineHeight: 21, paddingHorizontal: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingHorizontal: 20 },
   section: { gap: 12 },
   sectionTitle: { flex: 1, fontSize: 21, fontWeight: '800', paddingHorizontal: 20 },
   sectionHeader: { alignItems: 'center', flexDirection: 'row', paddingRight: 16 },

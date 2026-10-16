@@ -7,6 +7,7 @@ export * from './queries/settings';
 export * from './queries/backup';
 export * from './queries/downloadJobs';
 export * from './queries/importedArchives';
+export * from './queries/history';
 export { LOCAL_FILES, type LibrarySort } from './queries/librarySql';
 export { parseBackup } from './backupFormat';
 export type { BackupSnapshot } from './backupFormat';
