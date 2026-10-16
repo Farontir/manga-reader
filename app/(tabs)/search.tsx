@@ -123,6 +123,22 @@ export default function SearchScreen() {
             placeholderTextColor={theme.secondary}
             style={[styles.input, { color: theme.foreground }]}
           />
+          {query || results.length ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Effacer la recherche"
+              hitSlop={8}
+              onPress={() => {
+                searchToken.current += 1;
+                setQuery('');
+                setResults([]);
+                setError(null);
+                setBusy(false);
+              }}
+            >
+              <Ionicons name="close-circle" size={20} color={theme.secondary} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => {
               void search();
