@@ -6,6 +6,7 @@ import { searchAniList, type AniListManga } from '../services/anilist';
 import { openSearchGroup } from '../services/librarySources';
 import { groupSearchResults, type SearchGroup, type SearchHit } from '../services/searchGroups';
 import { isSensitiveSourceManga } from '../services/sensitive';
+import { tolerantSearch } from '../services/tolerantSearch';
 import { searchSource } from '../sources/api';
 import { useShowSensitive } from './privacy';
 
@@ -53,9 +54,18 @@ export function useGlobalSearch() {
     setError(null);
     setResults([]);
     setSearched(term);
+    // Sites often match the exact text: spellings with/without "the" are tried as well.
     const [anilist, sourceResults] = await Promise.all([
-      searchAniList(term).catch(() => null),
-      Promise.all(sources.map((source) => searchSource(source, term).catch(() => null))),
+      tolerantSearch(term, searchAniList, (manga) => manga.id).catch(() => null),
+      Promise.all(
+        sources.map((source) =>
+          tolerantSearch(
+            term,
+            (query) => searchSource(source, query),
+            (manga) => manga.id,
+          ).catch(() => null),
+        ),
+      ),
     ]);
     if (current !== token.current) return;
     // One result per manga, whatever the number of sources offering it.
