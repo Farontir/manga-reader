@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import { ActionButton } from '../ui/components/ActionButton';
 import { EmptyState } from '../ui/components/EmptyState';
 import { Screen } from '../ui/components/Screen';
 import { confirmAdultSource } from '../ui/confirmAdultSource';
+import { clearPendingUpdate, useSourceUpdates } from '../ui/sourceUpdates';
 import { useTheme } from '../ui/useTheme';
 
 export default function SourcesScreen() {
@@ -28,10 +29,16 @@ export default function SourcesScreen() {
   const [checking, setChecking] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
   const [updatingAll, setUpdatingAll] = useState<string | null>(null);
+  const pending = useSourceUpdates((state) => state.pending);
+  const updatesVersion = useSourceUpdates((state) => state.version);
   const reload = useCallback(() => {
     void listInstalledSources().then(setSources);
   }, []);
   useFocusEffect(reload);
+  // Sources updated automatically while this screen is open.
+  useEffect(() => {
+    if (updatesVersion) reload();
+  }, [updatesVersion, reload]);
 
   async function checkAll() {
     setChecking(true);
@@ -61,6 +68,7 @@ export default function SourcesScreen() {
       return null;
     }
     const installed = await installSource(source.repoUrl);
+    clearPendingUpdate(installed.id);
     const status = await inspectSourceHealth(installed);
     await setSourceHealth(installed.id, status);
     const matched = status === 'down' ? 0 : await matchSourceToLibrary(installed);
@@ -208,6 +216,11 @@ export default function SourcesScreen() {
                 {item.language.toUpperCase()} · v{item.version}
                 {item.contentRating === 'adult' ? ' · Contenu adulte' : ''}
               </Text>
+              {pending[item.id] ? (
+                <Text style={{ color: theme.accent, fontWeight: '700', marginTop: 4 }}>
+                  Mise à jour disponible · v{pending[item.id]}
+                </Text>
+              ) : null}
               <Text
                 style={{
                   color:

@@ -16,6 +16,7 @@ import { useFolderSyncOnForeground } from '../ui/folderSync';
 import { loadAppearance } from '../ui/appearance';
 import { useLibraryRefreshOnForeground } from '../ui/libraryRefresh';
 import { loadPrivacySettings, usePrivacyCover } from '../ui/privacy';
+import { useSourceUpdatesOnForeground } from '../ui/sourceUpdates';
 import { useTheme } from '../ui/useTheme';
 
 export default function RootLayout() {
@@ -43,6 +44,7 @@ export default function RootLayout() {
   }, []);
   useFolderSyncOnForeground(ready);
   useLibraryRefreshOnForeground(ready);
+  useSourceUpdatesOnForeground(ready);
   const covered = usePrivacyCover();
 
   if (!ready) {

@@ -26,7 +26,7 @@ let lastAutoRefresh = 0;
 let current: Promise<void> | null = null;
 
 // Sources share one sandbox queue: while the reader is open, let its page requests go first.
-async function waitForReaderToClose(): Promise<void> {
+export async function waitForReaderToClose(): Promise<void> {
   while (useReaderState.getState().open) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
