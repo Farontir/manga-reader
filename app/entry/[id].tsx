@@ -14,6 +14,7 @@ import {
   listKnownChapters,
   listLocalChapters,
   listProgress,
+  markChaptersRead,
   setBindingPreferred,
   countChaptersBySource,
   setInLibrary,
@@ -35,6 +36,7 @@ import {
 import { refreshEntryChapters } from '../../services/librarySources';
 import { refreshEntryDetails } from '../../services/entryDetails';
 import { detailsLine } from '../../services/mangaDetails';
+import { relativeDate } from '../../services/relativeDate';
 import { resumeTarget } from '../../services/resume';
 import { isSensitive } from '../../services/sensitive';
 import { ActionButton } from '../../ui/components/ActionButton';
@@ -183,6 +185,38 @@ export default function EntryScreen() {
       setDownloading(null);
       setDownloadProgress('');
     }
+  }
+
+  // Long press on a chapter: read/unread, for it alone or for it and every earlier one.
+  function showChapterActions(item: ChapterItem) {
+    const completed = progress.some(
+      (record) => record.chapterNumber === item.number && record.completed,
+    );
+    const upTo = chapters
+      .filter((chapter) => chapter.number <= item.number)
+      .map((chapter) => chapter.number);
+    const actions: { label: string; numbers: number[]; read: boolean }[] = [
+      { label: 'Marquer comme lu jusqu’ici', numbers: upTo, read: true },
+      completed
+        ? { label: 'Marquer comme non lu', numbers: [item.number], read: false }
+        : { label: 'Marquer comme lu', numbers: [item.number], read: true },
+      { label: 'Marquer comme non lu jusqu’ici', numbers: upTo, read: false },
+    ];
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: labelOf(item),
+        options: [...actions.map((action) => action.label), 'Annuler'],
+        cancelButtonIndex: actions.length,
+      },
+      (index) => {
+        const action = actions[index];
+        if (!action) return;
+        void markChaptersRead(id, action.numbers, action.read).then(() => {
+          selectionFeedback();
+          reload();
+        });
+      },
+    );
   }
 
   // "⋯" menu: the user's own classification, which overrides the automatic one.
@@ -480,18 +514,30 @@ export default function EntryScreen() {
         }
         renderItem={({ item }) => {
           const state = progress.find((record) => record.chapterNumber === item.number);
+          const released = relativeDate(item.publishedAt);
           return (
             <Pressable
               onPress={() => openChapter(item.number)}
+              onLongPress={() => showChapterActions(item)}
               style={[
                 styles.chapter,
                 { borderColor: theme.border, backgroundColor: theme.surface },
+                // Read chapters are greyed out.
+                state?.completed ? styles.chapterRead : null,
               ]}
             >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.chapterTitle, { color: theme.foreground }]}>{item.title}</Text>
+                <Text
+                  style={[
+                    styles.chapterTitle,
+                    { color: state?.completed ? theme.secondary : theme.foreground },
+                  ]}
+                >
+                  {item.title}
+                </Text>
                 <Text style={{ color: theme.secondary, marginTop: 4 }}>
-                  {item.local ? 'Fichier local' : item.sourceId} ·{' '}
+                  {item.local ? 'Fichier local' : item.sourceId}
+                  {released ? ` · ${released}` : ''} ·{' '}
                   {state?.completed ? 'Lu' : state ? `Page ${state.pageIndex + 1}` : 'Non lu'}
                 </Text>
                 {!item.local && item.sourceId && item.chapterId ? (
@@ -539,6 +585,7 @@ export default function EntryScreen() {
 
 const styles = StyleSheet.create({
   headerActions: { alignItems: 'center', flexDirection: 'row', gap: 18 },
+  chapterRead: { opacity: 0.55 },
   list: { padding: 20, paddingBottom: 50 },
   hero: { flexDirection: 'row', gap: 18, marginBottom: 20 },
   cover: { borderRadius: 12, height: 150, width: 106 },

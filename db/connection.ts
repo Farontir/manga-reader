@@ -10,6 +10,7 @@ import { libraryBookmarkMigration } from './migrations/007_library_bookmark';
 import { preferredSourcesMigration } from './migrations/008_preferred_sources';
 import { entryDetailsMigration } from './migrations/009_entry_details';
 import { sensitiveContentMigration } from './migrations/010_sensitive_content';
+import { manualProgressMigration } from './migrations/011_manual_progress';
 
 // Writers wait for a lock instead of failing at once with "database is locked".
 const BUSY_TIMEOUT_MS = 5000;
@@ -53,6 +54,7 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     { version: 8, name: '008_preferred_sources', run: preferredSourcesMigration },
     { version: 9, name: '009_entry_details', run: entryDetailsMigration },
     { version: 10, name: '010_sensitive_content', run: sensitiveContentMigration },
+    { version: 11, name: '011_manual_progress', run: manualProgressMigration },
   ];
   for (const migration of migrations) {
     if (migration.version <= (version?.version ?? 0)) continue;

@@ -1,5 +1,6 @@
 import { getDatabase, withWriteTransaction } from '../connection';
 import type { Chapter, DownloadedChapter, LocalChapter, Progress } from '../schema';
+import { MARK_READ_SQL, MARK_UNREAD_SQL } from './progressSql';
 import { unreadCountsSql } from './unreadSql';
 
 type ChapterRow = {
@@ -111,7 +112,8 @@ export async function saveProgress(
         read_at, completed) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(library_entry_id, chapter_number) DO UPDATE SET
          page_index = excluded.page_index, total_pages = excluded.total_pages,
-         read_at = excluded.read_at, completed = MAX(completed, excluded.completed)`,
+         read_at = excluded.read_at, completed = MAX(completed, excluded.completed),
+         manual = 0`,
     entryId,
     chapterNumber,
     pageIndex,
@@ -120,6 +122,21 @@ export async function saveProgress(
     completed ? 1 : 0,
   );
   await db.runAsync('UPDATE library_entries SET last_read_at = ? WHERE id = ?', now, entryId);
+}
+
+/** Marks chapters read (without opening them) or unread again, in one transaction. */
+export async function markChaptersRead(
+  entryId: string,
+  numbers: number[],
+  read: boolean,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await withWriteTransaction(async (tx) => {
+    for (const number of numbers) {
+      if (read) await tx.runAsync(MARK_READ_SQL, entryId, number, now);
+      else await tx.runAsync(MARK_UNREAD_SQL, entryId, number);
+    }
+  });
 }
 
 export async function listProgress(entryId: string): Promise<Progress[]> {

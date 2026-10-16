@@ -4,6 +4,7 @@ type RemoteChapterInput = {
   title?: string | null;
   sourceId: string;
   chapterId: string;
+  publishedAt?: string | null;
 };
 type BindingInput = { sourceId: string; priority: number; preferred?: boolean };
 
@@ -13,6 +14,7 @@ export type ChapterItem = {
   local: boolean;
   sourceId?: string;
   chapterId?: string;
+  publishedAt?: string | null;
 };
 
 /**
@@ -47,6 +49,7 @@ export function mergeChapters(
         local: false,
         sourceId: chapter.sourceId,
         chapterId: chapter.chapterId,
+        publishedAt: chapter.publishedAt ?? null,
       });
     }
   }
