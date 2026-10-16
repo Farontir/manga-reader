@@ -23,8 +23,9 @@ const minimumGenres = {
   'komga-demo': 1,
 };
 const adultSources = new Set(['mangabats', 'mangakakalot', 'mangakatana', 'mangadex']);
+const skipped = process.argv.find((argument) => argument.startsWith('--skip='))?.slice(7);
 
-for (const [name, allowed] of Object.entries(hosts)) {
+for (const [name, allowed] of Object.entries(hosts).filter(([name]) => name !== skipped)) {
   const bundle = await readFile(
     new URL(`../source-repo/${name}/bundle.js`, import.meta.url),
     'utf8',
@@ -84,13 +85,27 @@ for (const [name, allowed] of Object.entries(hosts)) {
   if (adultSources.has(name)) {
     const adult = discovery.genres.find((genre) => genre.title === 'Adult');
     if (!adult) throw new Error(`${name}: catégorie Adult absente`);
+    if (adult.sensitive !== true) throw new Error(`${name}: catégorie Adult non protégée`);
     const first = await source.catalog(1, adult.id);
     if (!first.items?.length) throw new Error(`${name}: catégorie Adult vide`);
+    if (!first.items.every((item) => ['erotica', 'pornographic'].includes(item.contentRating))) {
+      throw new Error(`${name}: titres Adult non classés`);
+    }
+    const detail = await source.manga(first.items[0].id);
+    if (!['erotica', 'pornographic'].includes(detail.contentRating)) {
+      throw new Error(`${name}: fiche Adult non classée`);
+    }
     if (first.hasMore) {
       const second = await source.catalog(2, adult.id);
       if (!second.items?.length || first.items[0].id === second.items[0].id) {
         throw new Error(`${name}: pagination Adult invalide`);
       }
+    }
+  }
+  if (name === 'asurascans') {
+    const chapters = await source.chapters(discovery.sections[0].items[0].id);
+    if (!chapters.some((chapter) => chapter.publishedAt)) {
+      throw new Error('asurascans: dates des chapitres absentes');
     }
   }
   process.stdout.write(
