@@ -72,6 +72,30 @@ const checks = [
     valid: (body) => /id="book_list"/.test(body) && /MangaKatana/.test(body),
     format: 'text',
   },
+  {
+    directory: 'mangaread',
+    sourceId: 'org.mangaread.en',
+    url: 'https://www.mangaread.org/manga/',
+    options: {},
+    valid: (body) => /page-item-detail manga/.test(body),
+    format: 'text',
+  },
+  {
+    directory: 'webtoon-en',
+    sourceId: 'com.webtoons.en',
+    url: 'https://www.webtoons.com/en/originals',
+    options: {},
+    valid: (body) => /_originals_title_a/.test(body),
+    format: 'text',
+  },
+  {
+    directory: 'webtoon-fr',
+    sourceId: 'com.webtoons.fr',
+    url: 'https://www.webtoons.com/fr/originals',
+    options: {},
+    valid: (body) => /_originals_title_a/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);

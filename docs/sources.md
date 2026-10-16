@@ -294,9 +294,13 @@ dossier publié.
 | `catalog(page, listing)` | non          | `{ items, hasMore, sorts }`                         |
 | `recommendations()`      | non (ancien) | `{ title, items }`                                  |
 
-Les huit sources installables suivent ce contrat. MangaDex fournit sa classification par
+Les onze sources installables suivent ce contrat. MangaDex fournit sa classification par
 titre directement depuis l'API. MangaKatana, Flame Comics et Komga transmettent les genres
 de leurs listes ; MangaBats et MangaKakalot les extraient des résumés quand ils sont
 présents. Asura Scans ne publie les genres que sur les fiches, et Pepper&Carrot déclare
 son unique série `safe`. Les dates de chapitre proviennent du site ; celles d'Asura Scans
-sont approximées à partir de ses libellés relatifs (« 3 hours ago »).
+sont approximées à partir de ses libellés relatifs (« 3 hours ago »). MangaRead transmet
+les genres des fiches et les catégories de son catalogue. WEBTOON English et Français
+exposent les Originals, leurs catégories et les épisodes librement consultables ; une
+liste de chapitres longue est limitée aux 24 premières pages du site pour respecter le
+délai d'exécution du bac à sable.

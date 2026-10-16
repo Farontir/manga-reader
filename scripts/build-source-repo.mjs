@@ -13,6 +13,9 @@ for (const name of [
   'mangakakalot',
   'flamecomics',
   'mangakatana',
+  'mangaread',
+  'webtoon-en',
+  'webtoon-fr',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   if (
@@ -23,6 +26,9 @@ for (const name of [
       'mangakakalot',
       'flamecomics',
       'mangakatana',
+      'mangaread',
+      'webtoon-en',
+      'webtoon-fr',
     ].includes(name)
   ) {
     await build({
@@ -58,6 +64,9 @@ for (const name of [
       mangakakalot: 'MangaKakalot',
       flamecomics: 'Flame Comics',
       mangakatana: 'MangaKatana',
+      mangaread: 'MangaRead',
+      'webtoon-en': 'WEBTOON English',
+      'webtoon-fr': 'WEBTOON Français',
     }[name];
     const notices = [`Third-party notices for the ${label} source bundle.`];
     for (const packagePath of packages) {

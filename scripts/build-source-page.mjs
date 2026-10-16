@@ -14,6 +14,9 @@ const descriptions = {
   mangakakalot:
     'Catalogue MangaKakalot, avec le miroir MangaBats pour les fiches et pages bloquées sur le domaine principal.',
   mangakatana: 'Catalogue, fiches et chapitres publics de MangaKatana.',
+  mangaread: 'Catalogue, fiches et chapitres publics de MangaRead.',
+  'webtoon-en': 'Épisodes publics WEBTOON Originals en anglais.',
+  'webtoon-fr': 'Épisodes publics WEBTOON Originals en français.',
   peppercarrot: 'Pepper&Carrot, le webcomic libre de David Revoy (CC BY 4.0).',
 };
 

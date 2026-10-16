@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.webtoons.fr",
+  "name": "WEBTOON Français",
+  "version": "1.0.0",
+  "language": "fr",
+  "contentRating": "safe",
+  "allowedHosts": ["www.webtoons.com"],
+  "bundle": "./bundle.js"
+}

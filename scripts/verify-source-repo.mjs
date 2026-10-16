@@ -10,6 +10,9 @@ for (const name of [
   'mangakakalot',
   'flamecomics',
   'mangakatana',
+  'mangaread',
+  'webtoon-en',
+  'webtoon-fr',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));

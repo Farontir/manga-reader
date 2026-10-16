@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "org.mangaread.en",
+  "name": "MangaRead",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "adult",
+  "allowedHosts": ["www.mangaread.org"],
+  "bundle": "./bundle.js"
+}
