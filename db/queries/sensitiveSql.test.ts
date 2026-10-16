@@ -7,7 +7,8 @@ import { isSensitive } from '../../services/sensitive';
 import { initialMigration } from '../migrations/001_initial';
 import { libraryBookmarkMigration } from '../migrations/007_library_bookmark';
 import { sensitiveContentMigration } from '../migrations/010_sensitive_content';
-import { listEntriesSql, sensitiveSql } from './sensitiveSql';
+import { listEntriesSql, LOCAL_FILES } from './librarySql';
+import { sensitiveSql } from './sensitiveSql';
 
 async function openDatabase() {
   const sqlite = new DatabaseSync(':memory:');
@@ -68,8 +69,8 @@ describe('sensitive content in SQL', () => {
           ('cleared', 'Démarqué', '2026-10-05', 1, 'pornographic', 1, 0),
           ('browsed', 'Parcouru', '2026-10-06', 0, 'pornographic', NULL, NULL);
       `);
-      const ids = (sql: string) =>
-        (sqlite.prepare(sql).all() as { id: string }[]).map((row) => row.id).sort();
+      const ids = ({ sql, params }: { sql: string; params: string[] }) =>
+        (sqlite.prepare(sql).all(...params) as { id: string }[]).map((row) => row.id).sort();
       expect(ids(listEntriesSql('library', false))).toEqual(['cleared', 'safe']);
       expect(ids(listEntriesSql('library', true))).toEqual([
         'anilist',
@@ -80,6 +81,32 @@ describe('sensitive content in SQL', () => {
       ]);
       expect(ids(listEntriesSql('all', false))).toEqual(['cleared', 'safe']);
       expect(ids(listEntriesSql('all', true))).toHaveLength(6);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('filters by source or local files, and sorts', async () => {
+    const sqlite = await openDatabase();
+    try {
+      sqlite.exec(`
+        INSERT INTO library_entries(id, canonical_title, added_at, last_read_at, in_library) VALUES
+          ('b', 'beta', '2026-10-01', '2026-10-09', 1),
+          ('a', 'Alpha', '2026-10-03', NULL, 1),
+          ('c', 'Gamma', '2026-10-02', '2026-10-05', 1);
+        INSERT INTO source_bindings(id, library_entry_id, source_id, manga_id) VALUES
+          ('1', 'b', 'dex', 'x'), ('2', 'c', 'dex', 'y'), ('3', 'c', 'kat', 'z');
+        INSERT INTO local_chapters(library_entry_id, chapter_number, title, page_uris_json, imported_at)
+          VALUES ('a', 1, 'Chapitre 1', '[]', '2026-10-03');
+      `);
+      const ids = ({ sql, params }: { sql: string; params: string[] }) =>
+        (sqlite.prepare(sql).all(...params) as { id: string }[]).map((row) => row.id);
+      expect(ids(listEntriesSql('library', true))).toEqual(['b', 'c', 'a']);
+      expect(ids(listEntriesSql('library', true, { sort: 'added' }))).toEqual(['a', 'c', 'b']);
+      expect(ids(listEntriesSql('library', true, { sort: 'title' }))).toEqual(['a', 'b', 'c']);
+      expect(ids(listEntriesSql('library', true, { source: 'dex' }))).toEqual(['b', 'c']);
+      expect(ids(listEntriesSql('library', true, { source: 'kat' }))).toEqual(['c']);
+      expect(ids(listEntriesSql('library', true, { source: LOCAL_FILES }))).toEqual(['a']);
     } finally {
       sqlite.close();
     }

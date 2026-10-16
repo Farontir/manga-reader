@@ -3,7 +3,8 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from '../connection';
 import type { LibraryEntry, SourceBinding } from '../schema';
 import { PRUNE_BROWSED_ENTRIES_SQL } from './pruneSql';
-import { listEntriesSql, sensitiveSql } from './sensitiveSql';
+import { listEntriesSql, type LibrarySort } from './librarySql';
+import { sensitiveSql } from './sensitiveSql';
 
 type EntryRow = {
   id: string;
@@ -151,11 +152,16 @@ export async function createLibraryEntry(input: NewEntry): Promise<LibraryEntry>
 export async function listLibraryEntries(options: {
   scope?: 'library' | 'all';
   includeSensitive: boolean;
+  sort?: LibrarySort;
+  /** A source id, LOCAL_FILES, or null for every manga. */
+  source?: string | null;
 }): Promise<LibraryEntry[]> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<EntryRow>(
-    listEntriesSql(options.scope ?? 'library', options.includeSensitive),
-  );
+  const { sql, params } = listEntriesSql(options.scope ?? 'library', options.includeSensitive, {
+    sort: options.sort,
+    source: options.source,
+  });
+  const rows = await db.getAllAsync<EntryRow>(sql, ...params);
   return rows.map(entryFromRow);
 }
 

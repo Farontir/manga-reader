@@ -10,14 +10,3 @@ export function sensitiveSql(table = 'library_entries'): string {
 export function visibleSql(table = 'library_entries'): string {
   return `${sensitiveSql(table)} = 0`;
 }
-
-/** Library entries, most recently read first. */
-export function listEntriesSql(scope: 'library' | 'all', includeSensitive: boolean): string {
-  const conditions = [
-    scope === 'library' ? 'in_library = 1' : '',
-    includeSensitive ? '' : visibleSql(),
-  ].filter(Boolean);
-  return `SELECT * FROM library_entries
-    ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
-    ORDER BY last_read_at DESC, added_at DESC`;
-}
