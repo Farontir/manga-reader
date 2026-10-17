@@ -281,6 +281,11 @@ nouvelle source, en copier un et l'adapter :
 node scripts/smoke-mangadex.mjs
 ```
 
+`node scripts/audit-discover-covers.mjs` charge ensuite les sections « Découvrir » de
+chaque source et vérifie une miniature par domaine d'images avec les mêmes en-têtes
+que l'application. Les CDN de WEBTOON, Fanfox, SushiScan et MangaBats demandent le
+`Referer` de leur site ; `services/coverImage.ts` le fournit aux vignettes.
+
 Puis l'installer dans l'app depuis **Sources → Installer une source** avec l'URL de son
 dossier publié.
 

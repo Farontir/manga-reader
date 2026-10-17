@@ -22,4 +22,19 @@ describe('cover image source', () => {
       headers: { Referer: 'https://www.mangabats.com/' },
     });
   });
+
+  it('uses the source site as referer for protected image hosts', () => {
+    expect(coverImageSource('https://webtoon-phinf.pstatic.net/sample.jpg')).toEqual({
+      uri: 'https://webtoon-phinf.pstatic.net/sample.jpg',
+      headers: { Referer: 'https://www.webtoons.com/' },
+    });
+    expect(coverImageSource('https://fmcdn.mfcdn.net/cover.jpg')).toEqual({
+      uri: 'https://fmcdn.mfcdn.net/cover.jpg',
+      headers: { Referer: 'https://m.fanfox.net/' },
+    });
+    expect(coverImageSource('https://sushiscan.net/cover.jpg')).toEqual({
+      uri: 'https://sushiscan.net/cover.jpg',
+      headers: { Referer: 'https://sushiscan.net/' },
+    });
+  });
 });

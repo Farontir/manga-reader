@@ -43,7 +43,10 @@ function imageUrl(value) {
   try {
     const url = new URL(value);
     if (url.protocol !== 'https:' || !/\.(?:jpe?g|png|webp|avif)$/i.test(url.pathname)) return null;
-    if (/(?:^|\.)2xstorage\.com$/i.test(url.hostname) || url.hostname === 'storage.waitst.com') {
+    if (
+      /(?:^|\.)2xstorage\.com$/i.test(url.hostname) ||
+      /^storage\d*\.waitst\.com$/i.test(url.hostname)
+    ) {
       return url.toString();
     }
   } catch {
