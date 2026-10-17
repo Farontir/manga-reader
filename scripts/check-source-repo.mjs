@@ -85,7 +85,7 @@ const checks = [
     sourceId: 'com.webtoons.en',
     url: 'https://www.webtoons.com/en/originals',
     options: {},
-    valid: (body) => /_originals_title_a/.test(body),
+    valid: (body) => /_originals_title_a|_titleItem/.test(body),
     format: 'text',
   },
   {
@@ -93,7 +93,7 @@ const checks = [
     sourceId: 'com.webtoons.fr',
     url: 'https://www.webtoons.com/fr/originals',
     options: {},
-    valid: (body) => /_originals_title_a/.test(body),
+    valid: (body) => /_originals_title_a|_titleItem/.test(body),
     format: 'text',
   },
   {

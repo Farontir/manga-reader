@@ -3,8 +3,8 @@ import { runInNewContext } from 'node:vm';
 
 const probes = {
   mangaread: { query: 'One Piece', hosts: ['www.mangaread.org'] },
-  'webtoon-en': { query: 'Love 4 a Walk', hosts: ['www.webtoons.com'] },
-  'webtoon-fr': { query: 'Eleceed', hosts: ['www.webtoons.com'] },
+  'webtoon-en': { query: 'Love 4 a Walk', hosts: ['www.webtoons.com', 'm.webtoons.com'] },
+  'webtoon-fr': { query: 'Eleceed', hosts: ['www.webtoons.com', 'm.webtoons.com'] },
   fanfox: { query: 'One Piece', hosts: ['fanfox.net', 'm.fanfox.net'] },
   weebcentral: { query: 'One Piece', hosts: ['weebcentral.com'] },
   sushiscan: { query: 'One Piece', hosts: ['sushiscan.net'] },
@@ -27,7 +27,18 @@ for (const name of process.argv.slice(2)) {
           if (parsed.protocol !== 'https:' || !probe.hosts.includes(parsed.hostname)) {
             throw new Error(`Hôte interdit : ${url}`);
           }
-          const response = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) });
+          const mobile = name.startsWith('webtoon-');
+          const response = await fetch(url, {
+            ...options,
+            headers: mobile
+              ? {
+                  ...options?.headers,
+                  'User-Agent':
+                    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+                }
+              : options?.headers,
+            signal: AbortSignal.timeout(20000),
+          });
           const body = await response.text();
           if (body.length > (name === 'weebcentral' ? 3_000_000 : 2_000_000))
             throw new Error(`Réponse trop volumineuse : ${body.length}`);

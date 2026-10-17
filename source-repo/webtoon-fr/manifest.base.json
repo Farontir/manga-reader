@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "com.webtoons.fr",
   "name": "WEBTOON Français",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "fr",
   "contentRating": "safe",
-  "allowedHosts": ["www.webtoons.com"],
-  "bundle": "./bundle.js"
+  "allowedHosts": ["www.webtoons.com", "m.webtoons.com"],
+  "bundle": "./bundle.js?v=1.0.1"
 }

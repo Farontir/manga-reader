@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.webtoons.en",
   "name": "WEBTOON English",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "en",
   "contentRating": "safe",
-  "allowedHosts": ["www.webtoons.com"],
-  "bundle": "./bundle.js",
-  "sha256": "3551fdb62b924c866b62aba668a73967c10a747039f4e97ca839a3cc240598a1"
+  "allowedHosts": ["www.webtoons.com", "m.webtoons.com"],
+  "bundle": "./bundle.js?v=1.0.1",
+  "sha256": "5b753ea527cc498b5e6630f89430cae3f0dadb277f56deaad79dc46874402941"
 }
