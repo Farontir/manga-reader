@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -35,7 +34,6 @@ import {
   type SourceBinding,
 } from '../../db';
 import { downloadChapter } from '../../services/downloads';
-import { libraryCoverSource } from '../../services/appFiles';
 import { removeEntryAndFiles } from '../../services/libraryFiles';
 import {
   chapterLabel as labelOf,
@@ -49,6 +47,7 @@ import { relativeDate } from '../../services/relativeDate';
 import { resumeTarget } from '../../services/resume';
 import { isSensitive } from '../../services/sensitive';
 import { ActionButton } from '../../ui/components/ActionButton';
+import { LibraryCoverImage } from '../../ui/components/LibraryCoverImage';
 import { Screen } from '../../ui/components/Screen';
 import { selectionFeedback, successFeedback } from '../../ui/haptics';
 import { useSensitiveGuard } from '../../ui/privacy';
@@ -352,11 +351,7 @@ export default function EntryScreen() {
           <View>
             <View style={styles.hero}>
               {entry.coverUrl ? (
-                <Image
-                  source={libraryCoverSource(entry.coverUrl)}
-                  style={styles.cover}
-                  contentFit="cover"
-                />
+                <LibraryCoverImage uri={entry.coverUrl} style={styles.cover} contentFit="cover" />
               ) : (
                 <View style={[styles.cover, { backgroundColor: theme.border }]} />
               )}

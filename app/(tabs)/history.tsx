@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActionSheetIOS, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { hideFromHistory, listHistory, type HistoryItem } from '../../db';
-import { libraryCoverSource } from '../../services/appFiles';
 import { groupByDay } from '../../services/historyGroups';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { LibraryCoverImage } from '../../ui/components/LibraryCoverImage';
 import { Screen } from '../../ui/components/Screen';
 import { selectionFeedback } from '../../ui/haptics';
 import { useShowSensitive } from '../../ui/privacy';
@@ -105,8 +104,8 @@ export default function HistoryScreen() {
             style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
             {item.coverUrl ? (
-              <Image
-                source={libraryCoverSource(item.coverUrl)}
+              <LibraryCoverImage
+                uri={item.coverUrl}
                 style={[styles.cover, { backgroundColor: theme.border }]}
                 contentFit="cover"
                 cachePolicy="disk"

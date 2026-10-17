@@ -19,7 +19,9 @@ const names = [
   'sushiscan',
 ];
 
-for (const name of names.filter((item) => !process.argv[2] || item === process.argv[2])) {
+const mobile = process.argv.includes('--mobile');
+const selected = process.argv.slice(2).filter((item) => item !== '--mobile');
+for (const name of names.filter((item) => !selected.length || selected.includes(item))) {
   try {
     const directory = new URL(`../source-repo/${name}/`, import.meta.url);
     const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));
@@ -36,7 +38,18 @@ for (const name of names.filter((item) => !process.argv[2] || item === process.a
           const parsed = new URL(url);
           if (parsed.protocol !== 'https:' || !manifest.allowedHosts.includes(parsed.hostname))
             throw new Error(`Hôte interdit : ${parsed.hostname}`);
-          const response = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) });
+          const response = await fetch(url, {
+            ...options,
+            headers:
+              mobile && name.startsWith('webtoon-')
+                ? {
+                    ...options?.headers,
+                    'User-Agent':
+                      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+                  }
+                : options?.headers,
+            signal: AbortSignal.timeout(20000),
+          });
           const body = await response.text();
           if (body.length > (name === 'weebcentral' ? 3_000_000 : 2_000_000))
             throw new Error(`Réponse trop volumineuse : ${body.length}`);
@@ -64,7 +77,14 @@ for (const name of names.filter((item) => !process.argv[2] || item === process.a
         try {
           const source = coverImageSource(url);
           const response = await fetch(url, {
-            headers: source.headers,
+            headers:
+              mobile && name.startsWith('webtoon-')
+                ? {
+                    ...source.headers,
+                    'User-Agent':
+                      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+                  }
+                : source.headers,
             signal: AbortSignal.timeout(15000),
           });
           checks.push(

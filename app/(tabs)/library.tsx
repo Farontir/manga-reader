@@ -1,6 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -26,9 +25,9 @@ import {
   type LibraryEntry,
   type LibrarySort,
 } from '../../db';
-import { libraryCoverSource } from '../../services/appFiles';
 import { filterLibrary, unreadFirst } from '../../services/librarySearch';
 import { EmptyState } from '../../ui/components/EmptyState';
+import { LibraryCoverImage } from '../../ui/components/LibraryCoverImage';
 import { dismissFolderSyncMessage, pickWatchedFolder, useFolderSync } from '../../ui/folderSync';
 import { refreshLibrary, useLibraryRefresh } from '../../ui/libraryRefresh';
 import { toggleSensitiveLock, usePrivacy, useShowSensitive } from '../../ui/privacy';
@@ -308,8 +307,8 @@ export default function LibraryScreen() {
             style={styles.cell}
           >
             {item.coverUrl ? (
-              <Image
-                source={libraryCoverSource(item.coverUrl)}
+              <LibraryCoverImage
+                uri={item.coverUrl}
                 style={[styles.cover, { backgroundColor: theme.surface }]}
                 contentFit="cover"
                 cachePolicy="disk"
