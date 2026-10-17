@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "org.mangaread.en",
   "name": "MangaRead",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["www.mangaread.org"],
-  "bundle": "./bundle.js",
+  "bundle": "./bundle.js?v=1.0.2",
   "sha256": "8d1047b3934daea21931f78a274c35ea592ed33f10d014c1d179141d5616e9e0"
 }

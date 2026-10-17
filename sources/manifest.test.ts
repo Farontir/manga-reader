@@ -22,6 +22,9 @@ describe('source manifest', () => {
     expect(resolveBundleUrl('https://example.org/sources/manifest.json', './bundle.js')).toBe(
       'https://example.org/sources/bundle.js',
     );
+    expect(
+      resolveBundleUrl('https://example.org/sources/manifest.json', './bundle.js?v=1.0.2'),
+    ).toBe('https://example.org/sources/bundle.js?v=1.0.2');
   });
 
   it('accepts declared adult sources and rejects unknown ratings', () => {
