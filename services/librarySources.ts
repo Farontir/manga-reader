@@ -143,11 +143,8 @@ export async function openSourceManga(sourceId: string, manga: SourceManga): Pro
     }));
   await upsertBinding({ libraryEntryId: entry.id, sourceId, mangaId: manga.id, priority: 1 });
   if (existing) await rateEntryFromSource(entry.id, manga);
-  try {
-    await refreshSourceChapters(entry.id, sourceId, manga.id);
-  } catch {
-    /* The entry and binding remain, so the user can retry later. */
-  }
+  // The entry screen loads chapters after navigation. Waiting for a large
+  // chapter list here makes tapping a Discover cover feel unresponsive.
   return entry;
 }
 

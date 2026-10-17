@@ -74,6 +74,7 @@ export default function EntryScreen() {
   const [chapterCounts, setChapterCounts] = useState<Record<string, number>>({});
   const [synopsisOpen, setSynopsisOpen] = useState(false);
   const detailsChecked = useRef(false);
+  const initialChaptersChecked = useRef<string | null>(null);
 
   const reload = useCallback(() => {
     if (!id) return;
@@ -116,6 +117,28 @@ export default function EntryScreen() {
     );
   }, [id]);
   useFocusEffect(reload);
+
+  useEffect(() => {
+    const missingSources = bindings
+      .filter((binding) => (chapterCounts[binding.sourceId] ?? 0) === 0)
+      .map((binding) => binding.sourceId)
+      .sort();
+    const checkKey = `${id}:${missingSources.join(',')}`;
+    if (
+      !id ||
+      entry?.id !== id ||
+      !bindings.length ||
+      (chapters.length > 0 && !missingSources.length) ||
+      initialChaptersChecked.current === checkKey
+    )
+      return;
+    initialChaptersChecked.current = checkKey;
+    setRefreshing(true);
+    void refreshEntryChapters(id)
+      .then(reload)
+      .catch(() => undefined)
+      .finally(() => setRefreshing(false));
+  }, [id, entry, bindings, chapterCounts, chapters.length, reload]);
 
   // Synopsis, genres… are fetched once per visit when missing or older than a week.
   useEffect(() => {
@@ -515,8 +538,9 @@ export default function EntryScreen() {
             </View>
             {!chapters.length ? (
               <Text style={{ color: theme.secondary, marginBottom: 20 }}>
-                Aucun chapitre. Relie une source, ou importe un fichier depuis Réglages → Fichiers
-                locaux.
+                {refreshing
+                  ? 'Chargement des chapitres…'
+                  : 'Aucun chapitre. Relie une source, ou importe un fichier depuis Réglages → Fichiers locaux.'}
               </Text>
             ) : null}
           </View>

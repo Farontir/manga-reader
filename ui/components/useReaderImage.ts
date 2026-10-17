@@ -15,8 +15,6 @@ export function useReaderImage(page: ReaderPage, onError?: () => void) {
   useEffect(() => {
     let active = true;
     retries.current = 0;
-    setAttempt(0);
-    setDisplayUri(page.uri);
     void cachedImageUri(page)
       .then((uri) => {
         if (active && uri) setDisplayUri(uri);
