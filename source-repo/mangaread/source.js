@@ -30,6 +30,16 @@ function image(value) {
   }
 }
 
+function coverImage(element) {
+  const srcset = element.attr('data-srcset') || element.attr('srcset') || '';
+  const candidates = [...srcset.matchAll(/(?:^|,)\s*(\S+)\s+(\d+)w\s*(?=,|$)/g)]
+    .map((match) => ({ url: image(match[1]), width: Number(match[2]) }))
+    .filter((candidate) => candidate.url && Number.isSafeInteger(candidate.width))
+    .sort((a, b) => a.width - b.width);
+  const best = candidates.find((candidate) => candidate.width >= 600) || candidates[candidates.length - 1];
+  return best?.url || image(element.attr('data-src') || element.attr('src'));
+}
+
 function dateOf(value) {
   const match = /^(\d+)\s+(min(?:ute)?s?|hours?|days?|weeks?|months?|years?)\s+ago$/i.exec(value);
   if (match) {
@@ -62,7 +72,7 @@ function cards($, selector, listingGenre) {
     const rating = ratingFromGenres([...genres, listingGenre]);
     items.push({
       id, title,
-      coverUrl: image(card.find('.item-thumb img, .tab-thumb img').first().attr('src')),
+      coverUrl: coverImage(card.find('.item-thumb img, .tab-thumb img').first()),
       ...(genres.length ? { genres: [...new Set(genres)].slice(0, 20) } : {}),
       ...(rating ? { contentRating: rating } : {}),
     });
@@ -113,7 +123,7 @@ globalThis.source = {
     const authors = $('.author-content a').map((_, anchor) => $(anchor).text().trim()).get().filter(Boolean).slice(0, 20);
     return {
       id: path, title,
-      coverUrl: image($('.summary_image img').first().attr('src')),
+      coverUrl: coverImage($('.summary_image img').first()),
       description: $('.summary__content').first().text().trim().slice(0, 4000) || undefined,
       genres: mangaGenres, authors,
       ...(rating ? { contentRating: rating } : {}),

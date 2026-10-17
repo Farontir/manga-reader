@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "org.mangaread.en",
   "name": "MangaRead",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["www.mangaread.org"],
