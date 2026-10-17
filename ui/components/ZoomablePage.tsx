@@ -60,7 +60,7 @@ export function ZoomablePage({
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const [panEnabled, setPanEnabled] = useState(false);
-  const { source, handleError } = useReaderImage(page, onError);
+  const { source, attempt, handleError } = useReaderImage(page, onError);
   const height = paged ? viewportHeight : width * ratio;
   const imageWidth = paged ? Math.min(width, height / ratio) : width;
   const imageHeight = paged ? imageWidth * ratio : height;
@@ -198,6 +198,7 @@ export function ZoomablePage({
           style={[styles.imageContainer, { width: imageWidth, height: imageHeight }, animatedStyle]}
         >
           <Image
+            key={attempt}
             source={source}
             style={{ width: imageWidth, height: imageHeight }}
             contentFit="contain"

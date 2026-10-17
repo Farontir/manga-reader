@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cachedImageUri } from '../../services/imageCache';
 import type { ReaderPage } from '../../services/readerPages';
@@ -9,8 +9,14 @@ import type { ReaderPage } from '../../services/readerPages';
  */
 export function useReaderImage(page: ReaderPage, onError?: () => void) {
   const [displayUri, setDisplayUri] = useState(page.uri);
+  const [attempt, setAttempt] = useState(0);
+  const retries = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     let active = true;
+    retries.current = 0;
+    setAttempt(0);
+    setDisplayUri(page.uri);
     void cachedImageUri(page)
       .then((uri) => {
         if (active && uri) setDisplayUri(uri);
@@ -18,13 +24,28 @@ export function useReaderImage(page: ReaderPage, onError?: () => void) {
       .catch(() => undefined);
     return () => {
       active = false;
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+        retryTimer.current = null;
+      }
     };
   }, [page]);
   return {
     source: { uri: displayUri, headers: displayUri === page.uri ? page.headers : undefined },
+    attempt,
     handleError: () => {
-      if (displayUri !== page.uri) setDisplayUri(page.uri);
-      else onError?.();
+      if (displayUri !== page.uri) {
+        setDisplayUri(page.uri);
+      } else if (retries.current < 2 && !retryTimer.current) {
+        const delay = 800 * 2 ** retries.current;
+        retries.current += 1;
+        retryTimer.current = setTimeout(() => {
+          retryTimer.current = null;
+          setAttempt((value) => value + 1);
+        }, delay);
+      } else if (retries.current >= 2 && !retryTimer.current) {
+        onError?.();
+      }
     },
   };
 }

@@ -32,7 +32,8 @@ function chapterPath(value) {
 function image(value) {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && url.hostname === 'temp.compsci88.com'
+    return url.protocol === 'https:' &&
+      (url.hostname === 'temp.compsci88.com' || url.hostname === 'hot.planeptune.us')
       ? url.href
       : undefined;
   } catch {

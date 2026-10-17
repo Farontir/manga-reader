@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "com.weebcentral.en",
   "name": "WeebCentral",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["weebcentral.com"],
   "bundle": "./bundle.js",
-  "sha256": "8e8e0018a1f195a390b475ad155f5cbfa9e891184f003843d9ca032f88f3c7af"
+  "sha256": "829f905f8cce250576634ec808ab6ad4c5ef2c5bddb81b5d883a51e1f9b1537f"
 }

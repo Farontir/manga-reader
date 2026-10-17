@@ -28,11 +28,12 @@ type PageProps = {
 
 function WebtoonPage({ page, width, initialRatio, onRatio, onPress, onError }: PageProps) {
   const [ratio, setRatio] = useState(initialRatio);
-  const { source, handleError } = useReaderImage(page, onError);
+  const { source, attempt, handleError } = useReaderImage(page, onError);
   const height = PixelRatio.roundToNearestPixel(width * ratio);
   return (
     <Pressable onPress={onPress} accessibilityRole="image">
       <Image
+        key={attempt}
         source={source}
         style={{ width, height }}
         contentFit="fill"
