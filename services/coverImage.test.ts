@@ -32,6 +32,10 @@ describe('cover image source', () => {
       uri: 'https://fmcdn.mfcdn.net/cover.jpg',
       headers: { Referer: 'https://m.fanfox.net/' },
     });
+    expect(coverImageSource('https://fmcdn.mfcdn.net/cover.jpg?token=old&ttl=1&v=123')).toEqual({
+      uri: 'https://fmcdn.mfcdn.net/cover.jpg?v=123',
+      headers: { Referer: 'https://m.fanfox.net/' },
+    });
     expect(coverImageSource('https://sushiscan.net/cover.jpg')).toEqual({
       uri: 'https://sushiscan.net/cover.jpg',
       headers: { Referer: 'https://sushiscan.net/' },

@@ -19,7 +19,7 @@ const names = [
   'sushiscan',
 ];
 
-for (const name of names) {
+for (const name of names.filter((item) => !process.argv[2] || item === process.argv[2])) {
   try {
     const directory = new URL(`../source-repo/${name}/`, import.meta.url);
     const manifest = JSON.parse(await readFile(new URL('manifest.json', directory), 'utf8'));
@@ -51,26 +51,29 @@ for (const name of names) {
     const samples = new Map();
     for (const item of covered) {
       const host = new URL(item.coverUrl).hostname;
-      if (!samples.has(host)) samples.set(host, item.coverUrl);
+      if (!samples.has(host)) samples.set(host, []);
+      if (samples.get(host).length < 5) samples.get(host).push(item.coverUrl);
     }
     const missing = items
       .filter((item) => !item.coverUrl)
       .slice(0, 3)
       .map((item) => item.title);
     const checks = [];
-    for (const [host, url] of samples) {
-      try {
-        const source = coverImageSource(url);
-        const response = await fetch(url, {
-          headers: source.headers,
-          signal: AbortSignal.timeout(15000),
-        });
-        checks.push(
-          `${host}:${response.status}/${response.headers.get('content-type')?.split(';')[0] ?? '?'}`,
-        );
-        await response.body?.cancel();
-      } catch (error) {
-        checks.push(`${host}:ERR ${error.message}`);
+    for (const [host, urls] of samples) {
+      for (const url of urls) {
+        try {
+          const source = coverImageSource(url);
+          const response = await fetch(url, {
+            headers: source.headers,
+            signal: AbortSignal.timeout(15000),
+          });
+          checks.push(
+            `${host}:${response.status}/${response.headers.get('content-type')?.split(';')[0] ?? '?'}/${response.headers.get('content-length') ?? '?'}`,
+          );
+          await response.body?.cancel();
+        } catch (error) {
+          checks.push(`${host}:ERR ${error.message}`);
+        }
       }
     }
     console.log(

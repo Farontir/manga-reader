@@ -9,7 +9,12 @@ export function coverImageSource(uri: string): { uri: string; headers?: Record<s
       return { uri, headers: { Referer: 'https://www.webtoons.com/' } };
     }
     if (hostname === 'fmcdn.mfcdn.net') {
-      return { uri, headers: { Referer: 'https://m.fanfox.net/' } };
+      // Existing library entries may still hold Fanfox's expiring signed URLs.
+      const url = new URL(uri);
+      const version = url.searchParams.get('v');
+      url.search = '';
+      if (version && /^\d{1,15}$/.test(version)) url.searchParams.set('v', version);
+      return { uri: url.href, headers: { Referer: 'https://m.fanfox.net/' } };
     }
     if (hostname === 'sushiscan.net' || hostname.endsWith('.sushiscan.net')) {
       return { uri, headers: { Referer: 'https://sushiscan.net/' } };

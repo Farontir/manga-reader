@@ -37,7 +37,14 @@ function image(value, cover = false) {
   try {
     const url = new URL(value, mobile);
     if (url.protocol !== 'https:') return undefined;
-    if (cover && url.hostname === 'fmcdn.mfcdn.net') return url.href;
+    if (cover && url.hostname === 'fmcdn.mfcdn.net') {
+      // Fanfox adds short-lived token/ttl parameters to covers. The CDN also
+      // serves the same image without them when the Fanfox Referer is sent.
+      const version = url.searchParams.get('v');
+      url.search = '';
+      if (version && /^\d{1,15}$/.test(version)) url.searchParams.set('v', version);
+      return url.href;
+    }
     if (!cover && (url.hostname === 'zjcdn.mangafox.me' || url.hostname.endsWith('.mangafox.me')))
       return url.href;
     return undefined;

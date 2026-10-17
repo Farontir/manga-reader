@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { coverImageSource } from '../../services/coverImage';
 import type { SourceManga } from '../../sources/types';
 import { useTheme } from '../useTheme';
+import { useCoverImage } from './useCoverImage';
 
 const SIZES = {
   featured: { width: 190, height: 272, title: 16 },
@@ -27,6 +27,7 @@ export function MangaCover({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const coverSource = useCoverImage(manga.coverUrl);
   const size = width
     ? { width, height: Math.round(width * 1.43), title: SIZES.regular.title }
     : SIZES[variant];
@@ -40,7 +41,7 @@ export function MangaCover({
     >
       {manga.coverUrl ? (
         <Image
-          source={coverImageSource(manga.coverUrl)}
+          source={coverSource}
           style={[styles.cover, { width: size.width, height: size.height }]}
           contentFit="cover"
         />

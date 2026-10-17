@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "net.fanfox.en",
   "name": "Fanfox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "language": "en",
   "contentRating": "adult",
   "allowedHosts": ["fanfox.net", "m.fanfox.net"],
   "bundle": "./bundle.js",
-  "sha256": "3c63872b7595a86fcf9a38b5a7243daa565164af06b328bfe53d6e062a85cac4"
+  "sha256": "1e5d0e1b873524ff4d2226c31339dce4b8dc938a8319c05d031a2b6c94c124e9"
 }

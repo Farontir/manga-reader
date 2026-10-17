@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { coverImageSource } from '../../services/coverImage';
 import type { SearchResult } from '../useGlobalSearch';
 import { useTheme } from '../useTheme';
+import { useCoverImage } from './useCoverImage';
 
 /** One grouped search result: cover, title and who offers it (AniList · sources). */
 export function SearchResultRow({
@@ -19,6 +19,7 @@ export function SearchResultRow({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const coverSource = useCoverImage(result.coverUrl);
   return (
     <Pressable
       onPress={onPress}
@@ -26,7 +27,7 @@ export function SearchResultRow({
       style={[styles.result, { backgroundColor: theme.surface, borderColor: theme.border }]}
     >
       {result.coverUrl ? (
-        <Image source={coverImageSource(result.coverUrl)} style={styles.cover} contentFit="cover" />
+        <Image source={coverSource} style={styles.cover} contentFit="cover" />
       ) : (
         <View style={[styles.cover, { backgroundColor: theme.border }]} />
       )}
