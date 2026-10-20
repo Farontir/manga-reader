@@ -23,7 +23,6 @@ import {
   listKnownChapters,
   listLocalChapters,
   listProgress,
-  markBindingHealth,
   saveProgress,
   type LibraryEntry,
 } from '../../db';
@@ -315,16 +314,11 @@ function ReaderContent({
   }, [mode, pages, pageIndex]);
 
   async function handlePageError(source: string | undefined) {
-    if (!source) {
-      setError('Image locale indisponible. Réimporte ou retélécharge ce chapitre.');
-      return;
-    }
+    if (!source) return;
     if (switchingSource.current || failedSources.current.has(source)) return;
     switchingSource.current = true;
     failedSources.current.add(source);
     try {
-      const binding = (await listBindings(id)).find((item) => item.sourceId === source);
-      if (binding) await markBindingHealth(binding.id, 'Image indisponible.');
       const replacement = await resolveChapterPages(id, chapterNumber, sourceId, chapterId, [
         ...failedSources.current,
       ]);
@@ -336,7 +330,7 @@ function ReaderContent({
       setPages(replacement);
       successFeedback();
     } catch {
-      setError('Images indisponibles sur toutes les sources liées à ce chapitre.');
+      // Keep the failed page visible with its retry button; the chapter remains scrollable.
     } finally {
       switchingSource.current = false;
     }
@@ -352,7 +346,6 @@ function ReaderContent({
         initialPage={pageIndex}
         chapters={chapters}
         saver={saver}
-        onFatalError={setError}
         onPaged={(segment, page) => {
           saver.flush();
           setMode('paged');
@@ -451,7 +444,6 @@ function WebtoonSession({
   initialPage,
   chapters,
   saver,
-  onFatalError,
   onPaged,
 }: {
   entryId: string;
@@ -459,7 +451,6 @@ function WebtoonSession({
   initialPage: number;
   chapters: ChapterItem[] | null;
   saver: Saver;
-  onFatalError: (message: string) => void;
   onPaged: (segment: FeedSegment, page: number) => void;
 }) {
   const theme = useTheme();
@@ -534,18 +525,13 @@ function WebtoonSession({
     const segmentIndex = segments.findIndex((segment) => segment.pages.includes(page));
     const segment = segments[segmentIndex];
     if (!segment) return;
-    if (!page.sourceId) {
-      onFatalError('Image locale indisponible. Réimporte ou retélécharge ce chapitre.');
-      return;
-    }
+    if (!page.sourceId) return;
     const failed = failedSources.current.get(segment.number) ?? new Set<string>();
     if (switching.current || failed.has(page.sourceId)) return;
     switching.current = true;
     failed.add(page.sourceId);
     failedSources.current.set(segment.number, failed);
     try {
-      const binding = (await listBindings(entryId)).find((item) => item.sourceId === page.sourceId);
-      if (binding) await markBindingHealth(binding.id, 'Image indisponible.');
       const replacement = await resolveChapterPages(
         entryId,
         segment.number,
@@ -560,7 +546,7 @@ function WebtoonSession({
       );
       successFeedback();
     } catch {
-      onFatalError('Images indisponibles sur toutes les sources liées à ce chapitre.');
+      // A single broken strip must not replace the entire continuous reader with an error.
     } finally {
       switching.current = false;
     }

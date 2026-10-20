@@ -10,6 +10,7 @@ import type { ReaderPage } from '../../services/readerPages';
 export function useReaderImage(page: ReaderPage, onError?: () => void) {
   const [displayUri, setDisplayUri] = useState(page.uri);
   const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
   const retries = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -31,6 +32,15 @@ export function useReaderImage(page: ReaderPage, onError?: () => void) {
   return {
     source: { uri: displayUri, headers: displayUri === page.uri ? page.headers : undefined },
     attempt,
+    failed,
+    retry: () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+      retries.current = 0;
+      setDisplayUri(page.uri);
+      setFailed(false);
+      setAttempt((value) => value + 1);
+    },
     handleError: () => {
       if (displayUri !== page.uri) {
         setDisplayUri(page.uri);
@@ -42,6 +52,7 @@ export function useReaderImage(page: ReaderPage, onError?: () => void) {
           setAttempt((value) => value + 1);
         }, delay);
       } else if (retries.current >= 2 && !retryTimer.current) {
+        setFailed(true);
         onError?.();
       }
     },

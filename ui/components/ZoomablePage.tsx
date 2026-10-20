@@ -6,6 +6,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ReaderPage } from '../../services/readerPages';
+import { ReaderImageFailure } from './ReaderImageFailure';
 import { useReaderImage } from './useReaderImage';
 
 type Props = {
@@ -60,7 +61,7 @@ export function ZoomablePage({
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const [panEnabled, setPanEnabled] = useState(false);
-  const { source, attempt, handleError } = useReaderImage(page, onError);
+  const { source, attempt, failed, retry, handleError } = useReaderImage(page, onError);
   const height = paged ? viewportHeight : width * ratio;
   const imageWidth = paged ? Math.min(width, height / ratio) : width;
   const imageHeight = paged ? imageWidth * ratio : height;
@@ -190,6 +191,14 @@ export function ZoomablePage({
       { scale: scale.value },
     ],
   }));
+
+  if (failed) {
+    return (
+      <View style={[styles.container, { width, height }]}>
+        <ReaderImageFailure onRetry={retry} />
+      </View>
+    );
+  }
 
   return (
     <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap)}>

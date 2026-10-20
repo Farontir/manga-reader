@@ -11,6 +11,7 @@ import {
 
 import type { FeedItem } from '../../services/readerFeed';
 import type { ReaderPage } from '../../services/readerPages';
+import { ReaderImageFailure } from './ReaderImageFailure';
 import { useReaderImage } from './useReaderImage';
 import { pageAtScroll } from './webtoonPosition';
 
@@ -28,8 +29,9 @@ type PageProps = {
 
 function WebtoonPage({ page, width, initialRatio, onRatio, onPress, onError }: PageProps) {
   const [ratio, setRatio] = useState(initialRatio);
-  const { source, attempt, handleError } = useReaderImage(page, onError);
-  const height = PixelRatio.roundToNearestPixel(width * ratio);
+  const { source, attempt, failed, retry, handleError } = useReaderImage(page, onError);
+  const height = failed ? 144 : PixelRatio.roundToNearestPixel(width * ratio);
+  if (failed) return <ReaderImageFailure onRetry={retry} />;
   return (
     <Pressable onPress={onPress} accessibilityRole="image">
       <Image
