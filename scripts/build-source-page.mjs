@@ -172,6 +172,11 @@ ${cards.join('\n')}
         fetch(sourceUrl + 'status.json', { cache: 'no-store' })
           .then((response) => (response.ok ? response.json() : null))
           .then((data) => {
+            if (data?.status === 'down' && data.httpStatus === 403) {
+              status.textContent = '● Vérifier dans l’app';
+              status.classList.add('degraded');
+              return;
+            }
             status.textContent = (data && labels[data.status]) || '';
             if (data && labels[data.status]) status.classList.add(data.status);
           })
