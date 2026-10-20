@@ -10,6 +10,7 @@ const hosts = {
   mangakatana: ['mangakatana.com'],
   mangadex: ['api.mangadex.org'],
   'komga-demo': ['demo.komga.org'],
+  toonily: ['toonily.com'],
 };
 
 const minimumGenres = {
@@ -21,6 +22,7 @@ const minimumGenres = {
   mangadex: 70,
   peppercarrot: 1,
   'komga-demo': 1,
+  toonily: 25,
 };
 const adultSources = new Set(['mangabats', 'mangakakalot', 'mangakatana', 'mangadex']);
 const skipped = process.argv.find((argument) => argument.startsWith('--skip='))?.slice(7);

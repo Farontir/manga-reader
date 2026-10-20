@@ -30,6 +30,7 @@ Ce dossier est publié sur GitHub Pages depuis [Farontir/manga-reader](https://g
 - Fanfox : `https://farontir.github.io/manga-reader/fanfox/`
 - WeebCentral : `https://farontir.github.io/manga-reader/weebcentral/`
 - SushiScan : `https://farontir.github.io/manga-reader/sushiscan/`
+- Toonily : `https://farontir.github.io/manga-reader/toonily/`
 
 Le workflow commite `status.json` sur `main` à chaque vérification : faire `git pull` avant de pousser.
 
