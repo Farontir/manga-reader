@@ -1,6 +1,6 @@
 {
   "sourceId": "org.komga.demo",
-  "checkedAt": "2026-10-20T04:50:18.408Z",
-  "status": "down",
-  "httpStatus": 523
+  "checkedAt": "2026-10-20T11:35:24.902Z",
+  "status": "ok",
+  "httpStatus": 200
 }
