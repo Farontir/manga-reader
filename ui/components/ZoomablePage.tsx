@@ -48,20 +48,40 @@ function resistTranslation(value: number, limit: number, previous: boolean, next
   return value;
 }
 
-export function ZoomablePage({
-  page,
+export function ZoomablePage(props: Props) {
+  const { source, attempt, failed, retry, handleError } = useReaderImage(props.page, () => {
+    props.onZoomChange?.(false);
+    props.onError?.();
+  });
+  if (failed) {
+    const width = Dimensions.get('window').width;
+    return (
+      <View style={[styles.container, { width, height: props.paged ? props.viewportHeight : 144 }]}>
+        <ReaderImageFailure onRetry={retry} />
+      </View>
+    );
+  }
+  return <ZoomableImage {...props} source={source} attempt={attempt} handleError={handleError} />;
+}
+
+function ZoomableImage({
   paged,
   viewportHeight,
-  onError,
   onZoomChange,
   onEdgeSwipe,
   canGoPrevious = false,
   canGoNext = false,
-}: Props) {
+  source,
+  attempt,
+  handleError,
+}: Props & {
+  source: { uri: string; headers?: Record<string, string> };
+  attempt: number;
+  handleError: () => void;
+}) {
   const width = Dimensions.get('window').width;
   const [ratio, setRatio] = useState(1.45);
   const [panEnabled, setPanEnabled] = useState(false);
-  const { source, attempt, failed, retry, handleError } = useReaderImage(page, onError);
   const height = paged ? viewportHeight : width * ratio;
   const imageWidth = paged ? Math.min(width, height / ratio) : width;
   const imageHeight = paged ? imageWidth * ratio : height;
@@ -191,14 +211,6 @@ export function ZoomablePage({
       { scale: scale.value },
     ],
   }));
-
-  if (failed) {
-    return (
-      <View style={[styles.container, { width, height }]}>
-        <ReaderImageFailure onRetry={retry} />
-      </View>
-    );
-  }
 
   return (
     <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap)}>
