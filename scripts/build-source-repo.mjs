@@ -19,6 +19,7 @@ for (const name of [
   'fanfox',
   'weebcentral',
   'sushiscan',
+  'toonily',
 ]) {
   const directory = new URL(`../source-repo/${name}/`, import.meta.url);
   if (
@@ -35,6 +36,7 @@ for (const name of [
       'fanfox',
       'weebcentral',
       'sushiscan',
+      'toonily',
     ].includes(name)
   ) {
     await build({
@@ -76,6 +78,7 @@ for (const name of [
       fanfox: 'Fanfox',
       weebcentral: 'WeebCentral',
       sushiscan: 'SushiScan',
+      toonily: 'Toonily',
     }[name];
     const notices = [`Third-party notices for the ${label} source bundle.`];
     for (const packagePath of packages) {

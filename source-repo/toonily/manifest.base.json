@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "com.toonily.en",
+  "name": "Toonily",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "adult",
+  "allowedHosts": ["toonily.com"],
+  "bundle": "./bundle.js?v=1.0.0"
+}

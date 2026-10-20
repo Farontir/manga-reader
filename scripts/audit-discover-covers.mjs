@@ -17,6 +17,7 @@ const names = [
   'fanfox',
   'weebcentral',
   'sushiscan',
+  'toonily',
 ];
 
 const mobile = process.argv.includes('--mobile');

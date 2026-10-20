@@ -120,6 +120,14 @@ const checks = [
     valid: (body) => /class="bsx"/.test(body),
     format: 'text',
   },
+  {
+    directory: 'toonily',
+    sourceId: 'com.toonily.en',
+    url: 'https://toonily.com/webtoons/',
+    options: {},
+    valid: (body) => /page-item-detail manga/.test(body),
+    format: 'text',
+  },
 ];
 
 const selected = process.argv.find((argument) => argument.startsWith('--only='))?.slice(7);

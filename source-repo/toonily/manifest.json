@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "com.toonily.en",
+  "name": "Toonily",
+  "version": "1.0.0",
+  "language": "en",
+  "contentRating": "adult",
+  "allowedHosts": ["toonily.com"],
+  "bundle": "./bundle.js?v=1.0.0",
+  "sha256": "1a56cc5686ed72bd4a197d1ddfb4d71a8eff92a9d9723845128418fc55f93b5d"
+}

@@ -17,6 +17,7 @@ const samples = {
   fanfox: { query: 'One Piece' },
   weebcentral: { query: 'One Piece' },
   sushiscan: { query: 'One Piece' },
+  toonily: { query: 'Solo Leveling' },
   peppercarrot: { id: 'peppercarrot' },
   mangadex: { query: 'Yotsuba' },
   'komga-demo': { query: 'Super Duck' },
