@@ -1,6 +1,6 @@
 {
   "sourceId": "org.mangadex.en",
-  "checkedAt": "2026-10-21T04:45:34.972Z",
-  "status": "ok",
-  "httpStatus": 200
+  "checkedAt": "2026-10-21T11:48:15.316Z",
+  "status": "down",
+  "httpStatus": 503
 }
